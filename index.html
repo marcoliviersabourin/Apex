@@ -851,7 +851,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.4.1 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.5.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -937,6 +937,11 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="metric-label">Compliance</div>
           <div class="metric-value" id="dashCompliance">—</div>
           <div class="metric-sub" id="dashComplianceSub">—</div>
+        </div>
+        <div class="metric-card" style="border-top:3px solid var(--green);">
+          <div class="metric-label">Cash</div>
+          <div class="metric-value" id="dashCash" style="color:var(--green);">$0</div>
+          <div class="metric-sub" id="dashCashPct">0% of portfolio</div>
         </div>
       </div>
 
@@ -1087,6 +1092,34 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
         <div id="importTagList"></div>
       </div>
+    </div>
+
+    <!-- Cash Balances -->
+    <div class="card fade-in" id="cashCard" style="margin-top:16px;">
+      <div class="card-header">
+        <span class="card-title" style="font-size:13px;">💰 Cash Balances</span>
+        <button class="btn btn-sm" onclick="saveCashBalances()">💾 Save</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+        <div class="form-group" style="margin:0;flex:1;min-width:100px;">
+          <label class="form-label" style="font-size:10px;">USD</label>
+          <input type="number" class="form-input" id="cashUSD" step="0.01" style="font-family:'IBM Plex Mono',monospace;font-size:13px;">
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:100px;">
+          <label class="form-label" style="font-size:10px;">CAD</label>
+          <input type="number" class="form-input" id="cashCAD" step="0.01" style="font-family:'IBM Plex Mono',monospace;font-size:13px;">
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:100px;">
+          <label class="form-label" style="font-size:10px;">EUR</label>
+          <input type="number" class="form-input" id="cashEUR" step="0.01" style="font-family:'IBM Plex Mono',monospace;font-size:13px;">
+        </div>
+        <div style="text-align:right;min-width:120px;">
+          <div style="font-size:10px;color:var(--text-tertiary);">Total Cash</div>
+          <div style="font-size:16px;font-weight:700;color:var(--green);font-family:'IBM Plex Mono',monospace;" id="cashTotalDisplay">$0</div>
+          <div style="font-size:10px;color:var(--text-tertiary);" id="cashPctDisplay">0% of portfolio</div>
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">Auto-filled from Flex Query import. Edit manually if needed.</div>
     </div>
 
     <!-- Holdings tabs + table -->
@@ -1274,6 +1307,15 @@ input[type="range"]::-webkit-slider-thumb {
           </div>
           <input type="range" min="2" max="20" value="8" id="fxTolSlider" oninput="document.getElementById('fxTolVal').textContent=this.value+'%'">
         </div>
+      </div>
+
+      <div class="slider-group" style="margin-top:8px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Min Cash Reserve</span>
+          <span class="slider-value" id="minCashVal" style="color:var(--green);">0%</span>
+        </div>
+        <input type="range" min="0" max="20" value="0" id="minCashSlider" oninput="document.getElementById('minCashVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">Target portfolio will always reserve at least this % in cash. 0% = fully invested.</div>
       </div>
 
       <div class="slider-group" style="margin-top:8px;">
@@ -1769,8 +1811,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.4.1</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-03-24-006</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-06-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1798,8 +1840,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.4.1';
-const APEX_BUILD = '2026-03-24-006';
+const APEX_VERSION = '2.5.0';
+const APEX_BUILD = '2026-04-06-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -1814,9 +1856,10 @@ const SECTOR_MAP = {
   'MDA':'Defence','ESLT':'Defence','RTX':'Defence',
   'CNC':'Healthcare','CRSP':'Healthcare','MRK':'Healthcare',
   'SOFI':'Finance','TD':'Finance',
-  'CS':'Materials','TECK.B':'Materials','FCX':'Materials','NXE':'Materials',
+  'CS':'Materials','TECK.B':'Materials','FCX':'Materials','NXE':'Materials','NEM':'Materials',
   'GEVO':'Energy','NIO':'Consumer Discretionary','MAR':'Consumer Discretionary',
-  'COKE':'Consumer Staples','XIC':'ETF'
+  'COKE':'Consumer Staples','XIC':'ETF','VOO':'ETF',
+  'LMT':'Defence','NOC':'Defence','FRO':'Energy','WLN':'Technology'
 };
 
 // ═══ STATE ═══
@@ -1824,8 +1867,9 @@ let state = {
   positions: [],
   profile: null,
   reports: [],
-  analysisData: null, // Structured JSON from latest analysis
-  watchlist: [], // User's personal watchlist
+  analysisData: null,
+  watchlist: [],
+  cashBalances: { USD: 0, CAD: 0, EUR: 0 },
   settings: { apiKey:'', model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
   currentPage: 'dashboard',
   importBuffer: [],
@@ -1869,6 +1913,7 @@ function loadState() {
       state.reports = parsed.reports || [];
       state.analysisData = parsed.analysisData || null;
       state.watchlist = parsed.watchlist || [];
+      state.cashBalances = parsed.cashBalances || { USD:0, CAD:0, EUR:0 };
       state.settings = { ...state.settings, ...(parsed.settings || {}) };
     }
     const prof = localStorage.getItem('apex_profile');
@@ -1888,6 +1933,7 @@ function saveState() {
       reports: state.reports,
       analysisData: state.analysisData,
       watchlist: state.watchlist,
+      cashBalances: state.cashBalances,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -1902,7 +1948,7 @@ function getDefaultProfile() {
     coreTarget:70, tactTarget:30, driftTolerance:10,
     coreMax:7, tactMax:3, etfMax:15, maxPositions:30, maxTactCount:10,
     minCap:200, stopLoss:8, minRR:2,
-    cadTarget:20, fxTolerance:8,
+    cadTarget:20, fxTolerance:8, minCashReserve:0,
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -1973,40 +2019,72 @@ function parseIBKR(text, filename) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l);
   const positions = [];
   const seen = {};
+  const cashTotals = { USD: 0, CAD: 0, EUR: 0 };
+  let inCashSection = false;
+  let inPositionSection = false;
   
   for (const line of lines) {
-    // Parse CSV respecting quotes
     const cols = parseCSVLine(line);
-    if (!cols || cols.length < 8) continue;
-    // Skip header rows and metadata
-    if (['BOF','BOA','BOS','EOS','EOA','EOF','CurrencyPrimary'].includes(cols[0])) continue;
+    if (!cols || cols.length < 2) continue;
     
-    const ccy = cols[0];
-    const symbol = cols[1];
-    const exchange = cols[2];
-    const qty = parseFloat(cols[3]) || 0;
-    const value = parseFloat(cols[4]) || 0;
-    const desc = cols[6] || '';
-    const markPrice = parseFloat(cols[7]) || 0;
+    // Detect section boundaries (Flex Query format)
+    if (cols[0] === 'BOS' && cols[1] === 'CRTT') { inCashSection = true; inPositionSection = false; continue; }
+    if (cols[0] === 'BOS' && cols[1] === 'POST') { inPositionSection = true; inCashSection = false; continue; }
+    if (cols[0] === 'EOS') { inCashSection = false; inPositionSection = false; continue; }
     
-    if (!symbol || qty === 0) continue;
+    // Skip metadata rows
+    if (['BOF','BOA','EOA','EOF'].includes(cols[0])) continue;
     
-    const key = symbol + '_' + ccy;
-    if (seen[key]) {
-      // Combine duplicate positions (like BBD.B appearing twice)
-      seen[key].quantity += qty;
-      seen[key].value += value;
-    } else {
-      const pos = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2,5),
-        symbol, description: desc, exchange, currency: ccy,
-        quantity: qty, value: Math.abs(value), markPrice,
-        sector: SECTOR_MAP[symbol] || 'Other',
-        tag: '', // Will be set during classification
-        sentiment: null, momentum: null
-      };
-      seen[key] = pos;
-      positions.push(pos);
+    // Parse cash rows (EndingCash, EndingCashSecurities, EndingCashCommodities, CurrencyPrimary)
+    if (inCashSection) {
+      // Skip header row
+      if (cols[0] === 'EndingCash') continue;
+      // Data row: EndingCash, EndingCashSecurities, EndingCashCommodities, CurrencyPrimary
+      const ccy = cols[3] || '';
+      const amount = parseFloat(cols[0]) || 0;
+      if (ccy === 'BASE_SUMMARY') continue; // Skip base summary, use per-currency rows
+      if (ccy && amount !== 0) {
+        const normCcy = ccy.toUpperCase();
+        if (normCcy in cashTotals) cashTotals[normCcy] += amount;
+        else cashTotals[normCcy] = amount;
+        console.log(`APEX: Cash detected: ${normCcy} $${amount.toFixed(2)}`);
+      }
+      continue;
+    }
+    
+    // Parse position rows
+    if (inPositionSection || cols.length >= 8) {
+      // Skip header rows
+      if (cols[0] === 'CurrencyPrimary') continue;
+      
+      const ccy = cols[0];
+      const symbol = cols[1];
+      const exchange = cols[2];
+      const qty = parseFloat(cols[3]) || 0;
+      const value = parseFloat(cols[4]) || 0;
+      const desc = cols[6] || '';
+      const markPrice = parseFloat(cols[7]) || 0;
+      
+      if (!symbol || qty === 0 || !ccy) continue;
+      // Skip if looks like a metadata row
+      if (['BOF','BOA','BOS','EOS','EOA','EOF','EndingCash'].includes(ccy)) continue;
+      
+      const key = symbol + '_' + ccy;
+      if (seen[key]) {
+        // Combine duplicate positions across accounts (e.g. XIC in both accounts)
+        seen[key].quantity += qty;
+        seen[key].value += Math.abs(value);
+      } else {
+        const pos = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+          symbol, description: desc, exchange, currency: ccy,
+          quantity: qty, value: Math.abs(value), markPrice,
+          sector: SECTOR_MAP[symbol] || 'Other',
+          tag: '', sentiment: null, momentum: null
+        };
+        seen[key] = pos;
+        positions.push(pos);
+      }
     }
   }
   
@@ -2015,10 +2093,14 @@ function parseIBKR(text, filename) {
     return;
   }
   
+  // Store parsed cash for confirmImport to apply
+  state._importCash = cashTotals;
   state.importBuffer = positions;
-  document.getElementById('importInfo').textContent = `${filename} — ${positions.length} positions detected`;
+  
+  const cashSummary = Object.entries(cashTotals).filter(([,v]) => v !== 0).map(([c,v]) => `${c} $${formatNum(Math.abs(v))}`).join(', ');
+  document.getElementById('importInfo').textContent = `${filename} — ${positions.length} positions${cashSummary ? ' | Cash: ' + cashSummary : ''}`;
   showImportTagging(positions);
-  toast(`Parsed ${positions.length} positions from ${filename}`);
+  toast(`Parsed ${positions.length} positions${cashSummary ? ' + cash' : ''} from ${filename}`);
 }
 
 function parseCSVLine(line) {
@@ -2063,10 +2145,10 @@ function showImportTagging(positions) {
 
 function suggestTag(pos) {
   // Heuristic: ETFs, large-cap stable = Core; small-cap, high-vol, speculative = Tactical
-  const tacticalSymbols = ['GEVO','NIO','SMCI','SOFI','CRSP','NXE','CS'];
+  const tacticalSymbols = ['GEVO','NIO','SMCI','SOFI','CRSP','NXE','CS','FRO','WLN'];
   if (tacticalSymbols.includes(pos.symbol)) return 'tactical';
   if (pos.sector === 'ETF') return 'core';
-  if (pos.value < 3500) return 'tactical';
+  if (pos.value < 3500 && pos.sector !== 'ETF') return 'tactical';
   return 'core';
 }
 
@@ -2088,18 +2170,46 @@ function autoTagAll() {
 }
 
 function confirmImport() {
-  // Validate all tagged
   const untagged = state.importBuffer.filter(p => !p.tag);
   if (untagged.length > 0) {
     toast(`${untagged.length} positions still need tags`, 'error');
     return;
   }
   state.positions = state.importBuffer.map(p => ({...p}));
+  // Apply cash from import (if parsed from Flex Query)
+  if (state._importCash) {
+    state.cashBalances = { ...state.cashBalances, ...state._importCash };
+    delete state._importCash;
+  }
   state.importBuffer = [];
   document.getElementById('importTagging').style.display = 'none';
   saveState();
   refreshAll();
-  toast(`${state.positions.length} positions imported successfully`);
+  refreshCashDisplay();
+  const cashTotal = Object.values(state.cashBalances).reduce((s,v) => s + v, 0);
+  toast(`${state.positions.length} positions imported${cashTotal !== 0 ? ' + cash balances' : ''}`);
+}
+
+// ═══ CASH MANAGEMENT ═══
+function refreshCashDisplay() {
+  const cash = state.cashBalances || {};
+  document.getElementById('cashUSD').value = (cash.USD || 0).toFixed(2);
+  document.getElementById('cashCAD').value = (cash.CAD || 0).toFixed(2);
+  document.getElementById('cashEUR').value = (cash.EUR || 0).toFixed(2);
+  const totalCash = getTotalCash();
+  const total = getTotalValue();
+  document.getElementById('cashTotalDisplay').textContent = '$' + formatNum(totalCash);
+  document.getElementById('cashPctDisplay').textContent = (total > 0 ? (totalCash/total*100).toFixed(1) : '0') + '% of portfolio';
+}
+
+function saveCashBalances() {
+  state.cashBalances.USD = parseFloat(document.getElementById('cashUSD').value) || 0;
+  state.cashBalances.CAD = parseFloat(document.getElementById('cashCAD').value) || 0;
+  state.cashBalances.EUR = parseFloat(document.getElementById('cashEUR').value) || 0;
+  saveState();
+  refreshCashDisplay();
+  refreshDashboard();
+  toast('Cash balances saved');
 }
 
 // ═══ HOLDINGS TABLE ═══
@@ -2191,7 +2301,9 @@ function refreshHoldings() {
   }).join('');
   
   document.getElementById('posCountBadge').textContent = state.positions.length;
-  document.getElementById('portSubtitle').textContent = `${state.positions.length} positions — $${formatNum(totalVal)}`;
+  const cashTotal = getTotalCash();
+  document.getElementById('portSubtitle').textContent = `${state.positions.length} positions — $${formatNum(totalVal)}${cashTotal ? ' (incl. $' + formatNum(cashTotal) + ' cash)' : ''}`;
+  refreshCashDisplay();
 }
 
 function toggleAnalystColumns() {
@@ -2330,22 +2442,30 @@ function refreshDashboard() {
   
   const prof = state.profile;
   const total = getTotalValue();
-  const cadVal = state.positions.filter(p => p.currency === 'CAD').reduce((s,p) => s + p.value, 0);
-  const usdVal = total - cadVal;
+  const cash = state.cashBalances || {};
+  const totalCash = getTotalCash();
+  const cadVal = state.positions.filter(p => p.currency === 'CAD').reduce((s,p) => s + p.value, 0) + (cash.CAD || 0);
+  const usdVal = state.positions.filter(p => p.currency === 'USD').reduce((s,p) => s + p.value, 0) + (cash.USD || 0);
+  const eurVal = state.positions.filter(p => p.currency === 'EUR').reduce((s,p) => s + p.value, 0) + (cash.EUR || 0);
   const coreVal = state.positions.filter(p => p.tag === 'core').reduce((s,p) => s + p.value, 0);
-  const tactVal = total - coreVal;
-  const corePct = total > 0 ? (coreVal/total*100) : 0;
-  const tactPct = total > 0 ? (tactVal/total*100) : 0;
+  const tactVal = state.positions.filter(p => p.tag === 'tactical').reduce((s,p) => s + p.value, 0);
+  const posVal = getPositionsValue();
+  const corePct = posVal > 0 ? (coreVal/posVal*100) : 0;
+  const tactPct = posVal > 0 ? (tactVal/posVal*100) : 0;
   const cadPct = total > 0 ? (cadVal/total*100) : 0;
-  const usdPct = 100 - cadPct;
+  const usdPct = total > 0 ? (usdVal/total*100) : 0;
+  const eurPct = total > 0 ? (eurVal/total*100) : 0;
+  const cashPct = total > 0 ? (totalCash/total*100) : 0;
   
-  document.getElementById('dashTotalUSD').textContent = '$' + formatNum(usdVal);
-  document.getElementById('dashTotalCAD').textContent = 'CAD $' + formatNum(cadVal) + ' — Total: $' + formatNum(total);
+  document.getElementById('dashTotalUSD').textContent = '$' + formatNum(total);
+  document.getElementById('dashTotalCAD').textContent = 'Invested: $' + formatNum(posVal) + (totalCash ? ' + Cash: $' + formatNum(totalCash) : '');
   document.getElementById('dashPosCount').textContent = state.positions.length;
   document.getElementById('dashPosLimit').textContent = `/ ${prof.maxPositions} max`;
   document.getElementById('dashSplit').textContent = `${corePct.toFixed(0)}/${tactPct.toFixed(0)}`;
   document.getElementById('dashSplitTarget').textContent = `Target: ${prof.coreTarget}/${prof.tactTarget}`;
-  document.getElementById('dashSubtitle').textContent = `$${formatNum(total)} — ${state.positions.length} positions`;
+  document.getElementById('dashSubtitle').textContent = `$${formatNum(total)} — ${state.positions.length} positions${totalCash ? ' + cash' : ''}`;
+  document.getElementById('dashCash').textContent = '$' + formatNum(totalCash);
+  document.getElementById('dashCashPct').textContent = cashPct.toFixed(1) + '% of portfolio';
   
   // Split bars
   renderSplitBar('splitBarCT', [
@@ -2357,10 +2477,11 @@ function refreshDashboard() {
   
   renderSplitBar('splitBarFX', [
     { pct:cadPct, color:'#ef4444', label:`${cadPct.toFixed(1)}%` },
-    { pct:usdPct, color:'var(--green)', label:`${usdPct.toFixed(1)}%` }
+    { pct:usdPct, color:'var(--green)', label:`${usdPct.toFixed(1)}%` },
+    ...(eurPct > 0.1 ? [{ pct:eurPct, color:'var(--purple)', label:`${eurPct.toFixed(1)}%` }] : [])
   ]);
   document.getElementById('splitCADLabel').textContent = `CAD: ${cadPct.toFixed(1)}%`;
-  document.getElementById('splitUSDLabel').textContent = `USD: ${usdPct.toFixed(1)}%`;
+  document.getElementById('splitUSDLabel').textContent = `USD: ${usdPct.toFixed(1)}%${eurPct > 0.1 ? ' | EUR: ' + eurPct.toFixed(1) + '%' : ''}`;
   
   // Sector chart
   renderSectorChart();
@@ -2625,6 +2746,8 @@ function applyProfile() {
   document.getElementById('cadTargetVal').textContent = prof.cadTarget + '%';
   document.getElementById('fxTolSlider').value = prof.fxTolerance;
   document.getElementById('fxTolVal').textContent = prof.fxTolerance + '%';
+  document.getElementById('minCashSlider').value = prof.minCashReserve || 0;
+  document.getElementById('minCashVal').textContent = (prof.minCashReserve || 0) + '%';
   document.getElementById('rrSlider').value = prof.minRR;
   document.getElementById('rrVal').textContent = prof.minRR + ':1';
   document.getElementById('profGeo').value = prof.geo;
@@ -2662,6 +2785,7 @@ function saveProfile() {
   prof.minRR = parseFloat(document.getElementById('rrSlider').value);
   prof.cadTarget = parseInt(document.getElementById('cadTargetSlider').value);
   prof.fxTolerance = parseInt(document.getElementById('fxTolSlider').value);
+  prof.minCashReserve = parseInt(document.getElementById('minCashSlider').value);
   prof.geo = document.getElementById('profGeo').value;
   prof.notes = document.getElementById('profNotes').value;
   prof.excludePenny = document.getElementById('togglePenny').classList.contains('active');
@@ -2924,39 +3048,47 @@ function updateCostEstimate() {
 
 // ═══ COMPACT CONTEXT BUILDERS ═══
 function buildFullContext() {
-  // Full context for Chunk A — includes all positions and profile
   const prof = state.profile;
   const total = getTotalValue();
+  const totalCash = getTotalCash();
+  const posVal = getPositionsValue();
   const corePos = state.positions.filter(p => p.tag === 'core');
   const tactPos = state.positions.filter(p => p.tag === 'tactical');
   const coreVal = corePos.reduce((s,p) => s + p.value, 0);
   const tactVal = tactPos.reduce((s,p) => s + p.value, 0);
-  const cadVal = state.positions.filter(p => p.currency === 'CAD').reduce((s,p) => s + p.value, 0);
+  const cash = state.cashBalances || {};
+  const cadVal = state.positions.filter(p => p.currency === 'CAD').reduce((s,p) => s + p.value, 0) + (cash.CAD || 0);
   const weeklyNotes = document.getElementById('weeklyNotes').value;
   const specificInstr = document.getElementById('specificInstructions').value;
   const posList = (positions) => positions.map(p =>
     `  ${p.symbol} | ${p.sector} | ${p.currency} | $${formatNum(p.value)} | ${(p.value/total*100).toFixed(1)}% | ${p.exchange}`
   ).join('\n');
 
+  const cashStr = Object.entries(cash).filter(([,v]) => v !== 0).map(([c,v]) => `${c}: $${formatNum(v)}`).join(', ');
+  const minCashPct = prof.minCashReserve || 0;
+
   let ctx = `You are the APEX Analyst Panel. Today is ${new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}.
 PROFILE: ${prof.risk} | ${prof.horizon} | Core ${prof.coreTarget}%/Tact ${prof.tactTarget}% | Core max ${prof.coreMax}%/Tact max ${prof.tactMax}%/ETF max ${prof.etfMax||15}%
-Focus: ${prof.focusSectors.join(', ')} | CAD/USD: ${prof.cadTarget}%/${100-prof.cadTarget}% | Max ${prof.maxPositions} positions
+Focus: ${prof.focusSectors.join(', ')} | CAD/USD: ${prof.cadTarget}%/${100-prof.cadTarget}% | Max ${prof.maxPositions} positions${minCashPct > 0 ? ' | Min cash reserve: ' + minCashPct + '%' : ''}
 ${prof.notes ? 'Notes: ' + prof.notes : ''}
-PORTFOLIO — $${formatNum(total)} | Core $${formatNum(coreVal)} (${(coreVal/total*100).toFixed(1)}%) | Tact $${formatNum(tactVal)} (${(tactVal/total*100).toFixed(1)}%) | CAD ${(cadVal/total*100).toFixed(1)}%
+PORTFOLIO — $${formatNum(total)} total | Invested: $${formatNum(posVal)} | Cash: $${formatNum(totalCash)} (${(totalCash/total*100).toFixed(1)}%)${cashStr ? ' [' + cashStr + ']' : ''}
+Core $${formatNum(coreVal)} (${(coreVal/total*100).toFixed(1)}%) | Tact $${formatNum(tactVal)} (${(tactVal/total*100).toFixed(1)}%) | CAD ${(cadVal/total*100).toFixed(1)}%
 CORE:\n${posList(corePos)}
 TACTICAL:\n${posList(tactPos)}\n`;
+  if (totalCash > 0) ctx += `\nCASH AVAILABLE: $${formatNum(totalCash)} — the AI can recommend deploying cash into new positions or holding cash as a defensive allocation.\n`;
   if (specificInstr) ctx += `\n⚡ SPECIFIC INSTRUCTIONS (HIGH PRIORITY):\n${specificInstr}\nAddress FIRST.\n`;
   if (weeklyNotes) ctx += `\nWEEKLY NOTES: ${weeklyNotes}\n`;
   return ctx;
 }
 
 function buildSlimContext() {
-  // Slim context for Chunk B — just rules + summary, no position list
   const prof = state.profile;
   const total = getTotalValue();
+  const totalCash = getTotalCash();
   const coreVal = state.positions.filter(p => p.tag === 'core').reduce((s,p) => s + p.value, 0);
   return `APEX Analyst Panel. Today is ${new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}.
-PORTFOLIO: $${formatNum(total)} | ${state.positions.length} positions | Core ${(coreVal/total*100).toFixed(0)}% Tact ${((total-coreVal)/total*100).toFixed(0)}%
+PORTFOLIO: $${formatNum(total)} | ${state.positions.length} positions | Cash: $${formatNum(totalCash)} (${(totalCash/total*100).toFixed(1)}%)
+Core ${(coreVal/total*100).toFixed(0)}% Tact ${((total-coreVal-totalCash)/total*100).toFixed(0)}%
 RULES: Core max ${prof.coreMax}% | Tact max ${prof.tactMax}% | ETF max ${prof.etfMax||15}% | Max ${prof.maxPositions} pos\n`;
 }
 
@@ -4654,6 +4786,14 @@ function getMaxWeight(pos) {
   return prof.coreMax || 7;
 }
 function getTotalValue() {
+  const posVal = state.positions.reduce((s, p) => s + p.value, 0);
+  const cashVal = Object.values(state.cashBalances || {}).reduce((s, v) => s + v, 0);
+  return posVal + cashVal;
+}
+function getTotalCash() {
+  return Object.values(state.cashBalances || {}).reduce((s, v) => s + v, 0);
+}
+function getPositionsValue() {
   return state.positions.reduce((s, p) => s + p.value, 0);
 }
 function formatNum(n) {
