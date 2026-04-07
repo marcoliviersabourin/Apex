@@ -851,7 +851,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.5.2 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.5.3 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1813,8 +1813,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.2</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-07-002</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.3</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-07-003</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1842,8 +1842,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.5.2';
-const APEX_BUILD = '2026-04-07-002';
+const APEX_VERSION = '2.5.3';
+const APEX_BUILD = '2026-04-07-003';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3138,35 +3138,33 @@ async function reExtractStructuredData() {
   
   toast('Re-extracting structured data...');
   
-  const prompt = `Read this financial report and output a JSON object with the structured data. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no explanation, no preamble. Just the JSON object.
+  const prompt = `Extract structured data from this financial report into JSON. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no preamble.
 
 REPORT:
 ${fullNarrative}
 
-Output a JSON object with these exact top-level keys: macro, verdicts, newIdeas, priorityIdeas.
-
-Schema:
+KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
 {
   "macro": {
     "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
     "moodScore": 0-100,
     "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
-    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"short note"}],
-    "portfolioRelevance": "1-2 sentences"
+    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"brief"}],
+    "portfolioRelevance": "1 sentence max"
   },
   "verdicts": [
-    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"short","summary":"1 line","valueSummary":"fundamental","technicalSummary":"technical"}
+    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"brief","summary":"1 line","valueSummary":"brief","technicalSummary":"brief"}
   ],
   "newIdeas": [
-    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"fundamental","technicalSummary":"technical","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":""}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
-  "priorityIdeas": [{"ticker":"XYZ","note":"what to verify"}]
+  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
 }
 
-Include EVERY portfolio position in verdicts and EVERY new idea from Parts 3-5 in newIdeas. Start your response with { and end with }.`;
+CRITICAL: Include EVERY portfolio position in verdicts and EVERY new idea in newIdeas. Keep ALL text fields under 100 characters. Start with { end with }.`;
 
   try {
-    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: prompt}], false, 8000);
+    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: prompt}], false, 16000);
     console.log('APEX: Re-extract response length:', result.text.length);
     console.log('APEX: First 500 chars:', result.text.substring(0, 500));
     
@@ -3200,39 +3198,111 @@ Include EVERY portfolio position in verdicts and EVERY new idea from Parts 3-5 i
 // ═══ ROBUST JSON PARSER FOR HAIKU OUTPUT ═══
 function parseHaikuJSON(text) {
   if (!text) return null;
+  
   // Try 1: parse the whole thing as JSON
   try { return JSON.parse(text.trim()); } catch(e) {}
   
   // Try 2: strip any ```json or ``` markers and try again
-  try {
-    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch(e) {}
+  let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+  try { return JSON.parse(cleaned); } catch(e) {}
   
   // Try 3: find first { and last } and parse what's between
-  try {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      let candidate = text.substring(start, end + 1);
-      // Strip trailing commas
-      candidate = candidate.replace(/,(\s*[}\]])/g, '$1');
-      return JSON.parse(candidate);
-    }
-  } catch(e) {}
+  const start = cleaned.indexOf('{');
+  let end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    let candidate = cleaned.substring(start, end + 1).replace(/,(\s*[}\]])/g, '$1');
+    try { return JSON.parse(candidate); } catch(e) {}
+  }
   
-  // Try 4: aggressive cleanup
-  try {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      let candidate = text.substring(start, end + 1)
-        .replace(/,(\s*[}\]])/g, '$1')
-        .replace(/[\r\n\t]+/g, ' ')
-        .replace(/\s+/g, ' ');
-      return JSON.parse(candidate);
+  // Try 4: REPAIR TRUNCATED JSON — common when max_tokens hit
+  // Walk the string tracking open braces/brackets and string state, then close them
+  if (start >= 0) {
+    let working = cleaned.substring(start);
+    // Find a clean truncation point (last complete object/array element)
+    const repaired = repairTruncatedJSON(working);
+    if (repaired) {
+      try { return JSON.parse(repaired); } catch(e) { console.warn('APEX: Repair attempt failed:', e.message); }
     }
-  } catch(e) {}
+  }
+  
+  return null;
+}
+
+function repairTruncatedJSON(text) {
+  // Track depth of braces/brackets and whether we're inside a string
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let lastSafeEnd = -1;
+  const stack = []; // tracks { or [
+  
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    
+    if (ch === '{' || ch === '[') {
+      stack.push(ch);
+      depth++;
+    } else if (ch === '}' || ch === ']') {
+      stack.pop();
+      depth--;
+      if (depth === 0) lastSafeEnd = i;
+    }
+    // Track safe truncation points: after a complete value followed by , or }
+    if (depth > 0 && (ch === ',' || ch === '}' || ch === ']')) {
+      // This is a potential safe truncation point
+    }
+  }
+  
+  // If we ended cleanly, return as-is
+  if (depth === 0 && lastSafeEnd >= 0) {
+    return text.substring(0, lastSafeEnd + 1);
+  }
+  
+  // We have unclosed braces/brackets — try to find the last complete element and close from there
+  // Strategy: walk backwards from end to find a safe cutoff point (after a complete value)
+  let cutoff = text.length;
+  // Find last comma at the current depth and trim back to it
+  inString = false;
+  escape = false;
+  let curDepth = 0;
+  let lastSafeComma = -1;
+  
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{' || ch === '[') curDepth++;
+    else if (ch === '}' || ch === ']') curDepth--;
+    else if (ch === ',' && curDepth >= 1) lastSafeComma = i;
+  }
+  
+  if (lastSafeComma > 0) {
+    // Cut at the comma and close all open structures
+    let trimmed = text.substring(0, lastSafeComma);
+    // Now close all open braces/brackets in reverse order
+    inString = false; escape = false;
+    const newStack = [];
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') newStack.push('}');
+      else if (ch === '[') newStack.push(']');
+      else if (ch === '}' || ch === ']') newStack.pop();
+    }
+    // Append closing brackets
+    while (newStack.length > 0) trimmed += newStack.pop();
+    console.log('APEX: Repaired truncated JSON, added', newStack.length, 'closing brackets at position', lastSafeComma);
+    return trimmed;
+  }
   
   return null;
 }
@@ -3412,35 +3482,33 @@ NARRATIVE ONLY — no JSON.`;
     steps[7].querySelector('.step-icon').innerHTML = '<span class="spinner"></span>';
 
     const fullNarrative = prog.chunkA + '\n\n' + prog.chunkB;
-    const chunkCPrompt = `Read this financial report and output a JSON object with the structured data. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no explanation, no preamble. Just the JSON object.
+    const chunkCPrompt = `Extract structured data from this financial report into JSON. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no preamble.
 
 REPORT:
 ${fullNarrative}
 
-Output a JSON object with these exact top-level keys: macro, verdicts, newIdeas, priorityIdeas.
-
-Schema:
+KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
 {
   "macro": {
     "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
     "moodScore": 0-100,
     "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
-    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"short note"}],
-    "portfolioRelevance": "1-2 sentences"
+    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"brief"}],
+    "portfolioRelevance": "1 sentence max"
   },
   "verdicts": [
-    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"short","summary":"1 line","valueSummary":"fundamental","technicalSummary":"technical"}
+    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"brief","summary":"1 line","valueSummary":"brief","technicalSummary":"brief"}
   ],
   "newIdeas": [
-    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"fundamental","technicalSummary":"technical","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":""}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
-  "priorityIdeas": [{"ticker":"XYZ","note":"what to verify"}]
+  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
 }
 
-Include EVERY portfolio position in verdicts and EVERY new idea from Parts 3-5 in newIdeas. Start your response with { and end with }.`;
+CRITICAL: Include EVERY portfolio position in verdicts and EVERY new idea in newIdeas. Keep ALL text fields under 100 characters. Start with { end with }.`;
 
     hb3 = startHeartbeat(btn, 'JSON (Haiku)');
-    const resultC = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: chunkCPrompt}], false, 8000);
+    const resultC = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: chunkCPrompt}], false, 16000);
     hb3.stop();
     prog.chunkC = resultC.text;
     state._lastHaikuRaw = resultC.text;
