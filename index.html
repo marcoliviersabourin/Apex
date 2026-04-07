@@ -851,7 +851,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.5.1 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.5.2 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1507,6 +1507,7 @@ input[type="range"]::-webkit-slider-thumb {
           <span style="font-size:12px;">Web search (live market data — slower, more accurate)</span>
         </div>
         <button class="btn btn-sm" onclick="reExtractStructuredData()" title="Re-run JSON extraction on the last report (cheap, fast)">🔄 Re-extract Data</button>
+        <button class="btn btn-sm" onclick="showHaikuDebug()" title="View raw Haiku response for debugging">🐛 Show Debug</button>
       </div>
       <div id="costEstimate" style="font-size:11px;color:var(--text-tertiary);margin-top:6px;font-family:'IBM Plex Mono',monospace;"></div>
       <div id="apiTestResult" style="margin-top:10px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
@@ -1812,8 +1813,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.1</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-07-001</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.2</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-07-002</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1841,8 +1842,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.5.1';
-const APEX_BUILD = '2026-04-07-001';
+const APEX_VERSION = '2.5.2';
+const APEX_BUILD = '2026-04-07-002';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3125,7 +3126,6 @@ async function reExtractStructuredData() {
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
   
-  // Get the most recent report's raw narrative
   const lastReport = state.reports[0];
   if (!lastReport || (!lastReport._rawChunkA && !lastReport.content)) {
     toast('No saved narrative to re-extract from', 'error');
@@ -3138,69 +3138,137 @@ async function reExtractStructuredData() {
   
   toast('Re-extracting structured data...');
   
-  const BT = String.fromCharCode(96).repeat(3);
-  const prompt = `You are a JSON data extractor. Read the financial report below and output ONLY a JSON object wrapped in ${BT}json ... ${BT} markers. No other text before or after.
+  const prompt = `Read this financial report and output a JSON object with the structured data. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no explanation, no preamble. Just the JSON object.
 
 REPORT:
 ${fullNarrative}
 
-REQUIRED JSON STRUCTURE:
-${BT}json
+Output a JSON object with these exact top-level keys: macro, verdicts, newIdeas, priorityIdeas.
+
+Schema:
 {
   "macro": {
-    "mood": "Cautiously Bullish",
-    "moodScore": 60,
-    "metrics": [
-      {"label": "Fed Rate", "value": "5.25%", "direction": "→"},
-      {"label": "USD/CAD", "value": "1.36", "direction": "↑"},
-      {"label": "Oil WTI", "value": "$75", "direction": "↓"},
-      {"label": "VIX", "value": "18", "direction": "→"},
-      {"label": "10Y Yield", "value": "4.2%", "direction": "↑"}
-    ],
-    "sectorHeatmap": [
-      {"sector": "Technology", "outlook": "tailwind", "note": "AI capex strong"}
-    ],
-    "portfolioRelevance": "1-2 sentence note"
+    "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
+    "moodScore": 0-100,
+    "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
+    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"short note"}],
+    "portfolioRelevance": "1-2 sentences"
   },
   "verdicts": [
-    {"ticker": "AAPL", "verdict": "HOLD", "sentiment": "Neutral", "momentum": "→", "confidence": "Medium", "actionNote": "Hold", "summary": "1 line", "valueSummary": "fundamental view", "technicalSummary": "technical view"}
+    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"short","summary":"1 line","valueSummary":"fundamental","technicalSummary":"technical"}
   ],
   "newIdeas": [
-    {"ticker": "XYZ", "exchange": "NASDAQ", "sector": "Technology", "tag": "Core", "marketCap": "Large", "thesis": "1 sentence", "leadAnalyst": "value", "valueSummary": "fundamental case", "technicalSummary": "RSI/MACD/levels", "revenueTrend": "↑", "revenueNote": "growing", "moat": "brand", "catalysts": "earnings", "risks": "regulation", "riskLevel": "Medium", "suggestedWeight": 2.5, "priority": false, "fundamentals": "details"}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"fundamental","technicalSummary":"technical","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":""}
   ],
-  "priorityIdeas": [{"ticker": "XYZ", "note": "what to verify"}]
+  "priorityIdeas": [{"ticker":"XYZ","note":"what to verify"}]
 }
-${BT}
 
-Include EVERY portfolio position in verdicts and EVERY new idea in newIdeas. Output ONLY the JSON, nothing else.`;
+Include EVERY portfolio position in verdicts and EVERY new idea from Parts 3-5 in newIdeas. Start your response with { and end with }.`;
 
   try {
-    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: prompt}], false, 6000);
-    console.log('APEX: Re-extract result length:', result.text.length);
-    let structuredData = extractStructuredJSON(result.text);
+    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: prompt}], false, 8000);
+    console.log('APEX: Re-extract response length:', result.text.length);
+    console.log('APEX: First 500 chars:', result.text.substring(0, 500));
+    
+    // Save raw response for debug viewer
+    state._lastHaikuRaw = result.text;
+    
+    let structuredData = parseHaikuJSON(result.text);
+    if (!structuredData) structuredData = extractStructuredJSON(result.text);
     if (!structuredData) structuredData = extractStructuredJSON(fullNarrative);
     
     if (structuredData) {
       state.analysisData = structuredData;
       state.analysisData._reportDate = new Date().toISOString();
       state.analysisData._model = state.settings.model;
-      // Update the last report
       lastReport.structuredData = structuredData;
       lastReport._rawChunkC = result.text;
       saveState();
       parseAndApplySentiment(fullNarrative, structuredData);
       refreshHoldings(); refreshMacro(); refreshIdeas(); refreshTarget(); refreshDashboard();
-      toast('✓ Data extracted — all pages updated');
+      toast(`✓ Extracted ${(structuredData.verdicts||[]).length} verdicts, ${(structuredData.newIdeas||[]).length} ideas`);
     } else {
-      toast('Re-extraction failed — check console for details', 'error');
-      console.error('APEX: Re-extract failed. Raw response:', result.text.substring(0, 500));
+      saveState();
+      toast('Re-extraction failed — tap "🐛 Show Debug" to see what Haiku returned', 'error');
     }
   } catch(e) {
+    console.error('APEX: Re-extract error:', e);
     toast('Re-extract error: ' + e.message, 'error');
   }
 }
 
-// ═══ HEARTBEAT (keeps Safari active during long API calls) ═══
+// ═══ ROBUST JSON PARSER FOR HAIKU OUTPUT ═══
+function parseHaikuJSON(text) {
+  if (!text) return null;
+  // Try 1: parse the whole thing as JSON
+  try { return JSON.parse(text.trim()); } catch(e) {}
+  
+  // Try 2: strip any ```json or ``` markers and try again
+  try {
+    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch(e) {}
+  
+  // Try 3: find first { and last } and parse what's between
+  try {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      let candidate = text.substring(start, end + 1);
+      // Strip trailing commas
+      candidate = candidate.replace(/,(\s*[}\]])/g, '$1');
+      return JSON.parse(candidate);
+    }
+  } catch(e) {}
+  
+  // Try 4: aggressive cleanup
+  try {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      let candidate = text.substring(start, end + 1)
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s+/g, ' ');
+      return JSON.parse(candidate);
+    }
+  } catch(e) {}
+  
+  return null;
+}
+
+// ═══ DEBUG VIEWER — show last Haiku raw response ═══
+function showHaikuDebug() {
+  const raw = state._lastHaikuRaw || (state.reports[0] && state.reports[0]._rawChunkC) || '';
+  if (!raw) { toast('No Haiku response saved yet', 'error'); return; }
+  
+  showModal(`
+    <div class="modal-header">
+      <span class="modal-title">🐛 Last Haiku Response (Debug)</span>
+      <button class="btn btn-sm btn-icon" onclick="closeModal()">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">
+      Length: ${raw.length} chars. This is exactly what Haiku returned for the JSON extraction step.
+    </div>
+    <div style="background:var(--bg-tertiary);padding:12px;border-radius:6px;max-height:400px;overflow:auto;">
+      <pre style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word;margin:0;">${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-sm btn-primary" onclick="copyHaikuDebug()">📋 Copy</button>
+      <button class="btn btn-sm" onclick="reExtractStructuredData();closeModal()">🔄 Retry Extract</button>
+    </div>
+  `);
+}
+
+function copyHaikuDebug() {
+  const raw = state._lastHaikuRaw || (state.reports[0] && state.reports[0]._rawChunkC) || '';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(raw).then(() => toast('Copied to clipboard'));
+  } else {
+    toast('Clipboard not available', 'error');
+  }
+}
+
 function startHeartbeat(btn, label) {
   let elapsed = 0;
   const id = setInterval(() => {
@@ -3344,54 +3412,38 @@ NARRATIVE ONLY — no JSON.`;
     steps[7].querySelector('.step-icon').innerHTML = '<span class="spinner"></span>';
 
     const fullNarrative = prog.chunkA + '\n\n' + prog.chunkB;
-    // Use a placeholder for backticks to avoid template literal escaping issues
-    const BT = String.fromCharCode(96).repeat(3);
-    const chunkCPrompt = `You are a JSON data extractor. Read the financial report below and output ONLY a JSON object wrapped in ${BT}json ... ${BT} markers. No other text before or after.
+    const chunkCPrompt = `Read this financial report and output a JSON object with the structured data. Output ONLY raw JSON starting with { and ending with }. No markdown, no code fences, no explanation, no preamble. Just the JSON object.
 
 REPORT:
 ${fullNarrative}
 
-REQUIRED JSON STRUCTURE (output exactly this shape, fill in real values):
-${BT}json
+Output a JSON object with these exact top-level keys: macro, verdicts, newIdeas, priorityIdeas.
+
+Schema:
 {
   "macro": {
-    "mood": "Cautiously Bullish",
-    "moodScore": 60,
-    "metrics": [
-      {"label": "Fed Rate", "value": "5.25%", "direction": "→"},
-      {"label": "USD/CAD", "value": "1.36", "direction": "↑"},
-      {"label": "Oil WTI", "value": "$75", "direction": "↓"},
-      {"label": "VIX", "value": "18", "direction": "→"},
-      {"label": "10Y Yield", "value": "4.2%", "direction": "↑"}
-    ],
-    "sectorHeatmap": [
-      {"sector": "Technology", "outlook": "tailwind", "note": "AI capex strong"},
-      {"sector": "Materials", "outlook": "neutral", "note": "Mixed signals"}
-    ],
-    "portfolioRelevance": "Brief 1-2 sentence note"
+    "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
+    "moodScore": 0-100,
+    "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
+    "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"short note"}],
+    "portfolioRelevance": "1-2 sentences"
   },
   "verdicts": [
-    {"ticker": "AAPL", "verdict": "HOLD", "sentiment": "Neutral", "momentum": "→", "confidence": "Medium", "actionNote": "Hold", "summary": "1 line", "valueSummary": "fundamental view", "technicalSummary": "technical view"}
+    {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"short","summary":"1 line","valueSummary":"fundamental","technicalSummary":"technical"}
   ],
   "newIdeas": [
-    {"ticker": "XYZ", "exchange": "NASDAQ", "sector": "Technology", "tag": "Core", "marketCap": "Large", "thesis": "1 sentence thesis", "leadAnalyst": "value", "valueSummary": "fundamental case", "technicalSummary": "RSI/MACD/levels", "revenueTrend": "↑", "revenueNote": "growing", "moat": "strong brand", "catalysts": "earnings", "risks": "regulation", "riskLevel": "Medium", "suggestedWeight": 2.5, "priority": false, "fundamentals": "2-3 sentences"}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"fundamental","technicalSummary":"technical","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":""}
   ],
-  "priorityIdeas": [
-    {"ticker": "XYZ", "note": "What to verify"}
-  ]
+  "priorityIdeas": [{"ticker":"XYZ","note":"what to verify"}]
 }
-${BT}
 
-CRITICAL RULES:
-- Include EVERY portfolio position from Part 2 in "verdicts" array
-- Include EVERY new idea from Parts 3-5 in "newIdeas" array
-- "leadAnalyst" must be "value", "technical", or "dual"
-- Output ONLY the JSON inside ${BT}json markers, nothing else`;
+Include EVERY portfolio position in verdicts and EVERY new idea from Parts 3-5 in newIdeas. Start your response with { and end with }.`;
 
     hb3 = startHeartbeat(btn, 'JSON (Haiku)');
-    const resultC = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: chunkCPrompt}], false, 6000);
+    const resultC = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: chunkCPrompt}], false, 8000);
     hb3.stop();
     prog.chunkC = resultC.text;
+    state._lastHaikuRaw = resultC.text;
     prog.phase = 'done';
     state._analysisProgress = prog;
     steps[7].classList.remove('active'); steps[7].classList.add('done'); steps[7].querySelector('.step-icon').textContent = '✓';
@@ -3399,7 +3451,8 @@ CRITICAL RULES:
     // ═══ COMBINE & PROCESS ═══
     const fullReport = prog.chunkA + '\n\n' + prog.chunkB;
     const narrativeText = extractNarrative(fullReport);
-    let structuredData = extractStructuredJSON(prog.chunkC);
+    let structuredData = parseHaikuJSON(prog.chunkC);
+    if (!structuredData) structuredData = extractStructuredJSON(prog.chunkC);
     if (!structuredData) {
       console.warn('APEX: Chunk C JSON extraction failed, trying fallback on full report');
       structuredData = extractStructuredJSON(fullReport);
