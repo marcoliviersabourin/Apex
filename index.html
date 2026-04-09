@@ -842,6 +842,7 @@ input[type="range"]::-webkit-slider-thumb {
 .analyst-value { background:var(--core-bg); color:var(--core-primary); border:1px solid var(--core-border); }
 .analyst-technical { background:var(--tactical-bg); color:var(--tactical-primary); border:1px solid var(--tactical-border); }
 .analyst-dual { background:rgba(167,139,250,0.15); color:var(--purple); border:1px solid rgba(167,139,250,0.3); }
+.analyst-speculative { background:rgba(245,158,11,0.15); color:var(--amber); border:1px solid rgba(245,158,11,0.4); }
 </style>
 </head>
 <body>
@@ -851,7 +852,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.5.3 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.6.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1813,8 +1814,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.5.3</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-07-003</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.6.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-09-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1842,8 +1843,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.5.3';
-const APEX_BUILD = '2026-04-07-003';
+const APEX_VERSION = '2.6.0';
+const APEX_BUILD = '2026-04-09-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3105,7 +3106,20 @@ Core $${formatNum(coreVal)} (${(coreVal/total*100).toFixed(1)}%) | Tact $${forma
 CORE:\n${posList(corePos)}
 TACTICAL:\n${posList(tactPos)}\n`;
   if (totalCash > 0) ctx += `\nCASH AVAILABLE: $${formatNum(totalCash)} — the AI can recommend deploying cash into new positions or holding cash as a defensive allocation.\n`;
-  if (specificInstr) ctx += `\n⚡ SPECIFIC INSTRUCTIONS (HIGH PRIORITY):\n${specificInstr}\nAddress FIRST.\n`;
+  if (specificInstr) {
+    ctx += `\n⚡ SPECIFIC INSTRUCTIONS (HIGHEST PRIORITY — read carefully):
+"${specificInstr}"
+
+INSTRUCTION HANDLING — DO NOT SKIP:
+1. Parse the user's request into INDEPENDENT CRITERIA. Example: "oversold stocks with growth potential" = TWO criteria:
+   (a) TECHNICAL: oversold (RSI<35, below 50-day MA, recent price decline of >10%)
+   (b) FUNDAMENTAL: real growth potential (revenue growth >15%, expanding margins, reasonable PEG)
+2. For EVERY recommendation you make in response to these instructions, you must demonstrate that ALL criteria are satisfied with concrete evidence (cite the actual numbers from web search).
+3. If a stock satisfies only ONE criterion, do NOT present it as fulfilling the user's request. Either reject it or explicitly label it as "Partial match — satisfies X but NOT Y" with the missing criterion stated.
+4. Pattern-matching on a single signal (e.g. "stock dropped recently → it's oversold → recommend it") is FORBIDDEN. A price drop alone is not "oversold." A growth narrative alone is not "growth potential" — you need numerical evidence.
+5. Address these instructions FIRST in your response, before the standard 7-part framework, in a section titled "⚡ SPECIFIC INSTRUCTIONS RESPONSE."
+`;
+  }
   if (weeklyNotes) ctx += `\nWEEKLY NOTES: ${weeklyNotes}\n`;
   return ctx;
 }
@@ -3156,7 +3170,7 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
     {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"brief","summary":"1 line","valueSummary":"brief","technicalSummary":"brief"}
   ],
   "newIdeas": [
-    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual|speculative","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
   "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
 }
@@ -3395,6 +3409,24 @@ ${searchInstr}
 
 You are a 7-role analyst panel: Macro Strategist, 📊 Value Investor, 📈 Technical Analyst, Commodities Specialist, Risk Officer, Geopolitical Analyst, Portfolio Broker.
 
+═══ ANALYST DISCIPLINE — MANDATORY RULES ═══
+
+📊 VALUE INVESTOR DISCIPLINE:
+Every Value Pick recommendation MUST cite at least 3 of these 5 valuation metrics with actual numbers from web search:
+- Forward P/E ratio (and how it compares to 5-year average and sector median)
+- PEG ratio (forward P/E ÷ expected growth rate)
+- FCF yield or P/FCF
+- Revenue growth rate (TTM and forward)
+- Profit margin trend (expanding/stable/contracting)
+A "Value Pick" is a stock where the FUNDAMENTALS justify the price relative to growth. High-multiple stocks (forward P/E > 40, PEG > 2.5) are NOT inherently "value picks" — they may still be good ideas, but they MUST be tagged as "speculative growth" rather than "value pick" and the elevated valuation must be explicitly acknowledged with the actual P/E or PEG number stated.
+
+📈 TECHNICAL ANALYST DISCIPLINE:
+Every Technical Pick must cite specific technical evidence: RSI value, position vs 50/200-day MA, volume trend, support/resistance levels. "Stock dropped recently" alone is NOT a technical signal — RSI must be below 35, or the stock must be at a clear support level, or showing a reversal pattern. State the actual numbers.
+
+CRITICAL: Distinguish "oversold" (technical condition: RSI<35, stretched downside) from "fundamentally cheap" (valuation condition: trading below intrinsic value). A stock can be one without the other. PLTR-type situations (technically down but still at 200x P/E) are FALLING KNIVES, not value picks. Be honest about which case applies.
+
+═══ REPORT STRUCTURE ═══
+
 Write Parts 1-4 of the weekly analysis:
 
 ## PART 1 — MACRO SNAPSHOT
@@ -3403,23 +3435,26 @@ Write Parts 1-4 of the weekly analysis:
 ## PART 2 — PORTFOLIO REVIEW
 ### CORE POSITIONS REVIEW (Led by 📊 Value Investor, supported by 📈 Technical Analyst)
 Per position: Ticker | VERDICT (BUY/HOLD/TRIM/EXIT) | Sentiment | Momentum (↑/→/↓) | Confidence | Reason
-For each: Include 📊 Value view (valuation, fundamentals, growth potential) AND 📈 Technical view (RSI, trend, support/resistance, volume).
+For each: Include 📊 Value view (cite forward P/E or PEG with actual number) AND 📈 Technical view (RSI value, MA position, support/resistance).
 
 ### TACTICAL POSITIONS REVIEW (Led by 📈 Technical Analyst, supported by 📊 Value Investor)
-Same format. Emphasise technical setup, momentum indicators, entry/exit timing.
+Same format. Emphasise technical setup with actual RSI/MACD numbers, momentum indicators, entry/exit timing.
 
 ## PART 3 — NEW IDEAS
 5-15 new tickers NOT in portfolio. 1-2 per focus sector. Tag Core/Tactical.
 For EACH idea, indicate the lead analyst:
-- 📊 Value Pick = sourced from fundamental undervaluation
-- 📈 Technical Pick = sourced from technical setup/momentum
-- 📊📈 Dual Signal = both analysts independently flag it (highest conviction)
-Format: Ticker | Exchange | Sector | Cap | Core/Tactical | Lead (📊/📈/📊📈) | Description
+- 📊 Value Pick = fundamentals justify the price (must show forward P/E < 25 OR PEG < 1.5 OR FCF yield > 5%)
+- 📈 Technical Pick = technical setup (RSI < 35 OR clear support level OR reversal pattern)
+- 📊📈 Dual Signal = BOTH conditions met (highest conviction)
+- ⚠ Speculative Growth = high multiple but compelling growth story (forward P/E > 40 — must be explicitly acknowledged)
+Format: Ticker | Exchange | Sector | Cap | Core/Tactical | Lead (📊/📈/📊📈/⚠) | Description
 
 ## PART 4 — FUNDAMENTALS & TECHNICALS
-Per idea provide BOTH:
-📊 Value view: revenue growth, profitability, balance sheet, moat, PEG ratio, FCF yield, intrinsic value assessment
-📈 Technical view: RSI, MACD, volume trend, support/resistance levels, 50/200-day MA position, buy/sell pressure
+Per idea provide BOTH with concrete numbers:
+📊 Value view: forward P/E (actual number), PEG ratio, revenue growth rate, FCF yield, margin trend, intrinsic value vs current price
+📈 Technical view: current RSI (number), MACD signal, volume trend, exact support/resistance levels, 50/200-day MA position
+
+If a stock is "down a lot recently" but its forward P/E is still >40, you must label it ⚠ Speculative Growth or do not include it. Falling knives are not value picks.
 
 Be decisive with verdicts.`;
 
@@ -3500,7 +3535,7 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
     {"ticker":"AAPL","verdict":"BUY|HOLD|TRIM|EXIT","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","actionNote":"brief","summary":"1 line","valueSummary":"brief","technicalSummary":"brief"}
   ],
   "newIdeas": [
-    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
+    {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual|speculative","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
   "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
 }
@@ -3849,7 +3884,8 @@ function renderIdeasTable(allIdeas) {
     const lead = idea.leadAnalyst || '';
     const leadBadge = lead === 'dual' ? '<span class="analyst-lead analyst-dual">📊📈 DUAL</span>' :
                       lead === 'technical' ? '<span class="analyst-lead analyst-technical">📈 TECH</span>' :
-                      lead === 'value' ? '<span class="analyst-lead analyst-value">📊 VALUE</span>' : '';
+                      lead === 'value' ? '<span class="analyst-lead analyst-value">📊 VALUE</span>' :
+                      lead === 'speculative' ? '<span class="analyst-lead analyst-speculative">⚠ SPEC</span>' : '';
 
     return `<tr style="cursor:pointer;" onclick="toggleIdeaExpand(${realIdx})">
       <td style="font-weight:700;color:var(--text-primary);">${idea.ticker}</td>
@@ -4280,7 +4316,7 @@ ACTIVE RULES: ${rulesDesc}
 
 For each verdict, include both 📊 value and 📈 technical perspectives.
 Use web search to check current conditions. Return ONLY a JSON object with:
-{"updatedVerdicts":[{"ticker":"XYZ","verdict":"BUY|HOLD|TRIM|EXIT","actionNote":"short","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","summary":"1 line","valueSummary":"fundamental view","technicalSummary":"technical view"}],"updatedIdeas":[{"ticker":"ABC","suggestedWeight":2.5,"tag":"Core|Tactical","riskLevel":"Low|Medium|High","thesis":"1 line","leadAnalyst":"value|technical|dual"}],"reasoning":"Brief explanation of changes made"}
+{"updatedVerdicts":[{"ticker":"XYZ","verdict":"BUY|HOLD|TRIM|EXIT","actionNote":"short","sentiment":"Bullish|Neutral|Bearish","momentum":"↑|→|↓","confidence":"High|Medium|Low","summary":"1 line","valueSummary":"fundamental view","technicalSummary":"technical view"}],"updatedIdeas":[{"ticker":"ABC","suggestedWeight":2.5,"tag":"Core|Tactical","riskLevel":"Low|Medium|High","thesis":"1 line","leadAnalyst":"value|technical|dual|speculative"}],"reasoning":"Brief explanation of changes made"}
 
 Only include positions/ideas where your recommendation CHANGED. Return valid JSON only.`;
 
