@@ -498,6 +498,31 @@ input[type="range"]::-webkit-slider-thumb {
   font-size:14px; line-height:1.65;
   color:var(--text-secondary);
 }
+.report-section .md-table {
+  width:100%; border-collapse:collapse;
+  margin:12px 0; font-size:12px;
+  font-family:'IBM Plex Mono',monospace;
+  background:var(--bg-tertiary);
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius-sm); overflow:hidden;
+}
+.report-section .md-table th {
+  background:var(--bg-secondary); color:var(--text-primary);
+  padding:8px 10px; text-align:left; font-weight:700;
+  font-size:10px; letter-spacing:0.8px; text-transform:uppercase;
+  border-bottom:1px solid var(--border-subtle);
+}
+.report-section .md-table td {
+  padding:8px 10px; color:var(--text-secondary);
+  border-bottom:1px solid var(--border-subtle);
+  vertical-align:top;
+}
+.report-section .md-table tr:last-child td { border-bottom:none; }
+.report-section .md-table tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+@media (max-width:900px) {
+  .report-section .md-table { font-size:11px; display:block; overflow-x:auto; white-space:nowrap; }
+  .report-section .md-table td, .report-section .md-table th { padding:6px 8px; }
+}
 .report-section ul { padding-left:18px; }
 .report-section li { margin-bottom:4px; }
 
@@ -852,7 +877,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.6.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.7.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1317,6 +1342,24 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
         <input type="range" min="0" max="20" value="0" id="minCashSlider" oninput="document.getElementById('minCashVal').textContent=this.value+'%'">
         <div style="font-size:9px;color:var(--text-tertiary);">Target portfolio will always reserve at least this % in cash. 0% = fully invested.</div>
+      </div>
+
+      <div class="slider-group" style="margin-top:8px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Max New Ideas per Sector</span>
+          <span class="slider-value" id="maxIdeasPerSectorVal">3</span>
+        </div>
+        <input type="range" min="1" max="8" value="3" id="maxIdeasPerSectorSlider" oninput="document.getElementById('maxIdeasPerSectorVal').textContent=this.value">
+        <div style="font-size:9px;color:var(--text-tertiary);">Caps new ideas from any single sector per analysis — forces diversification across focus sectors.</div>
+      </div>
+
+      <div class="slider-group" style="margin-top:8px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Concentration Threshold</span>
+          <span class="slider-value" id="concentrationThresholdVal">15%</span>
+        </div>
+        <input type="range" min="5" max="30" value="15" id="concentrationThresholdSlider" oninput="document.getElementById('concentrationThresholdVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">If a sector already exceeds this % of portfolio, new ideas in that sector require high conviction differentiation.</div>
       </div>
 
       <div class="slider-group" style="margin-top:8px;">
@@ -1814,8 +1857,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.6.0</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-09-001</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.7.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-09-002</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1843,8 +1886,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.6.0';
-const APEX_BUILD = '2026-04-09-001';
+const APEX_VERSION = '2.7.0';
+const APEX_BUILD = '2026-04-09-002';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -1952,6 +1995,7 @@ function getDefaultProfile() {
     coreMax:7, tactMax:3, etfMax:15, maxPositions:30, maxTactCount:10,
     minCap:200, stopLoss:8, minRR:2,
     cadTarget:20, fxTolerance:8, minCashReserve:0,
+    maxIdeasPerSector:3, concentrationThreshold:15,
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -2751,6 +2795,10 @@ function applyProfile() {
   document.getElementById('fxTolVal').textContent = prof.fxTolerance + '%';
   document.getElementById('minCashSlider').value = prof.minCashReserve || 0;
   document.getElementById('minCashVal').textContent = (prof.minCashReserve || 0) + '%';
+  document.getElementById('maxIdeasPerSectorSlider').value = prof.maxIdeasPerSector || 3;
+  document.getElementById('maxIdeasPerSectorVal').textContent = prof.maxIdeasPerSector || 3;
+  document.getElementById('concentrationThresholdSlider').value = prof.concentrationThreshold || 15;
+  document.getElementById('concentrationThresholdVal').textContent = (prof.concentrationThreshold || 15) + '%';
   document.getElementById('rrSlider').value = prof.minRR;
   document.getElementById('rrVal').textContent = prof.minRR + ':1';
   document.getElementById('profGeo').value = prof.geo;
@@ -2789,6 +2837,8 @@ function saveProfile() {
   prof.cadTarget = parseInt(document.getElementById('cadTargetSlider').value);
   prof.fxTolerance = parseInt(document.getElementById('fxTolSlider').value);
   prof.minCashReserve = parseInt(document.getElementById('minCashSlider').value);
+  prof.maxIdeasPerSector = parseInt(document.getElementById('maxIdeasPerSectorSlider').value);
+  prof.concentrationThreshold = parseInt(document.getElementById('concentrationThresholdSlider').value);
   prof.geo = document.getElementById('profGeo').value;
   prof.notes = document.getElementById('profNotes').value;
   prof.excludePenny = document.getElementById('togglePenny').classList.contains('active');
@@ -3105,6 +3155,26 @@ PORTFOLIO — $${formatNum(total)} total | Invested: $${formatNum(posVal)} | Cas
 Core $${formatNum(coreVal)} (${(coreVal/total*100).toFixed(1)}%) | Tact $${formatNum(tactVal)} (${(tactVal/total*100).toFixed(1)}%) | CAD ${(cadVal/total*100).toFixed(1)}%
 CORE:\n${posList(corePos)}
 TACTICAL:\n${posList(tactPos)}\n`;
+  
+  // Compute current sector concentration for the concentration guard
+  const sectorWeights = {};
+  state.positions.forEach(p => {
+    sectorWeights[p.sector] = (sectorWeights[p.sector] || 0) + (p.value / total * 100);
+  });
+  const maxIdeasPerSector = prof.maxIdeasPerSector || 3;
+  const concentrationThreshold = prof.concentrationThreshold || 15;
+  const concentratedSectors = Object.entries(sectorWeights)
+    .filter(([s, w]) => w >= concentrationThreshold)
+    .map(([s, w]) => `${s} (${w.toFixed(1)}%)`)
+    .join(', ');
+  
+  ctx += `\n═══ IDEA SOURCING RULES (HARD CONSTRAINTS) ═══\n`;
+  ctx += `SECTOR DIVERSIFICATION: Maximum ${maxIdeasPerSector} new ideas per sector in Part 3. If you exceed this, pick the highest-conviction ones and drop the rest.\n`;
+  if (concentratedSectors) {
+    ctx += `CONCENTRATION GUARD: Current portfolio already has ≥${concentrationThreshold}% in: ${concentratedSectors}. New ideas in these sectors require HIGH conviction differentiation — the AI must explicitly state how the new idea is differentiated from existing positions (different sub-sector, different thesis driver, or hedging role). Otherwise, prefer underweight sectors.\n`;
+  } else {
+    ctx += `CONCENTRATION GUARD: No sector currently exceeds ${concentrationThreshold}% threshold — all focus sectors are fair game.\n`;
+  }
   if (totalCash > 0) ctx += `\nCASH AVAILABLE: $${formatNum(totalCash)} — the AI can recommend deploying cash into new positions or holding cash as a defensive allocation.\n`;
   if (specificInstr) {
     ctx += `\n⚡ SPECIFIC INSTRUCTIONS (HIGHEST PRIORITY — read carefully):
@@ -3162,7 +3232,7 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
   "macro": {
     "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
     "moodScore": 0-100,
-    "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
+    "metrics": [{"label":"US Fed Funds","value":"5.25%","direction":"→"},{"label":"BoC Rate","value":"3.75%","direction":"→"},{"label":"ECB Rate","value":"3.25%","direction":"↓"},{"label":"USD/CAD","value":"1.36","direction":"↑"},{"label":"EUR/CAD","value":"1.48","direction":"→"},{"label":"10Y Yield","value":"4.2%","direction":"↑"},{"label":"Oil WTI","value":"$75","direction":"↓"},{"label":"VIX","value":"18","direction":"→"}],
     "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"brief"}],
     "portfolioRelevance": "1 sentence max"
   },
@@ -3425,12 +3495,28 @@ Every Technical Pick must cite specific technical evidence: RSI value, position 
 
 CRITICAL: Distinguish "oversold" (technical condition: RSI<35, stretched downside) from "fundamentally cheap" (valuation condition: trading below intrinsic value). A stock can be one without the other. PLTR-type situations (technically down but still at 200x P/E) are FALLING KNIVES, not value picks. Be honest about which case applies.
 
+═══ FORMATTING DISCIPLINE (MANDATORY) ═══
+Whenever you present structured data with 2+ dimensions — scenario risk matrices, correlation pairs, catalyst calendars, comparative metrics, sector-by-sector analysis, position-by-position breakdowns — you MUST use markdown tables with | separators. Do NOT use comma-separated lists, semicolon lists, or prose paragraphs for tabular data. Specifically, Part 5 summary, Part 6 scenario risk matrix, Part 6 correlation pairs, and Part 4 fundamentals snapshots MUST all be tables.
+
 ═══ REPORT STRUCTURE ═══
 
 Write Parts 1-4 of the weekly analysis:
 
 ## PART 1 — MACRO SNAPSHOT
-(🌍 Macro Strategist) Global macro: Fed/rates, inflation, geopolitics, USD/CAD, oil, VIX, sector tailwinds/headwinds. Be specific with numbers.
+(🌍 Macro Strategist) Provide current levels for ALL 8 indicators below, WITH exact numbers and direction arrows. Use web search if uncertain. Render as a markdown table:
+
+| Indicator | Level | Direction | Note |
+|---|---|---|---|
+| US Fed Funds | X.XX% | ↑/→/↓ | brief |
+| Bank of Canada | X.XX% | ↑/→/↓ | brief |
+| ECB Deposit Rate | X.XX% | ↑/→/↓ | brief |
+| USD/CAD | X.XXXX | ↑/→/↓ | brief |
+| EUR/CAD | X.XXXX | ↑/→/↓ | brief |
+| 10Y Treasury | X.XX% | ↑/→/↓ | brief |
+| Oil WTI | $XX | ↑/→/↓ | brief |
+| VIX | XX.X | ↑/→/↓ | brief |
+
+Then a short narrative on geopolitics, inflation, sector tailwinds/headwinds.
 
 ## PART 2 — PORTFOLIO REVIEW
 ### CORE POSITIONS REVIEW (Led by 📊 Value Investor, supported by 📈 Technical Analyst)
@@ -3492,7 +3578,14 @@ Ticker | Sector | Core/Tactical | Thesis | Risk | Suggested Weight %
 Limits: Core ${prof.coreMax}%, Tactical ${prof.tactMax}%, ETF ${prof.etfMax||15}%.
 
 ## PART 6 — RISK CHECK
-Scenario risk, correlations, Core/Tactical drift vs ${prof.coreTarget}/${prof.tactTarget} target, CAD/USD vs ${prof.cadTarget}% target.
+Use markdown tables for all structured data:
+### 6.1 Scenario Risk Matrix
+| Scenario | Probability | Winners | Losers | Portfolio Impact |
+### 6.2 Correlation Pairs
+| Pair | Correlation | Hidden Risk |
+### 6.3 Drift vs Targets
+| Metric | Current | Target | Variance |
+Then narrative on CAD/USD exposure.
 
 ## PART 7 — TOP 3-5 PRIORITY IDEAS
 Tickers to research first + what to verify.
@@ -3527,7 +3620,7 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
   "macro": {
     "mood": "Bullish|Cautiously Bullish|Neutral|Cautiously Bearish|Bearish",
     "moodScore": 0-100,
-    "metrics": [{"label":"Fed Rate","value":"5.25%","direction":"→"}],
+    "metrics": [{"label":"US Fed Funds","value":"5.25%","direction":"→"},{"label":"BoC Rate","value":"3.75%","direction":"→"},{"label":"ECB Rate","value":"3.25%","direction":"↓"},{"label":"USD/CAD","value":"1.36","direction":"↑"},{"label":"EUR/CAD","value":"1.48","direction":"→"},{"label":"10Y Yield","value":"4.2%","direction":"↑"},{"label":"Oil WTI","value":"$75","direction":"↓"},{"label":"VIX","value":"18","direction":"→"}],
     "sectorHeatmap": [{"sector":"Technology","outlook":"tailwind|headwind|neutral","note":"brief"}],
     "portfolioRelevance": "1 sentence max"
   },
@@ -3779,13 +3872,19 @@ function refreshMacro() {
   // Key metrics strip
   const metricsEl = document.getElementById('macroMetrics');
   const metrics = macro.metrics || [];
-  metricsEl.innerHTML = metrics.map(m => `
-    <div class="key-metric-card">
+  metricsEl.innerHTML = metrics.map(m => {
+    const label = (m.label || '').toLowerCase();
+    let accent = 'var(--text-tertiary)';
+    if (label.includes('fed') || label.includes('10y') || label.includes('treasury')) accent = '#3b82f6'; // US blue
+    else if (label.includes('boc') || label.includes('canada') || label.includes('usd/cad')) accent = '#ef4444'; // CA red
+    else if (label.includes('ecb') || label.includes('eur')) accent = 'var(--purple)'; // EU purple
+    else if (label.includes('oil') || label.includes('vix')) accent = 'var(--amber)'; // commodity
+    return `<div class="key-metric-card" style="border-top:2px solid ${accent};">
       <div class="km-label">${m.label}</div>
-      <div class="km-arrow" style="color:${m.direction === '↑' ? 'var(--green)' : m.direction === '↓' ? 'var(--red)' : 'var(--amber)'};">${m.direction}</div>
+      <div class="km-arrow" style="color:${m.direction === '↑' ? 'var(--green)' : m.direction === '↓' ? 'var(--red)' : 'var(--amber)'};">${m.direction || '→'}</div>
       <div class="km-value">${m.value}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // Sector heatmap
   const heatmapEl = document.getElementById('macroHeatmap');
@@ -4942,8 +5041,31 @@ function renderReport(text, containerId) {
     if (/CORE\s*POSITIONS/i.test(trimmed)) sectionClass += ' core-section';
     else if (/TACTICAL\s*POSITIONS/i.test(trimmed)) sectionClass += ' tactical-section';
     
-    // Convert markdown to HTML
-    let sectionHtml = trimmed
+    // Convert markdown tables FIRST (before line breaks get mangled)
+    let sectionHtml = trimmed;
+    sectionHtml = sectionHtml.replace(/((?:^\|.+\|\s*\n?)+)/gm, (tableBlock) => {
+      const lines = tableBlock.trim().split('\n').filter(l => l.trim().startsWith('|'));
+      if (lines.length < 2) return tableBlock;
+      // Detect separator row (|---|---|)
+      const isSeparator = (l) => /^\|[\s\-:|]+\|$/.test(l.trim());
+      const rows = lines.filter(l => !isSeparator(l));
+      if (rows.length < 1) return tableBlock;
+      const parseCells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      const headerCells = parseCells(rows[0]);
+      const bodyRows = rows.slice(1);
+      let html = '<table class="md-table"><thead><tr>';
+      headerCells.forEach(c => { html += `<th>${c}</th>`; });
+      html += '</tr></thead><tbody>';
+      bodyRows.forEach(r => {
+        const cells = parseCells(r);
+        html += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    });
+    
+    // Then other markdown conversions (skip content already in tables)
+    sectionHtml = sectionHtml
       .replace(/^##\s*(.+)/gm, '<h3>$1</h3>')
       .replace(/^###\s*(.+)/gm, '<h4>$1</h4>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
