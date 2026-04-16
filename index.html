@@ -877,7 +877,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.7.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.8.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1678,7 +1678,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div id="watchlistContent" style="display:none;">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-primary" onclick="evaluateWatchlist()" id="evalWatchlistBtn">🤖 Evaluate Pending</button>
-        <button class="btn btn-sm" onclick="promoteEvaluatedToIdeas()">→ Add Evaluated to Ideas</button>
+        <button class="btn btn-sm" onclick="promoteEvaluatedToIdeas()" title="Bulk-promote only STRONG_BUY items. Use per-row Promote button for BUY/WATCH.">→ Promote STRONG BUY</button>
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table" id="watchlistTable">
@@ -1687,8 +1687,8 @@ input[type="range"]::-webkit-slider-thumb {
               <th>Ticker</th>
               <th>Exchange</th>
               <th>Tag</th>
-              <th>Notes</th>
-              <th>Status</th>
+              <th>Verdict</th>
+              <th>Reason</th>
               <th>Thesis</th>
               <th>Risk</th>
               <th class="num">Wt %</th>
@@ -1857,8 +1857,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.7.0</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-09-002</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.8.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-15-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1886,8 +1886,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.7.0';
-const APEX_BUILD = '2026-04-09-002';
+const APEX_VERSION = '2.8.0';
+const APEX_BUILD = '2026-04-15-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -4146,20 +4146,30 @@ function refreshWatchlist() {
   const body = document.getElementById('watchlistBody');
   body.innerHTML = state.watchlist.map((w, i) => {
     const tagClass = w.tag === 'core' ? 'badge-core' : 'badge-tactical';
-    const statusCls = w.status === 'evaluated' ? 'status-evaluated' : w.status === 'rejected' ? 'status-rejected' : 'status-pending';
+    const statusCls = w.status === 'evaluated' ? 'status-evaluated' : w.status === 'rejected' ? 'status-rejected' : w.status === 'promoted' ? 'status-evaluated' : 'status-pending';
     const ed = w.evalData || {};
+    const verdict = ed.verdict || '';
+    const verdictBadge = verdict === 'STRONG_BUY' ? '<span class="badge badge-buy" style="background:rgba(34,197,94,0.25);">★ STRONG BUY</span>' :
+                        verdict === 'BUY' ? '<span class="badge badge-buy">BUY</span>' :
+                        verdict === 'WATCH' ? '<span class="badge badge-hold">WATCH</span>' :
+                        verdict === 'PASS' ? '<span class="badge badge-exit">PASS</span>' : '—';
+    const canPromote = (verdict === 'STRONG_BUY' || verdict === 'BUY' || verdict === 'WATCH') && w.status !== 'promoted';
+    const promoteBtn = canPromote
+      ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();promoteWatchlistItem('${w.ticker}')" style="font-size:10px;padding:4px 8px;" title="Add to New Ideas">→ Promote</button>`
+      : (w.status === 'promoted' ? '<span style="font-size:10px;color:var(--green);">✓ promoted</span>' : '');
     return `<tr style="cursor:pointer;" onclick="toggleWatchlistExpand(${i})">
       <td style="font-weight:700;">${w.ticker}</td>
       <td style="font-size:11px;">${w.exchange || ''}</td>
       <td><span class="badge ${tagClass}">${w.tag.toUpperCase()}</span></td>
-      <td style="font-size:11px;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;">${w.notes || '—'}</td>
-      <td><span class="${statusCls}" style="font-weight:700;font-size:11px;text-transform:uppercase;">${w.status}</span></td>
+      <td>${verdictBadge}</td>
+      <td style="font-size:11px;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;">${ed.verdictReason || w.notes || '—'}</td>
       <td style="font-size:11px;color:var(--text-secondary);max-width:140px;overflow:hidden;text-overflow:ellipsis;">${ed.thesis || '—'}</td>
       <td>${ed.riskLevel ? `<span class="risk-badge risk-${(ed.riskLevel||'').toLowerCase()}">${ed.riskLevel}</span>` : '—'}</td>
       <td class="num">${ed.suggestedWeight ? ed.suggestedWeight + '%' : '—'}</td>
       <td style="font-size:10px;color:var(--text-tertiary);">${w.lastEval ? new Date(w.lastEval).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—'}</td>
-      <td onclick="event.stopPropagation();">
-        <button class="btn btn-sm btn-icon" onclick="deleteWatchlistItem(${i})" style="font-size:10px;" title="Remove">×</button>
+      <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+        ${promoteBtn}
+        <button class="btn btn-sm btn-icon" onclick="deleteWatchlistItem(${i})" style="font-size:10px;margin-left:4px;" title="Remove">×</button>
       </td>
     </tr>
     <tr class="expandable-row" id="wlExpand_${i}">
@@ -4172,11 +4182,19 @@ function refreshWatchlist() {
         ` : w.status === 'rejected' ? `
           <div style="padding:8px;">
             <div style="color:var(--red);font-weight:600;margin-bottom:4px;">Verdict: PASS — Not recommended</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${ed.thesis || 'No details'}</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">${ed.verdictReason || ed.thesis || 'No details'}</div>
+            ${ed.comparedAgainst ? `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;"><strong>Compared against:</strong> ${ed.comparedAgainst}</div>` : ''}
             ${ed.risks ? `<div style="margin-top:4px;font-size:12px;"><strong>Risks:</strong> ${ed.risks}</div>` : ''}
             <button class="btn btn-sm" onclick="event.stopPropagation();reEvaluateWatchlistItem(${i})" style="margin-top:8px;">↻ Re-evaluate</button>
           </div>
         ` : `
+          ${verdict ? `<div style="padding:8px;background:var(--bg-tertiary);border-radius:4px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${verdictBadge}
+              <span style="font-size:12px;color:var(--text-primary);">${ed.verdictReason || ''}</span>
+            </div>
+            ${ed.comparedAgainst ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;"><strong>Compared against:</strong> ${ed.comparedAgainst}</div>` : ''}
+          </div>` : ''}
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div style="border-left:3px solid var(--core-primary);padding-left:10px;">
               <strong style="color:var(--core-primary);">📊 Fundamental View</strong><br>
@@ -4303,19 +4321,55 @@ async function evaluateWatchlist() {
   btn.disabled = true; btn.textContent = '⏳ Evaluating...';
 
   const prof = state.profile;
-  const tickerList = pending.map(w => `${w.ticker} (${w.exchange || 'unknown'}, tagged ${w.tag}${w.notes ? ', user note: ' + w.notes : ''})`).join('\n');
+  
+  // Build same-sector comparison context for each pending item
+  const itemsWithContext = pending.map(w => {
+    // Try to match sector — use SECTOR_MAP heuristic if no sector set yet
+    const guessSector = w.sector || SECTOR_MAP[w.ticker.toUpperCase()] || 'Unknown';
+    // Find user's positions in same sector for comparison
+    const sameSector = state.positions.filter(p => p.sector === guessSector);
+    const sectorPeers = sameSector.length > 0
+      ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}% of portfolio, $${formatNum(p.value)})`).join(', ')
+      : 'none currently held';
+    return { ticker: w.ticker, exchange: w.exchange || 'unknown', tag: w.tag, notes: w.notes || '', guessSector, sectorPeers };
+  });
+  
+  const tickerBlock = itemsWithContext.map(i =>
+    `${i.ticker} (${i.exchange}, suggested tag: ${i.tag}${i.notes ? ', user note: ' + i.notes : ''})\n  Likely sector: ${i.guessSector}\n  Existing portfolio peers in same sector: ${i.sectorPeers}`
+  ).join('\n\n');
 
-  const prompt = `You are the APEX Analyst Panel. Evaluate these watchlist tickers for potential investment.
+  const prompt = `You are the APEX Analyst Panel evaluating watchlist tickers for potential addition to the user's portfolio.
 
-TICKERS TO EVALUATE:
-${tickerList}
+INVESTOR PROFILE: ${prof.risk} risk, ${prof.horizon} horizon, focus sectors: ${prof.focusSectors.join(', ')}, min market cap $${prof.minCap}M
 
-INVESTOR PROFILE: ${prof.risk} risk, ${prof.horizon} horizon, focus sectors: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
+TICKERS TO EVALUATE (with same-sector portfolio peers shown for comparison):
+${tickerBlock}
 
-For each ticker, use web search to get current data. Return ONLY a JSON array:
-[{"ticker":"XYZ","thesis":"1 sentence","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"fundamentals":"2-3 sentences","risks":"key risks","sector":"Technology","revenueTrend":"↑","catalysts":"upcoming events","tag":"Core|Tactical","verdict":"BUY|WATCH|PASS"}]
+═══ EVALUATION DISCIPLINE — READ CAREFULLY ═══
 
-If a ticker should NOT be bought, set verdict to "PASS" and suggestedWeight to 0. Return ONLY valid JSON array.`;
+For each ticker, you must determine TWO things:
+
+1. **Standalone quality:** is the stock fundamentally compelling on its own merits? Cite at least 2 of: forward P/E, PEG ratio, FCF yield, revenue growth rate, margin trend.
+
+2. **Comparative quality:** is the stock materially better than the weakest sector peer the user already holds? If sector peers exist, compare directly. If no peers exist, compare against the user's overall portfolio quality bar.
+
+Use web search to get current data for each ticker.
+
+═══ VERDICT MEANINGS — BE SELECTIVE ═══
+
+- **STRONG_BUY**: Clearly superior to existing sector peers. Worth replacing a current holding. Reserve for ideas with a clear edge — typically no more than 1-2 per evaluation batch.
+- **BUY**: Good standalone quality and at least as good as existing peers. Worth adding if cash allows, but not worth forcing an exit.
+- **WATCH**: Interesting but not yet ready — needs a catalyst, better entry price, or more clarity. Stays in watchlist, not promoted.
+- **PASS**: Does not meet the quality bar. Either fundamentally weak or strictly worse than what the user already holds.
+
+DEFAULT TO WATCH OR PASS unless you have strong evidence. The user has limited capital and existing positions — every BUY recommendation should be defensible against the alternative of holding cash or sticking with current positions.
+
+═══ OUTPUT FORMAT ═══
+
+Return ONLY a JSON array (no markdown, no preamble):
+[{"ticker":"XYZ","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence explaining the verdict — what it beats or why it falls short","sector":"Technology","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with cited metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"ticker(s) of sector peer this was compared to, or 'none in sector'"}]
+
+For PASS or WATCH verdicts, set suggestedWeight to 0.`;
 
   try {
     const result = await callClaude(key, state.settings.model, [{role:'user', content: prompt}], true, 6000);
@@ -4330,18 +4384,35 @@ If a ticker should NOT be bought, set verdict to "PASS" and suggestedWeight to 0
     const evalMap = {};
     parsed.forEach(e => { evalMap[e.ticker?.toUpperCase()] = e; });
 
+    let strongBuy = 0, buy = 0, watch = 0, pass = 0;
     state.watchlist.forEach(w => {
       const ev = evalMap[w.ticker.toUpperCase()];
       if (ev) {
+        // Map verdict to status — only PASS goes to rejected; others stay evaluated for manual decision
         w.status = ev.verdict === 'PASS' ? 'rejected' : 'evaluated';
         w.lastEval = new Date().toISOString();
         w.tag = (ev.tag || w.tag || 'core').toLowerCase();
-        w.evalData = { thesis: ev.thesis, riskLevel: ev.riskLevel, suggestedWeight: ev.suggestedWeight,
-          fundamentals: ev.fundamentals, risks: ev.risks, sector: ev.sector, revenueTrend: ev.revenueTrend, catalysts: ev.catalysts, verdict: ev.verdict };
+        w.evalData = {
+          verdict: ev.verdict,
+          verdictReason: ev.verdictReason || '',
+          comparedAgainst: ev.comparedAgainst || '',
+          thesis: ev.thesis,
+          riskLevel: ev.riskLevel,
+          suggestedWeight: ev.suggestedWeight,
+          fundamentals: ev.fundamentals,
+          risks: ev.risks,
+          sector: ev.sector,
+          revenueTrend: ev.revenueTrend,
+          catalysts: ev.catalysts
+        };
+        if (ev.verdict === 'STRONG_BUY') strongBuy++;
+        else if (ev.verdict === 'BUY') buy++;
+        else if (ev.verdict === 'WATCH') watch++;
+        else if (ev.verdict === 'PASS') pass++;
       }
     });
     saveState(); refreshWatchlist();
-    toast(`${parsed.length} watchlist items evaluated`);
+    toast(`Evaluated ${parsed.length}: ${strongBuy} STRONG_BUY, ${buy} BUY, ${watch} WATCH, ${pass} PASS — review and promote manually`);
   } catch(e) {
     toast('Evaluation failed: ' + e.message, 'error');
   }
@@ -4349,26 +4420,56 @@ If a ticker should NOT be bought, set verdict to "PASS" and suggestedWeight to 0
 }
 
 function promoteEvaluatedToIdeas() {
-  const evaluated = state.watchlist.filter(w => w.status === 'evaluated' && w.evalData);
-  if (evaluated.length === 0) { toast('No evaluated items to promote', 'error'); return; }
+  // Bulk promote — only STRONG_BUY by default. BUY/WATCH require manual per-row promotion.
+  const toPromote = state.watchlist.filter(w =>
+    w.status === 'evaluated' && w.evalData && w.evalData.verdict === 'STRONG_BUY'
+  );
+  if (toPromote.length === 0) {
+    toast('No STRONG_BUY items to promote — review BUY/WATCH items individually', 'error');
+    return;
+  }
   if (!state.analysisData) state.analysisData = { newIdeas: [], verdicts: [] };
   if (!state.analysisData.newIdeas) state.analysisData.newIdeas = [];
 
   let added = 0;
-  evaluated.forEach(w => {
-    const ed = w.evalData;
-    if (state.analysisData.newIdeas.find(i => i.ticker?.toUpperCase() === w.ticker.toUpperCase())) return;
-    state.analysisData.newIdeas.push({
-      ticker: w.ticker, exchange: w.exchange, sector: ed.sector || '', tag: w.tag,
-      marketCap: '', thesis: ed.thesis || '', revenueTrend: ed.revenueTrend || '',
-      revenueNote: '', moat: '', catalysts: ed.catalysts || '', risks: ed.risks || '',
-      riskLevel: ed.riskLevel || '', suggestedWeight: ed.suggestedWeight || 0,
-      priority: false, fundamentals: ed.fundamentals || '', _source: 'watchlist'
-    });
-    added++;
+  toPromote.forEach(w => {
+    if (promoteWatchlistItem(w.ticker, true)) added++;
   });
-  saveState(); refreshIdeas();
-  toast(`${added} items promoted to New Ideas`);
+  saveState(); refreshIdeas(); refreshWatchlist();
+  toast(`${added} STRONG_BUY items promoted to New Ideas`);
+}
+
+function promoteWatchlistItem(ticker, skipSave) {
+  // Promote a single watchlist item to ideas (used by bulk and manual)
+  const w = state.watchlist.find(x => x.ticker.toUpperCase() === ticker.toUpperCase());
+  if (!w || !w.evalData) { toast('No evaluation data for ' + ticker, 'error'); return false; }
+  if (!state.analysisData) state.analysisData = { newIdeas: [], verdicts: [] };
+  if (!state.analysisData.newIdeas) state.analysisData.newIdeas = [];
+  
+  const ed = w.evalData;
+  // Skip if already in ideas
+  if (state.analysisData.newIdeas.find(i => i.ticker?.toUpperCase() === w.ticker.toUpperCase())) {
+    if (!skipSave) toast(ticker + ' already in New Ideas');
+    return false;
+  }
+  state.analysisData.newIdeas.push({
+    ticker: w.ticker, exchange: w.exchange, sector: ed.sector || '', tag: w.tag,
+    marketCap: '', thesis: ed.thesis || '', revenueTrend: ed.revenueTrend || '',
+    revenueNote: '', moat: '', catalysts: ed.catalysts || '', risks: ed.risks || '',
+    riskLevel: ed.riskLevel || '', suggestedWeight: ed.suggestedWeight || 0,
+    priority: false, fundamentals: ed.fundamentals || '',
+    leadAnalyst: ed.verdict === 'STRONG_BUY' ? 'dual' : 'value',
+    _source: 'watchlist',
+    _verdictReason: ed.verdictReason || ''
+  });
+  // Mark watchlist item as promoted
+  w.status = 'promoted';
+  w.promotedAt = new Date().toISOString();
+  if (!skipSave) {
+    saveState(); refreshIdeas(); refreshWatchlist();
+    toast(ticker + ' promoted to New Ideas');
+  }
+  return true;
 }
 
 // ═══ FEATURE D: TARGET REBUILD ═══
