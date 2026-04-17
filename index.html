@@ -840,6 +840,8 @@ input[type="range"]::-webkit-slider-thumb {
 .target-row-exit { opacity:0.5; }
 .target-row-exit td { text-decoration:line-through; color:var(--text-tertiary) !important; }
 .target-row-trim { background:rgba(251,191,36,0.04); }
+.target-row-noaction { opacity:0.6; }
+.target-row-noaction td { color:var(--text-tertiary) !important; }
 .delta-up { color:var(--green); }
 .delta-down { color:var(--red); }
 .delta-neutral { color:var(--text-tertiary); }
@@ -877,7 +879,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.8.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v2.9.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1360,6 +1362,24 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
         <input type="range" min="5" max="30" value="15" id="concentrationThresholdSlider" oninput="document.getElementById('concentrationThresholdVal').textContent=this.value+'%'">
         <div style="font-size:9px;color:var(--text-tertiary);">If a sector already exceeds this % of portfolio, new ideas in that sector require high conviction differentiation.</div>
+      </div>
+
+      <div class="slider-group" style="margin-top:8px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Min Rebalance Threshold</span>
+          <span class="slider-value" id="minRebalVal">1.0%</span>
+        </div>
+        <input type="range" min="0.5" max="3" step="0.5" value="1" id="minRebalSlider" oninput="document.getElementById('minRebalVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">Changes smaller than this % are suppressed as noise — marked NO ACTION in target portfolio.</div>
+      </div>
+
+      <div class="slider-group" style="margin-top:8px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Max Deployment %</span>
+          <span class="slider-value" id="maxDeployVal">100%</span>
+        </div>
+        <input type="range" min="80" max="110" step="5" value="100" id="maxDeploySlider" oninput="document.getElementById('maxDeployVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">Below 100% = always keep some cash. Above 100% = aggressive deployment using available margin.</div>
       </div>
 
       <div class="slider-group" style="margin-top:8px;">
@@ -1857,8 +1877,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.8.0</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-15-001</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.9.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-17-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1886,8 +1906,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.8.0';
-const APEX_BUILD = '2026-04-15-001';
+const APEX_VERSION = '2.9.0';
+const APEX_BUILD = '2026-04-17-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -1996,6 +2016,7 @@ function getDefaultProfile() {
     minCap:200, stopLoss:8, minRR:2,
     cadTarget:20, fxTolerance:8, minCashReserve:0,
     maxIdeasPerSector:3, concentrationThreshold:15,
+    minRebalanceThreshold:1, maxDeployment:100,
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -2799,6 +2820,10 @@ function applyProfile() {
   document.getElementById('maxIdeasPerSectorVal').textContent = prof.maxIdeasPerSector || 3;
   document.getElementById('concentrationThresholdSlider').value = prof.concentrationThreshold || 15;
   document.getElementById('concentrationThresholdVal').textContent = (prof.concentrationThreshold || 15) + '%';
+  document.getElementById('minRebalSlider').value = prof.minRebalanceThreshold || 1;
+  document.getElementById('minRebalVal').textContent = (prof.minRebalanceThreshold || 1) + '%';
+  document.getElementById('maxDeploySlider').value = prof.maxDeployment || 100;
+  document.getElementById('maxDeployVal').textContent = (prof.maxDeployment || 100) + '%';
   document.getElementById('rrSlider').value = prof.minRR;
   document.getElementById('rrVal').textContent = prof.minRR + ':1';
   document.getElementById('profGeo').value = prof.geo;
@@ -2839,6 +2864,8 @@ function saveProfile() {
   prof.minCashReserve = parseInt(document.getElementById('minCashSlider').value);
   prof.maxIdeasPerSector = parseInt(document.getElementById('maxIdeasPerSectorSlider').value);
   prof.concentrationThreshold = parseInt(document.getElementById('concentrationThresholdSlider').value);
+  prof.minRebalanceThreshold = parseFloat(document.getElementById('minRebalSlider').value);
+  prof.maxDeployment = parseInt(document.getElementById('maxDeploySlider').value);
   prof.geo = document.getElementById('profGeo').value;
   prof.notes = document.getElementById('profNotes').value;
   prof.excludePenny = document.getElementById('togglePenny').classList.contains('active');
@@ -4594,199 +4621,174 @@ function refreshTarget() {
   const verdictMap = {};
   verdicts.forEach(v => { verdictMap[v.ticker?.toUpperCase()] = v; });
 
-  let trimCount = 0, exitCount = 0, newCount = 0, keepCount = 0;
+  let trimCount = 0, exitCount = 0, newCount = 0, keepCount = 0, noActionCount = 0;
+  const minRebalPct = prof.minRebalanceThreshold || 1;
+  const maxDeployPct = prof.maxDeployment || 100;
 
-  // Process existing positions
+  // ═══ STEP 1: COLLECT VERDICTS — lock analyst-directed weights ═══
   state.positions.forEach(pos => {
     const v = verdictMap[pos.symbol.toUpperCase()] || {};
     const currentWeight = total > 0 ? (pos.value / total * 100) : 0;
     let status = 'KEEP';
     let rawTargetWeight = currentWeight;
+    let locked = false; // locked = normalization can't change this
 
     if (v.verdict === 'EXIT') {
-      status = 'EXIT';
-      rawTargetWeight = 0;
-      exitCount++;
+      status = 'EXIT'; rawTargetWeight = 0; locked = true; exitCount++;
     } else if (v.verdict === 'TRIM') {
       status = 'TRIM';
       const trimMatch = (v.actionNote || '').match(/(\d+\.?\d*)%/);
       if (trimMatch) {
         rawTargetWeight = parseFloat(trimMatch[1]);
       } else {
-        rawTargetWeight = Math.min(currentWeight, getMaxWeight(pos));
+        // No specific target — reduce by 50% as meaningful trim
+        rawTargetWeight = currentWeight * 0.5;
       }
+      // Never let TRIM increase weight
+      rawTargetWeight = Math.min(rawTargetWeight, currentWeight);
+      locked = true; // TRIM targets are locked — normalization can't inflate them
       trimCount++;
     } else if (v.verdict === 'BUY') {
-      status = 'KEEP';
       const buyMatch = (v.actionNote || '').match(/(\d+\.?\d*)%/);
-      if (buyMatch) rawTargetWeight = parseFloat(buyMatch[1]);
-      keepCount++;
+      if (buyMatch) {
+        rawTargetWeight = parseFloat(buyMatch[1]);
+        locked = true; // Explicit BUY target is locked
+      }
+      // BUY without specific target = keep current weight (flexible)
+      status = 'KEEP'; keepCount++;
     } else {
+      // HOLD — keep current weight, flexible for score-based trimming
       keepCount++;
     }
 
+    // Compute conviction score for flexible entries
+    const verdictScore = { 'BUY': 4, 'HOLD': 3, 'TRIM': 1, 'EXIT': 0 };
+    const confScore = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    const sentScore = { 'Bullish': 3, 'Neutral': 2, 'Bearish': 1 };
+    const conviction = (verdictScore[v.verdict] || 2) + (confScore[v.confidence] || 1) + (sentScore[v.sentiment] || 1);
+
     targetEntries.push({
-      ticker: pos.symbol,
-      name: pos.description,
-      status,
-      currentWeight,
-      rawTargetWeight,
-      currentValue: pos.value,
-      tag: pos.tag,
-      sector: pos.sector,
-      currency: pos.currency,
-      markPrice: pos.markPrice,
-      isNew: false
+      ticker: pos.symbol, name: pos.description, status, currentWeight, rawTargetWeight,
+      currentValue: pos.value, tag: pos.tag, sector: pos.sector, currency: pos.currency,
+      markPrice: pos.markPrice, isNew: false, _locked: locked, _conviction: conviction
     });
   });
 
-  // Add new ideas
+  // ═══ STEP 2: ADD NEW IDEAS ═══
   newIdeas.forEach(idea => {
     if (idea.suggestedWeight && idea.suggestedWeight > 0) {
       newCount++;
+      const leadScore = { 'dual': 2, 'value': 1, 'technical': 1, 'speculative': 0 };
+      const riskAdj = { 'Low': 1, 'Medium': 0, 'High': -1 };
+      const conviction = 4 + 2 + 2 + (leadScore[idea.leadAnalyst] || 0) + (riskAdj[idea.riskLevel] || 0);
       targetEntries.push({
-        ticker: idea.ticker,
-        name: idea.thesis || idea.sector || '',
-        status: 'NEW',
-        currentWeight: 0,
-        rawTargetWeight: idea.suggestedWeight,
-        currentValue: 0,
-        tag: (idea.tag || 'core').toLowerCase(),
-        sector: idea.sector || '',
-        currency: 'USD',
-        markPrice: 0,
-        isNew: true,
-        exchange: idea.exchange || ''
+        ticker: idea.ticker, name: idea.thesis || idea.sector || '', status: 'NEW',
+        currentWeight: 0, rawTargetWeight: idea.suggestedWeight, currentValue: 0,
+        tag: (idea.tag || 'core').toLowerCase(), sector: idea.sector || '', currency: 'USD',
+        markPrice: 0, isNew: true, exchange: idea.exchange || '',
+        _locked: false, _conviction: conviction
       });
     }
   });
 
-  // Get active rules from profile toggles (rules already declared above)
-
-  // ═══ ENFORCE MAX POSITIONS (if enabled) ═══
+  // ═══ STEP 3: ENFORCE MAX POSITIONS (if enabled) ═══
   const maxPos = prof.maxPositions || 30;
   let activeCount = targetEntries.filter(e => e.status !== 'EXIT').length;
   
   if (rules.maxPos && activeCount > maxPos) {
-    console.log(`APEX Target: ${activeCount} active exceeds max ${maxPos}, trimming weakest`);
-    const verdictScore = { 'BUY': 4, 'HOLD': 2, 'TRIM': 1, 'EXIT': 0 };
-    const confScore = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    const sentScore = { 'Bullish': 3, 'Neutral': 2, 'Bearish': 1 };
-    
-    const keepEntries = targetEntries.filter(e => e.status === 'KEEP' || e.status === 'TRIM');
-    keepEntries.forEach(e => {
-      const v = verdictMap[e.ticker.toUpperCase()] || {};
-      let strength = (verdictScore[v.verdict] || 2) + (confScore[v.confidence] || 1) + (sentScore[v.sentiment] || 1) + (e.rawTargetWeight * 0.1);
-      // If sector limits enabled, penalize positions from over-represented sectors
-      if (rules.sectorLimit) {
-        const sectorW = {};
-        targetEntries.filter(x => x.status !== 'EXIT').forEach(x => { sectorW[x.sector] = (sectorW[x.sector] || 0) + x.rawTargetWeight; });
-        const sectorMax = prof.sectorMax[e.sector] || 25;
-        if ((sectorW[e.sector] || 0) > sectorMax) strength -= 2; // Penalize overweight sectors
-      }
-      e._strength = strength;
-    });
-    keepEntries.sort((a, b) => a._strength - b._strength);
-    
+    // Score-based: trim weakest flexible entries (HOLD or weak NEW), protect locked entries and strong NEW
+    const flexible = targetEntries.filter(e => e.status !== 'EXIT' && !e._locked);
+    flexible.sort((a, b) => a._conviction - b._conviction);
     let toRemove = activeCount - maxPos;
-    for (let i = 0; i < keepEntries.length && toRemove > 0; i++) {
-      const entry = keepEntries[i];
+    for (let i = 0; i < flexible.length && toRemove > 0; i++) {
+      const entry = flexible[i];
       const wasStatus = entry.status;
-      entry.status = 'EXIT'; entry.rawTargetWeight = 0; entry._forceExited = true;
+      entry.status = 'EXIT'; entry.rawTargetWeight = 0; entry._locked = true; entry._forceExited = true;
       exitCount++;
-      if (wasStatus === 'TRIM') trimCount--; else keepCount--;
+      if (wasStatus === 'TRIM') trimCount--; else if (wasStatus === 'KEEP') keepCount--; else if (wasStatus === 'NEW') newCount--;
       toRemove--;
     }
   }
 
-  // ═══ SECTOR LIMITS (if enabled): trim positions from over-represented sectors ═══
-  if (rules.sectorLimit) {
-    const activeForSector = targetEntries.filter(e => e.status !== 'EXIT');
-    const rawTotal = activeForSector.reduce((s,e) => s + e.rawTargetWeight, 0) || 1;
-    const sectorWeights = {};
-    activeForSector.forEach(e => { sectorWeights[e.sector] = (sectorWeights[e.sector] || 0) + (e.rawTargetWeight / rawTotal * 100); });
-    Object.entries(sectorWeights).forEach(([sector, pct]) => {
-      const limit = prof.sectorMax[sector] || 25;
-      if (pct > limit) {
-        const ratio = limit / pct;
-        activeForSector.filter(e => e.sector === sector).forEach(e => { e.rawTargetWeight *= ratio; });
+  // ═══ STEP 4: APPLY POSITION CAPS (if enabled) ═══
+  if (rules.posCap) {
+    targetEntries.forEach(e => {
+      if (e.status === 'EXIT') return;
+      const maxW = e.sector === 'ETF' ? (prof.etfMax || 15) : (e.tag === 'tactical' ? prof.tactMax : prof.coreMax);
+      if (e.rawTargetWeight > maxW) {
+        e.rawTargetWeight = maxW;
+        e._locked = true; // Capped = locked
       }
     });
   }
 
-  // ═══ CORE/TACTICAL SPLIT REBALANCING (if enabled) ═══
-  if (rules.ctSplit) {
-    const active = targetEntries.filter(e => e.status !== 'EXIT');
-    const rawTotal = active.reduce((s,e) => s + e.rawTargetWeight, 0) || 1;
-    const coreW = active.filter(e => e.tag === 'core').reduce((s,e) => s + e.rawTargetWeight, 0);
-    const corePctNow = coreW / rawTotal * 100;
-    const coreTarget = prof.coreTarget || 70;
-    if (Math.abs(corePctNow - coreTarget) > (prof.driftTolerance || 10)) {
-      const coreScale = (coreTarget / 100) / (coreW / rawTotal || 0.01);
-      const tactScale = ((100 - coreTarget) / 100) / ((rawTotal - coreW) / rawTotal || 0.01);
-      active.forEach(e => { e.rawTargetWeight *= (e.tag === 'core' ? coreScale : tactScale); });
-    }
-  }
-
-  // ═══ NORMALIZE WITH CAPPING (capping active if posCap rule enabled) ═══
+  // ═══ STEP 5: SCORE-BASED FIT TO MAX DEPLOYMENT — the new normalization ═══
+  // Sum all active weights
   const activeEntries = targetEntries.filter(e => e.status !== 'EXIT');
-  
-  activeEntries.forEach(e => {
-    const maxW = rules.posCap ? (e.sector === 'ETF' ? (prof.etfMax || 15) : (e.tag === 'tactical' ? prof.tactMax : prof.coreMax)) : 100;
-    e._maxW = maxW;
-    e._capped = false;
-    e.targetWeight = e.rawTargetWeight;
-  });
-  
-  for (let iter = 0; iter < 10; iter++) {
-    const totalW = activeEntries.reduce((s, e) => s + e.targetWeight, 0);
-    if (totalW <= 0) break;
-    const scale = 100 / totalW;
-    let anyChanged = false;
-    activeEntries.forEach(e => {
-      if (!e._capped) {
-        e.targetWeight = e.targetWeight * scale;
-        if (e.targetWeight > e._maxW) { e.targetWeight = e._maxW; e._capped = true; anyChanged = true; }
-      }
-    });
-    if (!anyChanged) break;
-  }
-  
-  const cappedTotal = activeEntries.filter(e => e._capped).reduce((s, e) => s + e.targetWeight, 0);
-  const uncapped = activeEntries.filter(e => !e._capped);
-  const uncappedTotal = uncapped.reduce((s, e) => s + e.targetWeight, 0);
-  const remaining = 100 - cappedTotal;
-  if (uncappedTotal > 0 && remaining > 0) {
-    uncapped.forEach(e => { e.targetWeight = e.targetWeight * (remaining / uncappedTotal); });
-  }
+  let totalRawWeight = activeEntries.reduce((s, e) => s + e.rawTargetWeight, 0);
 
-  // ═══ FX REBALANCING (if enabled): nudge weights toward CAD/USD target ═══
-  if (rules.fxRebal) {
-    const cadTarget = prof.cadTarget || 20;
-    const cadW = activeEntries.filter(e => e.currency === 'CAD').reduce((s,e) => s + e.targetWeight, 0);
-    const cadDiff = cadW - cadTarget;
-    if (Math.abs(cadDiff) > (prof.fxTolerance || 8)) {
-      // Gently scale CAD/USD entries to nudge toward target
-      const cadScale = cadTarget / (cadW || 0.01);
-      const usdScale = (100 - cadTarget) / ((100 - cadW) || 0.01);
-      activeEntries.forEach(e => {
-        if (!e._capped) e.targetWeight *= (e.currency === 'CAD' ? cadScale : usdScale);
-      });
-      // Re-normalize to 100%
-      const newTotal = activeEntries.reduce((s,e) => s + e.targetWeight, 0);
-      if (newTotal > 0) activeEntries.forEach(e => { e.targetWeight = e.targetWeight / newTotal * 100; });
+  // Set initial target weights
+  activeEntries.forEach(e => { e.targetWeight = e.rawTargetWeight; });
+
+  if (totalRawWeight > maxDeployPct) {
+    // Over-deployed: trim weakest FLEXIBLE entries by conviction score
+    const overBy = totalRawWeight - maxDeployPct;
+    const flexible = activeEntries.filter(e => !e._locked);
+    flexible.sort((a, b) => a._conviction - b._conviction); // weakest first
+
+    let trimRemaining = overBy;
+    for (let i = 0; i < flexible.length && trimRemaining > 0; i++) {
+      const entry = flexible[i];
+      // Trim proportionally: reduce more from weaker positions
+      const maxTrimable = entry.targetWeight * 0.5; // never trim more than 50% of a position
+      const actualTrim = Math.min(maxTrimable, trimRemaining);
+      entry.targetWeight -= actualTrim;
+      trimRemaining -= actualTrim;
+      if (entry.targetWeight < 0.3) {
+        // Too small to be meaningful — exit it
+        trimRemaining -= entry.targetWeight;
+        entry.targetWeight = 0; entry.status = 'EXIT'; entry._locked = true; entry._forceExited = true;
+        exitCount++;
+        if (entry.isNew) newCount--; else keepCount--;
+      }
+    }
+    // If still over after trimming, do a final proportional scale on all flexible
+    const stillTotal = targetEntries.filter(e => e.status !== 'EXIT').reduce((s,e) => s + e.targetWeight, 0);
+    if (stillTotal > maxDeployPct) {
+      const scale = maxDeployPct / stillTotal;
+      targetEntries.filter(e => e.status !== 'EXIT' && !e._locked).forEach(e => { e.targetWeight *= scale; });
     }
   }
-  
-  // Set values for EXIT entries and compute dollar values
+  // If under-deployed: the gap is CASH — do NOT redistribute. This is intentional.
+
+  // ═══ STEP 6: DEAD ZONE FILTER — suppress noise trades ═══
+  targetEntries.forEach(e => {
+    if (e.status === 'EXIT' || e.status === 'NEW') return; // always show exits and new
+    const delta = Math.abs(e.targetWeight - e.currentWeight);
+    if (delta < minRebalPct) {
+      e.targetWeight = e.currentWeight; // snap back — no action
+      e._noAction = true;
+      if (e.status === 'TRIM' && delta < minRebalPct) {
+        // Trim was too small to action — mark as KEEP
+        e.status = 'KEEP'; trimCount--; keepCount++;
+      }
+      noActionCount++;
+    }
+  });
+
+  // ═══ STEP 7: COMPUTE CASH AND VALUES ═══
+  const totalInvested = targetEntries.filter(e => e.status !== 'EXIT').reduce((s,e) => s + e.targetWeight, 0);
+  const cashWeight = Math.max(0, 100 - totalInvested);
+  const cashValue = (cashWeight / 100) * total;
+  const minCashPct = prof.minCashReserve || 0;
+
   targetEntries.forEach(e => {
     if (e.status === 'EXIT') { e.targetWeight = 0; e.targetValue = 0; }
     else { e.targetValue = (e.targetWeight / 100) * total; }
   });
 
-  // Calculate cash movement per position
-  let cashFreed = 0;
-  let cashNeeded = 0;
+  // Calculate cash movement
+  let cashFreed = 0, cashNeeded = 0;
   targetEntries.forEach(e => {
     const delta = e.targetValue - e.currentValue;
     if (delta < 0) cashFreed += Math.abs(delta);
@@ -4797,9 +4799,10 @@ function refreshTarget() {
   const statusOrder = { 'NEW': 0, 'TRIM': 1, 'KEEP': 2, 'EXIT': 3 };
   targetEntries.sort((a, b) => (statusOrder[a.status] || 2) - (statusOrder[b.status] || 2));
 
-  // Before/After metrics
+  // ═══ RENDER: BEFORE/AFTER METRICS ═══
   const currentCoreVal = state.positions.filter(p => p.tag === 'core').reduce((s,p) => s + p.value, 0);
   const currentCorePct = total > 0 ? (currentCoreVal / total * 100) : 0;
+  const currentCashPct = total > 0 ? (getTotalCash() / total * 100) : 0;
   
   const projectedActive = targetEntries.filter(e => e.status !== 'EXIT');
   const projCorePct = projectedActive.filter(e => e.tag === 'core').reduce((s,e) => s + e.targetWeight, 0);
@@ -4808,9 +4811,15 @@ function refreshTarget() {
 
   document.getElementById('targetBeforeAfter').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;">
-      <div class="ba-card"><div class="ba-label">Portfolio Value</div><div class="ba-value">$${formatNum(total)}</div></div>
+      <div class="ba-card"><div class="ba-label">Invested</div><div class="ba-value">$${formatNum(getPositionsValue())} (${(100-currentCashPct).toFixed(0)}%)</div></div>
       <div class="ba-arrow">→</div>
-      <div class="ba-card"><div class="ba-label">Fully Invested</div><div class="ba-value">$${formatNum(total)}</div><div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">Rebalanced to 100%</div></div>
+      <div class="ba-card"><div class="ba-label">Projected Invested</div><div class="ba-value">$${formatNum(total - cashValue)} (${totalInvested.toFixed(0)}%)</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:8px;">
+      <div class="ba-card"><div class="ba-label">Cash</div><div class="ba-value" style="color:var(--green);">$${formatNum(getTotalCash())} (${currentCashPct.toFixed(0)}%)</div></div>
+      <div class="ba-arrow">→</div>
+      <div class="ba-card"><div class="ba-label">Projected Cash</div><div class="ba-value" style="color:${cashWeight >= minCashPct ? 'var(--green)' : 'var(--amber)'};">$${formatNum(cashValue)} (${cashWeight.toFixed(1)}%)</div>
+        ${minCashPct > 0 ? `<div style="font-size:10px;color:var(--text-tertiary);">Min reserve: ${minCashPct}%</div>` : ''}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:8px;">
       <div class="ba-card"><div class="ba-label">Core / Tactical</div><div class="ba-value">${currentCorePct.toFixed(0)}% / ${(100-currentCorePct).toFixed(0)}%</div></div>
@@ -4827,23 +4836,25 @@ function refreshTarget() {
   // Changes summary
   const forceExitCount = targetEntries.filter(e => e._forceExited).length;
   const aiExitCount = exitCount - forceExitCount;
+  const actionableCount = targetEntries.filter(e => !e._noAction && e.status !== 'KEEP').length;
   document.getElementById('targetChanges').innerHTML = `
     <div class="cs-item" style="color:var(--green);">+${newCount} NEW</div>
     <div class="cs-item" style="color:var(--amber);">${trimCount} TRIM</div>
     <div class="cs-item" style="color:var(--red);">${aiExitCount > 0 ? aiExitCount + ' EXIT' : ''}${forceExitCount > 0 ? (aiExitCount > 0 ? ' + ' : '') + forceExitCount + ' EXIT ⚡' : ''}${exitCount === 0 ? '0 EXIT' : ''}</div>
-    <div class="cs-item">${keepCount} KEEP</div>
-    <div class="cs-item" style="color:var(--text-tertiary);">Target: ${targetEntries.filter(e => e.status !== 'EXIT').length} / ${maxPos} max</div>
-    <div class="cs-item" style="color:var(--amber);">$${formatNum(cashFreed)} sells → $${formatNum(cashNeeded)} buys</div>
+    <div class="cs-item">${keepCount} KEEP${noActionCount > 0 ? ` (${noActionCount} no action)` : ''}</div>
+    <div class="cs-item" style="color:var(--green);">💰 ${cashWeight.toFixed(1)}% cash</div>
+    <div class="cs-item" style="color:var(--text-tertiary);">$${formatNum(cashFreed)} freed → $${formatNum(cashNeeded)} deployed</div>
   `;
 
-  // Render table
+  // ═══ RENDER TABLE ═══
   const tbody = document.getElementById('targetBody');
   tbody.innerHTML = targetEntries.map(e => {
-    const rowClass = e.status === 'NEW' ? 'target-row-new' : e.status === 'EXIT' ? 'target-row-exit' : e.status === 'TRIM' ? 'target-row-trim' : '';
+    const rowClass = e.status === 'NEW' ? 'target-row-new' : e.status === 'EXIT' ? 'target-row-exit' : e.status === 'TRIM' ? 'target-row-trim' : (e._noAction ? 'target-row-noaction' : '');
     const statusBadge = e.status === 'NEW' ? '<span class="badge badge-buy">NEW</span>' :
                         e.status === 'TRIM' ? '<span class="badge badge-trim">TRIM</span>' :
                         e.status === 'EXIT' && e._forceExited ? '<span class="badge badge-exit" title="Force-exited to meet max positions limit">EXIT ⚡</span>' :
                         e.status === 'EXIT' ? '<span class="badge badge-exit">EXIT</span>' :
+                        e._noAction ? '<span class="badge" style="background:var(--bg-tertiary);color:var(--text-tertiary);">NO ACTION</span>' :
                         '<span class="badge badge-hold">KEEP</span>';
     const delta = e.targetWeight - e.currentWeight;
     const deltaStr = e.status === 'EXIT' ? `<span class="delta-down">↓ ${e.currentWeight.toFixed(1)}%</span>` :
@@ -4852,26 +4863,21 @@ function refreshTarget() {
                      `<span class="delta-neutral">—</span>`;
     const tagBadge = `<span class="badge ${e.tag === 'core' ? 'badge-core' : 'badge-tactical'}">${e.tag.toUpperCase()}</span>`;
     
-    // Calculate shares action with dollar amounts
     let sharesAction = '—';
-    if (e.status === 'NEW') {
-      sharesAction = `Buy ~$${formatNum(e.targetValue)}`;
-    } else if (e.status === 'EXIT') {
+    if (e._noAction) { sharesAction = '<span style="color:var(--text-tertiary);font-style:italic;">below threshold</span>'; }
+    else if (e.status === 'NEW') { sharesAction = `Buy ~$${formatNum(e.targetValue)}`; }
+    else if (e.status === 'EXIT') {
       const sellShares = e.markPrice > 0 ? Math.round(e.currentValue / e.markPrice) : 0;
       sharesAction = sellShares > 0 ? `Sell all ${sellShares} sh (~$${formatNum(e.currentValue)})` : `Sell all (~$${formatNum(e.currentValue)})`;
     } else if (e.status === 'TRIM') {
       const sellValue = e.currentValue - e.targetValue;
       if (e.markPrice > 0 && sellValue > 0) {
-        const sellShares = Math.round(sellValue / e.markPrice);
-        sharesAction = `Sell ~${sellShares} sh (~$${formatNum(sellValue)})`;
-      } else if (sellValue > 0) {
-        sharesAction = `Sell ~$${formatNum(sellValue)}`;
-      }
+        sharesAction = `Sell ~${Math.round(sellValue / e.markPrice)} sh (~$${formatNum(sellValue)})`;
+      } else if (sellValue > 0) { sharesAction = `Sell ~$${formatNum(sellValue)}`; }
     } else if (delta > 0.05) {
       const buyValue = (delta / 100) * total;
       if (e.markPrice > 0 && buyValue > 0) {
-        const buyShares = Math.round(buyValue / e.markPrice);
-        sharesAction = `Buy ~${buyShares} sh (~$${formatNum(buyValue)})`;
+        sharesAction = `Buy ~${Math.round(buyValue / e.markPrice)} sh (~$${formatNum(buyValue)})`;
       }
     }
 
@@ -4889,14 +4895,27 @@ function refreshTarget() {
     </tr>`;
   }).join('');
 
-  // Add totals row
-  const totalTargetWeight = targetEntries.filter(e => e.status !== 'EXIT').reduce((s,e) => s + e.targetWeight, 0);
-  const totalTargetValue = targetEntries.filter(e => e.status !== 'EXIT').reduce((s,e) => s + e.targetValue, 0);
+  // Cash row
+  tbody.innerHTML += `<tr style="border-top:1px solid var(--border-strong);background:rgba(34,197,94,0.05);">
+    <td style="font-weight:700;color:var(--green);">💰 CASH</td>
+    <td style="font-size:11px;color:var(--text-secondary);">Undeployed capital</td>
+    <td><span class="badge" style="background:rgba(34,197,94,0.12);color:var(--green);">RESERVE</span></td>
+    <td class="num">${currentCashPct.toFixed(1)}%</td>
+    <td class="num" style="font-weight:600;color:var(--green);">${cashWeight.toFixed(1)}%</td>
+    <td class="num" style="color:var(--green);">$${formatNum(cashValue)}</td>
+    <td>${cashWeight > currentCashPct + 0.1 ? `<span class="delta-up">↑ ${(cashWeight-currentCashPct).toFixed(1)}%</span>` :
+         cashWeight < currentCashPct - 0.1 ? `<span class="delta-down">↓ ${(currentCashPct-cashWeight).toFixed(1)}%</span>` :
+         '<span class="delta-neutral">—</span>'}</td>
+    <td style="font-size:11px;color:var(--text-secondary);font-style:italic;">${cashWeight >= minCashPct ? 'meets reserve target' : `below ${minCashPct}% min`}</td>
+    <td>—</td><td>—</td>
+  </tr>`;
+
+  // Totals row
   tbody.innerHTML += `<tr style="border-top:2px solid var(--border-strong);font-weight:700;">
     <td colspan="4" style="text-align:right;color:var(--text-secondary);">TOTAL</td>
-    <td class="num" style="color:var(--green);">${totalTargetWeight.toFixed(1)}%</td>
-    <td class="num" style="color:var(--green);">$${formatNum(totalTargetValue)}</td>
-    <td colspan="4"></td>
+    <td class="num" style="color:var(--green);">${(totalInvested + cashWeight).toFixed(1)}%</td>
+    <td class="num" style="color:var(--green);">$${formatNum(total)}</td>
+    <td colspan="4" style="font-size:11px;color:var(--text-tertiary);">${actionableCount} actionable trades</td>
   </tr>`;
 
   // Projected compliance
