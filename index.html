@@ -870,6 +870,13 @@ input[type="range"]::-webkit-slider-thumb {
 .analyst-technical { background:var(--tactical-bg); color:var(--tactical-primary); border:1px solid var(--tactical-border); }
 .analyst-dual { background:rgba(167,139,250,0.15); color:var(--purple); border:1px solid rgba(167,139,250,0.3); }
 .analyst-speculative { background:rgba(245,158,11,0.15); color:var(--amber); border:1px solid rgba(245,158,11,0.4); }
+.bx-badge { display:inline-block; padding:2px 6px; font-size:9px; font-weight:700; border-radius:3px; font-family:'IBM Plex Mono',monospace; cursor:pointer; }
+.bx-bull { background:rgba(34,197,94,0.15); color:var(--green); }
+.bx-fade { background:rgba(245,158,11,0.15); color:var(--amber); }
+.bx-turn { background:rgba(245,158,11,0.15); color:var(--amber); }
+.bx-bear { background:rgba(239,68,68,0.15); color:var(--red); }
+.bx-buy { background:rgba(34,197,94,0.25); color:var(--green); font-weight:800; }
+.bx-sell { background:rgba(239,68,68,0.25); color:var(--red); font-weight:800; }
 </style>
 </head>
 <body>
@@ -879,7 +886,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v2.9.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.0.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -891,6 +898,9 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="nav-item" data-page="portfolio" onclick="navigateTo('portfolio')">
       <span class="nav-icon">📁</span> Portfolio
       <span class="nav-badge" id="posCountBadge">0</span>
+    </div>
+    <div class="nav-item" data-page="technicals" onclick="navigateTo('technicals')">
+      <span class="nav-icon">📈</span> Technicals
     </div>
     <div class="nav-item" data-page="profile" onclick="navigateTo('profile')">
       <span class="nav-icon">👤</span> Profile
@@ -1122,6 +1132,12 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
     </div>
 
+    <!-- Technical Data Refresh -->
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;" id="techDataBar">
+      <button class="btn btn-sm" onclick="refreshAllTechData()" id="refreshTechBtn" title="Fetch OHLC data from Alpha Vantage and compute BX Trender for all positions">📈 Refresh BX Trender</button>
+      <span style="font-size:10px;color:var(--text-tertiary);" id="techDataSummary">No technical data</span>
+    </div>
+
     <!-- Cash Balances -->
     <div class="card fade-in" id="cashCard" style="margin-top:16px;">
       <div class="card-header">
@@ -1177,6 +1193,7 @@ input[type="range"]::-webkit-slider-thumb {
               <th class="num" onclick="sortHoldings('weight')">Weight <span class="sort-arrow">▼</span></th>
               <th>Limit</th>
               <th>Ccy</th>
+              <th onclick="sortHoldings('bx')" title="BX Trender signal">BX</th>
               <th class="analyst-th">Verdict</th>
               <th class="analyst-th">Action</th>
               <th class="analyst-th">Sent.</th>
@@ -1391,6 +1408,27 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
     </div>
 
+    <!-- BX Trender Settings -->
+    <div class="card fade-in stagger-3">
+      <div class="card-title" style="margin-bottom:14px;">📈 BX Trender Settings</div>
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Signal Sensitivity</span>
+          <span class="slider-value" id="bxSensVal">0</span>
+        </div>
+        <input type="range" min="0" max="5" step="0.5" value="0" id="bxSensSlider" oninput="document.getElementById('bxSensVal').textContent=this.value">
+        <div style="font-size:9px;color:var(--text-tertiary);">Min oscillator change to trigger a signal. 0 = any direction change fires. Higher = fewer, stronger signals.</div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Default Timeframe</label>
+        <select class="form-select" id="bxTimeframeSelect">
+          <option value="monthly">Monthly (recommended)</option>
+          <option value="weekly">Weekly (finer resolution)</option>
+        </select>
+        <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">Monthly uses less API quota (1 call/ticker). Weekly gives finer signals but 4× data.</div>
+      </div>
+    </div>
+
     <!-- Focus Sectors -->
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:14px;">Focus Sectors</div>
@@ -1467,6 +1505,69 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="toggle" id="toggleRuleSector" onclick="toggleSwitch(this)"></div>
           <span style="font-size:13px;">Sector diversification limits (enforce per-sector max %)</span>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: TECHNICALS ═══ -->
+<div class="page" id="page-technicals">
+  <div class="page-header">
+    <div>
+      <div class="page-title">📈 TECHNICALS</div>
+      <div class="page-subtitle" id="techSubtitle">BX Trender & price analysis</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select class="form-select" id="techTickerSelect" onchange="onTechTickerChange(this.value)" style="min-width:120px;font-family:'IBM Plex Mono',monospace;">
+        <option value="">Select ticker...</option>
+      </select>
+      <select class="form-select" id="techTfSelect" onchange="onTechTimeframeChange(this.value)" style="min-width:100px;">
+        <option value="monthly">Monthly</option>
+        <option value="weekly">Weekly</option>
+      </select>
+      <button class="btn btn-sm" onclick="refreshSelectedTicker()" id="techRefreshBtn">🔄 Refresh</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <div id="techEmpty" style="text-align:center;padding:60px 20px;">
+      <div style="font-size:48px;margin-bottom:16px;">📈</div>
+      <div style="font-size:16px;color:var(--text-secondary);margin-bottom:8px;">No technical data yet</div>
+      <div style="font-size:13px;color:var(--text-tertiary);max-width:400px;margin:0 auto;">Add your Alpha Vantage API key in Settings, then tap "Refresh BX Trender" on the Portfolio page to fetch price history and compute signals.</div>
+    </div>
+    <div id="techContent" style="display:none;">
+      <!-- Signal summary card -->
+      <div class="card fade-in" id="techSignalCard">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;" id="techTickerLabel">—</span>
+          <span id="techBXBadge"></span>
+          <span style="font-size:12px;color:var(--text-tertiary);" id="techLastSignal"></span>
+          <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;" id="techDataAge"></span>
+        </div>
+        <div style="margin-top:8px;font-size:13px;color:var(--text-secondary);" id="techInterpretation"></div>
+      </div>
+      <!-- Chart panels (lightweight-charts will render here in Session 2) -->
+      <div class="card fade-in stagger-1" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">Price Chart</div>
+        <div id="techChartPrice" style="height:300px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:13px;">
+          Chart rendering — coming in next update. Data is computed and available.
+        </div>
+      </div>
+      <div class="card fade-in stagger-2" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">BX Trender — Short Oscillator</div>
+        <div id="techChartShort" style="height:180px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;">
+          <div id="techShortBars" style="display:flex;align-items:flex-end;height:100%;gap:1px;padding:8px;"></div>
+        </div>
+      </div>
+      <div class="card fade-in stagger-3" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">BX Trender — Long Trend</div>
+        <div id="techChartLong" style="height:120px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;">
+          <div id="techLongBars" style="display:flex;align-items:flex-end;height:100%;gap:1px;padding:8px;"></div>
+        </div>
+      </div>
+      <!-- Signal history table -->
+      <div class="card fade-in stagger-3" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">Signal History</div>
+        <div id="techSignalHistory" style="font-size:12px;color:var(--text-secondary);"></div>
       </div>
     </div>
   </div>
@@ -1843,6 +1944,19 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn" onclick="testAPI()">🔌 Test Connection</button>
       </div>
       <div id="settingsTestResult" style="margin-top:10px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
+      
+      <div style="margin-top:16px;border-top:1px solid var(--border-subtle);padding-top:16px;">
+        <div class="form-group">
+          <label class="form-label">Alpha Vantage API Key (free — for price history &amp; BX Trender)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" class="form-input" id="avKeyInput" placeholder="Your Alpha Vantage key..." style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;">
+            <button class="btn btn-sm" onclick="testAlphaVantage()">🔌 Test</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">Free key from <strong>alphavantage.co</strong> — enables BX Trender signals and technical charts. 25 calls/day.</div>
+        </div>
+        <div id="avTestResult" style="margin-top:8px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;" id="avDataStatus"></div>
+      </div>
     </div>
 
     <!-- Display -->
@@ -1877,8 +1991,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">2.9.0</span></div>
-        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-17-001</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.0</span></div>
+        <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
           No data is transmitted except API calls to Anthropic during analysis.
@@ -1906,8 +2020,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '2.9.0';
-const APEX_BUILD = '2026-04-17-001';
+const APEX_VERSION = '3.0.0';
+const APEX_BUILD = '2026-04-19-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -1918,14 +2032,16 @@ const FOCUS_SECTORS_DEFAULT = ['Technology','Materials','Defence','Healthcare','
 const SECTOR_MAP = {
   'AAPL':'Technology','AMD':'Technology','GOOGL':'Technology','INTC':'Technology',
   'CSCO':'Technology','PLTR':'Technology','MU':'Technology','SMCI':'Technology','VRT':'Technology',
-  'BBD.B':'Industrials','BA':'Industrials',
-  'MDA':'Defence','ESLT':'Defence','RTX':'Defence',
+  'META':'Technology','MSFT':'Technology','AVGO':'Technology','ORCL':'Technology','SHOP':'Technology',
+  'BBD.B':'Industrials','BA':'Industrials','CAT':'Industrials','AXON':'Industrials',
+  'MDA':'Defence','ESLT':'Defence','RTX':'Defence','LMT':'Defence','NOC':'Defence',
   'CNC':'Healthcare','CRSP':'Healthcare','MRK':'Healthcare',
-  'SOFI':'Finance','TD':'Finance',
-  'CS':'Materials','TECK.B':'Materials','FCX':'Materials','NXE':'Materials','NEM':'Materials',
-  'GEVO':'Energy','NIO':'Consumer Discretionary','MAR':'Consumer Discretionary',
-  'COKE':'Consumer Staples','XIC':'ETF','VOO':'ETF',
-  'LMT':'Defence','NOC':'Defence','FRO':'Energy','WLN':'Technology'
+  'SOFI':'Finance','TD':'Finance','JPM':'Finance','V':'Finance','BN':'Finance',
+  'CS':'Materials','TECK.B':'Materials','FCX':'Materials','NXE':'Materials','NEM':'Materials','CCO':'Materials',
+  'GEVO':'Energy','NIO':'Consumer Discretionary','MAR':'Consumer Discretionary','BYDDY':'Consumer Discretionary',
+  'COKE':'Consumer Staples','CEG':'Energy','GEV':'Energy','ABX':'Finance',
+  'FRO':'Energy','WLN':'Technology',
+  'XIC':'ETF','VOO':'ETF'
 };
 
 // ═══ STATE ═══
@@ -1936,7 +2052,8 @@ let state = {
   analysisData: null,
   watchlist: [],
   cashBalances: { USD: 0, CAD: 0, EUR: 0 },
-  settings: { apiKey:'', model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
+  settings: { apiKey:'', avKey:'', model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
+  technicalData: {}, // per-ticker OHLC + computed indicators
   currentPage: 'dashboard',
   importBuffer: [],
   sortField: 'value',
@@ -1981,13 +2098,15 @@ function loadState() {
       state.watchlist = parsed.watchlist || [];
       state.cashBalances = parsed.cashBalances || { USD:0, CAD:0, EUR:0 };
       state.settings = { ...state.settings, ...(parsed.settings || {}) };
+      state.technicalData = parsed.technicalData || {};
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
     else state.profile = getDefaultProfile();
     
-    // Restore API key & model
+    // Restore API keys & model
     if (state.settings.apiKey) document.getElementById('apiKeyInput').value = state.settings.apiKey;
+    if (state.settings.avKey) document.getElementById('avKeyInput').value = state.settings.avKey;
     if (state.settings.model) document.getElementById('modelSelect').value = state.settings.model;
   } catch(e) { console.error('Load error:', e); state.profile = getDefaultProfile(); }
 }
@@ -2000,6 +2119,7 @@ function saveState() {
       analysisData: state.analysisData,
       watchlist: state.watchlist,
       cashBalances: state.cashBalances,
+      technicalData: state.technicalData,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -2017,6 +2137,7 @@ function getDefaultProfile() {
     cadTarget:20, fxTolerance:8, minCashReserve:0,
     maxIdeasPerSector:3, concentrationThreshold:15,
     minRebalanceThreshold:1, maxDeployment:100,
+    bxSensitivity:0, bxTimeframe:'monthly',
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -2254,6 +2375,8 @@ function confirmImport() {
   saveState();
   refreshAll();
   refreshCashDisplay();
+  // Auto-classify sectors for any unknown tickers
+  classifySectors(state.positions);
   const cashTotal = Object.values(state.cashBalances).reduce((s,v) => s + v, 0);
   toast(`${state.positions.length} positions imported${cashTotal !== 0 ? ' + cash balances' : ''}`);
 }
@@ -2283,7 +2406,7 @@ function saveCashBalances() {
 // ═══ HOLDINGS TABLE ═══
 function refreshHoldings() {
   const body = document.getElementById('holdingsBody');
-  const colSpan = state.showAnalystCols ? 15 : 9;
+  const colSpan = state.showAnalystCols ? 16 : 10;
   if (!state.positions.length) { body.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;padding:24px;color:var(--text-tertiary);">No positions loaded</td></tr>`; return; }
   
   const totalVal = getTotalValue();
@@ -2360,6 +2483,7 @@ function refreshHoldings() {
         </div>
       </td>
       <td style="font-size:11px;color:var(--text-tertiary);">${pos.currency}</td>
+      <td onclick="showPage('technicals');selectTechnicalTicker('${pos.symbol}')">${getBXSignalBadge(pos.symbol).html}</td>
       ${analystCells}
       <td>
         <button class="btn btn-sm btn-icon" onclick="editPosition('${pos.id}')" style="font-size:11px;">✏️</button>
@@ -2824,6 +2948,9 @@ function applyProfile() {
   document.getElementById('minRebalVal').textContent = (prof.minRebalanceThreshold || 1) + '%';
   document.getElementById('maxDeploySlider').value = prof.maxDeployment || 100;
   document.getElementById('maxDeployVal').textContent = (prof.maxDeployment || 100) + '%';
+  document.getElementById('bxSensSlider').value = prof.bxSensitivity || 0;
+  document.getElementById('bxSensVal').textContent = prof.bxSensitivity || 0;
+  document.getElementById('bxTimeframeSelect').value = prof.bxTimeframe || 'monthly';
   document.getElementById('rrSlider').value = prof.minRR;
   document.getElementById('rrVal').textContent = prof.minRR + ':1';
   document.getElementById('profGeo').value = prof.geo;
@@ -2866,6 +2993,8 @@ function saveProfile() {
   prof.concentrationThreshold = parseInt(document.getElementById('concentrationThresholdSlider').value);
   prof.minRebalanceThreshold = parseFloat(document.getElementById('minRebalSlider').value);
   prof.maxDeployment = parseInt(document.getElementById('maxDeploySlider').value);
+  prof.bxSensitivity = parseFloat(document.getElementById('bxSensSlider').value);
+  prof.bxTimeframe = document.getElementById('bxTimeframeSelect').value;
   prof.geo = document.getElementById('profGeo').value;
   prof.notes = document.getElementById('profNotes').value;
   prof.excludePenny = document.getElementById('togglePenny').classList.contains('active');
@@ -2914,6 +3043,7 @@ function refreshAnalysisConfig() {
 
 function saveAPIKey() {
   state.settings.apiKey = document.getElementById('apiKeyInput').value.trim();
+  state.settings.avKey = document.getElementById('avKeyInput').value.trim();
   state.settings.model = document.getElementById('modelSelect').value;
   saveState();
   toast('API settings saved');
@@ -2922,6 +3052,31 @@ function saveAPIKey() {
 function toggleAPIKeyVisibility() {
   const input = document.getElementById('apiKeyInput');
   input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+async function testAlphaVantage() {
+  const key = document.getElementById('avKeyInput').value.trim();
+  if (!key) { toast('Enter an Alpha Vantage key first', 'error'); return; }
+  const el = document.getElementById('avTestResult');
+  el.style.display = 'block'; el.style.background = 'var(--bg-tertiary)'; el.style.color = 'var(--text-secondary)';
+  el.textContent = 'Testing...';
+  try {
+    const resp = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=AAPL&apikey=${key}&datatype=json`);
+    const data = await resp.json();
+    if (data['Monthly Time Series']) {
+      const dates = Object.keys(data['Monthly Time Series']);
+      el.style.color = 'var(--green)'; el.textContent = `✓ Connected — ${dates.length} months of data available for AAPL`;
+      state.settings.avKey = key; saveState();
+    } else if (data['Note']) {
+      el.style.color = 'var(--amber)'; el.textContent = '⚠ Rate limit hit — key is valid but try again in 1 minute';
+    } else if (data['Error Message']) {
+      el.style.color = 'var(--red)'; el.textContent = '✗ Invalid key or symbol error';
+    } else {
+      el.style.color = 'var(--red)'; el.textContent = '✗ Unexpected response: ' + JSON.stringify(data).substring(0, 100);
+    }
+  } catch(e) {
+    el.style.color = 'var(--red)'; el.textContent = '✗ Network error: ' + e.message;
+  }
 }
 
 async function testAPI() {
@@ -3066,6 +3221,283 @@ async function callClaude(key, model, messages, useWebSearch = false, maxTokens 
     return { text, data };
   }
   throw new Error('Failed after ' + maxRetries + ' retries. Please wait a minute and try again.');
+}
+
+// ═══ BX TRENDER ENGINE ═══
+
+function calcEMA(data, period) {
+  if (!data.length) return [];
+  const k = 2 / (period + 1);
+  const result = [data[0]];
+  for (let i = 1; i < data.length; i++) {
+    result.push(data[i] * k + result[i-1] * (1 - k));
+  }
+  return result;
+}
+
+function calcRSI(data, period) {
+  const result = new Array(data.length).fill(50);
+  if (data.length < period + 1) return result;
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const delta = data[i] - data[i-1];
+    if (delta > 0) avgGain += delta; else avgLoss += Math.abs(delta);
+  }
+  avgGain /= period; avgLoss /= period;
+  result[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+  for (let i = period + 1; i < data.length; i++) {
+    const delta = data[i] - data[i-1];
+    avgGain = (avgGain * (period - 1) + (delta > 0 ? delta : 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + (delta < 0 ? Math.abs(delta) : 0)) / period;
+    result[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+  }
+  return result;
+}
+
+function calcBXTrender(closes, params) {
+  // BX Trender: RSI( EMA(close, L1) - EMA(close, L2), L3 ) - 50
+  const shortL1 = (params && params.shortL1) || 5;
+  const shortL2 = (params && params.shortL2) || 20;
+  const shortL3 = (params && params.shortL3) || 5;
+  const longL1 = (params && params.longL1) || 20;
+  const longL2 = (params && params.longL2) || 5;
+  const sensitivity = (params && params.sensitivity) || 0;
+  
+  if (closes.length < 25) return { short: [], long: [], signals: [] };
+  
+  // Short oscillator: RSI( EMA(close,5) - EMA(close,20), 5 ) - 50
+  const emaFast = calcEMA(closes, shortL1);
+  const emaSlow = calcEMA(closes, shortL2);
+  const spread = emaFast.map((v, i) => v - emaSlow[i]);
+  const rsiSpread = calcRSI(spread, shortL3);
+  const shortOsc = rsiSpread.map(v => v - 50);
+  
+  // Long trend: RSI( EMA(close,20), 5 ) - 50
+  const emaLong = calcEMA(closes, longL1);
+  const rsiLong = calcRSI(emaLong, longL2);
+  const longTrend = rsiLong.map(v => v - 50);
+  
+  // Color + signal per bar
+  const shortBars = [];
+  const longBars = [];
+  const signals = [];
+  
+  for (let i = 0; i < closes.length; i++) {
+    const val = shortOsc[i];
+    const prev = i > 0 ? shortOsc[i-1] : val;
+    const rising = val > prev + sensitivity;
+    const falling = val < prev - sensitivity;
+    const direction = rising ? 'rising' : (falling ? 'falling' : (val > prev ? 'rising' : 'falling'));
+    
+    let color, state_label;
+    if (val > 0 && direction === 'rising') { color = '#00FF00'; state_label = 'BULL'; }
+    else if (val > 0) { color = '#228B22'; state_label = 'FADE'; }
+    else if (val <= 0 && direction === 'rising') { color = '#FF0000'; state_label = 'TURN'; }
+    else { color = '#8B0000'; state_label = 'BEAR'; }
+    
+    shortBars.push({ value: val, color, state: state_label });
+    
+    // Long trend colors
+    const lVal = longTrend[i];
+    const lPrev = i > 0 ? longTrend[i-1] : lVal;
+    const lRising = lVal > lPrev;
+    let lColor;
+    if (lVal > 0 && lRising) lColor = '#00FF00';
+    else if (lVal > 0) lColor = '#228B22';
+    else if (lVal <= 0 && lRising) lColor = '#FF0000';
+    else lColor = '#8B0000';
+    longBars.push({ value: lVal, color: lColor });
+    
+    // Signal detection: transitions
+    if (i > 0) {
+      const prevState = shortBars[i-1].state;
+      const curState = state_label;
+      // BUY: BEAR → TURN (dark red → light red)
+      if (prevState === 'BEAR' && curState === 'TURN') {
+        signals.push({ bar: i, type: 'BUY', label: 'BX Buy: momentum reversal' });
+      }
+      // SELL: positive → negative crossover (BULL/FADE → TURN/BEAR)
+      if ((prevState === 'BULL' || prevState === 'FADE') && (curState === 'TURN' || curState === 'BEAR')) {
+        signals.push({ bar: i, type: 'SELL', label: 'BX Sell: trend breakdown' });
+      }
+    }
+  }
+  
+  return { short: shortBars, long: longBars, signals };
+}
+
+function getBXSignalBadge(ticker) {
+  const td = state.technicalData[ticker.toUpperCase()];
+  if (!td || !td.computed || !td.computed.short || td.computed.short.length === 0) return { html: '<span style="color:var(--text-tertiary);">—</span>', state: 'none' };
+  const last = td.computed.short[td.computed.short.length - 1];
+  const signals = td.computed.signals || [];
+  const lastSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+  
+  // Check if latest bar IS a signal
+  const isNewSignal = lastSignal && lastSignal.bar === td.computed.short.length - 1;
+  
+  const badgeMap = {
+    'BULL': { html:'<span class="bx-badge bx-bull" title="Strong uptrend — momentum rising">● BULL</span>', color:'var(--green)' },
+    'FADE': { html:'<span class="bx-badge bx-fade" title="Uptrend weakening — watch for sell">◐ FADE</span>', color:'var(--amber)' },
+    'TURN': { html:'<span class="bx-badge bx-turn" title="Downtrend weakening — potential reversal">◑ TURN</span>', color:'var(--amber)' },
+    'BEAR': { html:'<span class="bx-badge bx-bear" title="Strong downtrend — momentum falling">● BEAR</span>', color:'var(--red)' }
+  };
+  
+  if (isNewSignal && lastSignal.type === 'BUY') {
+    return { html:'<span class="bx-badge bx-buy" title="BUY signal: dark red → light red transition">▲ BUY</span>', state:'BUY' };
+  }
+  if (isNewSignal && lastSignal.type === 'SELL') {
+    return { html:'<span class="bx-badge bx-sell" title="SELL signal: trend broke down">▼ SELL</span>', state:'SELL' };
+  }
+  return badgeMap[last.state] || { html:'—', state:'none' };
+}
+
+// ═══ ALPHA VANTAGE DATA FETCH ═══
+async function fetchOHLC(ticker, timeframe) {
+  const key = state.settings.avKey;
+  if (!key) { toast('Set Alpha Vantage API key in Settings', 'error'); return null; }
+  const func = (timeframe || 'monthly') === 'weekly' ? 'TIME_SERIES_WEEKLY' : 'TIME_SERIES_MONTHLY';
+  const tsKey = (timeframe || 'monthly') === 'weekly' ? 'Weekly Time Series' : 'Monthly Time Series';
+  try {
+    const resp = await fetch(`https://www.alphavantage.co/query?function=${func}&symbol=${ticker}&apikey=${key}&datatype=json`);
+    const data = await resp.json();
+    if (data['Note']) { console.warn('AV rate limit for', ticker); return 'RATE_LIMITED'; }
+    if (data['Error Message']) { console.warn('AV error for', ticker, data['Error Message']); return null; }
+    const ts = data[tsKey];
+    if (!ts) return null;
+    // Convert to sorted array (oldest first)
+    const bars = Object.entries(ts).map(([date, vals]) => ({
+      date, open: parseFloat(vals['1. open']), high: parseFloat(vals['2. high']),
+      low: parseFloat(vals['3. low']), close: parseFloat(vals['4. close']),
+      volume: parseInt(vals['5. volume'] || 0)
+    })).sort((a, b) => a.date.localeCompare(b.date));
+    // Keep last 24 months / 104 weeks
+    const maxBars = (timeframe || 'monthly') === 'weekly' ? 104 : 24;
+    return bars.slice(-maxBars);
+  } catch(e) {
+    console.error('AV fetch error for', ticker, e);
+    return null;
+  }
+}
+
+async function fetchAndComputeBX(ticker, timeframe) {
+  const bars = await fetchOHLC(ticker, timeframe);
+  if (!bars || bars === 'RATE_LIMITED') return bars;
+  const closes = bars.map(b => b.close);
+  const prof = state.profile || getDefaultProfile();
+  const bx = calcBXTrender(closes, { sensitivity: prof.bxSensitivity || 0 });
+  
+  // Store
+  const key = ticker.toUpperCase();
+  if (!state.technicalData[key]) state.technicalData[key] = {};
+  state.technicalData[key].lastFetched = new Date().toISOString();
+  state.technicalData[key].timeframe = timeframe || 'monthly';
+  state.technicalData[key].bars = bars;
+  state.technicalData[key].computed = bx;
+  saveState();
+  return bars;
+}
+
+async function fetchAllTechnicals(tickers, timeframe) {
+  const key = state.settings.avKey;
+  if (!key) { toast('Set Alpha Vantage key in Settings first', 'error'); return; }
+  const tf = timeframe || state.profile?.bxTimeframe || 'monthly';
+  const total = tickers.length;
+  let done = 0, rateLimited = 0;
+  toast(`Fetching OHLC data: 0/${total}...`);
+  
+  for (const ticker of tickers) {
+    // Check cache freshness (skip if < 7 days old and same timeframe)
+    const cached = state.technicalData[ticker.toUpperCase()];
+    if (cached && cached.lastFetched && cached.timeframe === tf) {
+      const age = (Date.now() - new Date(cached.lastFetched).getTime()) / (1000*60*60*24);
+      if (age < 7) { done++; continue; }
+    }
+    const result = await fetchAndComputeBX(ticker, tf);
+    done++;
+    if (result === 'RATE_LIMITED') {
+      rateLimited++;
+      toast(`Rate limited at ${done}/${total} — remaining tickers will fetch tomorrow`, 'error');
+      break;
+    }
+    toast(`Fetching OHLC: ${done}/${total} (${ticker})`);
+    // Rate limit: wait 12 seconds between calls (5/min limit)
+    if (done < total) await new Promise(r => setTimeout(r, 12000));
+  }
+  refreshHoldings();
+  const cached = Object.keys(state.technicalData).length;
+  toast(`Technical data: ${cached} tickers cached${rateLimited ? ` (${rateLimited} rate-limited)` : ''}`);
+  // Update AV status in settings
+  const statusEl = document.getElementById('avDataStatus');
+  if (statusEl) statusEl.textContent = `${cached} tickers cached — oldest: ${getOldestTechData()}`;
+}
+
+function getOldestTechData() {
+  const dates = Object.values(state.technicalData).map(t => t.lastFetched).filter(Boolean).sort();
+  if (!dates.length) return 'no data';
+  const age = Math.floor((Date.now() - new Date(dates[0]).getTime()) / (1000*60*60*24));
+  return age + ' days ago';
+}
+
+// ═══ AUTO SECTOR CLASSIFICATION ═══
+async function classifySectors(positions) {
+  const unknown = positions.filter(p => !SECTOR_MAP[p.symbol] && p.sector === 'Other');
+  if (unknown.length === 0) return;
+  const key = state.settings.apiKey;
+  if (!key) return; // No AI key, skip — will use "Other"
+  
+  const tickers = unknown.map(p => `${p.symbol} (${p.description})`).join(', ');
+  const sectorList = SECTORS.join(', ');
+  try {
+    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+      `Classify these stocks into sectors. Valid sectors: ${sectorList}. Return ONLY a JSON object mapping ticker to sector.\nStocks: ${tickers}\nExample: {"AAPL":"Technology","JPM":"Finance"}`
+    }], false, 1000);
+    const parsed = JSON.parse(result.text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim());
+    Object.entries(parsed).forEach(([ticker, sector]) => {
+      if (SECTORS.includes(sector)) {
+        SECTOR_MAP[ticker] = sector;
+        const pos = positions.find(p => p.symbol.toUpperCase() === ticker.toUpperCase());
+        if (pos) pos.sector = sector;
+      }
+    });
+    console.log('APEX: Auto-classified sectors:', parsed);
+  } catch(e) {
+    console.warn('APEX: Sector classification failed:', e.message);
+  }
+}
+
+async function refreshAllTechData() {
+  const tickers = state.positions.map(p => p.symbol);
+  if (tickers.length === 0) { toast('No positions to fetch data for', 'error'); return; }
+  if (!state.settings.avKey) { toast('Set Alpha Vantage API key in Settings first', 'error'); return; }
+  const btn = document.getElementById('refreshTechBtn');
+  btn.disabled = true; btn.textContent = '⏳ Fetching...';
+  await fetchAllTechnicals(tickers, state.profile?.bxTimeframe || 'monthly');
+  btn.disabled = false; btn.textContent = '📈 Refresh BX Trender';
+  updateTechDataSummary();
+}
+
+function updateTechDataSummary() {
+  const el = document.getElementById('techDataSummary');
+  if (!el) return;
+  const cached = Object.keys(state.technicalData).length;
+  const posCount = state.positions.length;
+  const withSignals = state.positions.filter(p => {
+    const td = state.technicalData[p.symbol.toUpperCase()];
+    return td && td.computed && td.computed.short && td.computed.short.length > 0;
+  }).length;
+  const buySignals = state.positions.filter(p => getBXSignalBadge(p.symbol).state === 'BUY').length;
+  const sellSignals = state.positions.filter(p => getBXSignalBadge(p.symbol).state === 'SELL').length;
+  let text = `${withSignals}/${posCount} tickers with BX data`;
+  if (buySignals > 0) text += ` | ${buySignals} BUY signal${buySignals > 1 ? 's' : ''}`;
+  if (sellSignals > 0) text += ` | ${sellSignals} SELL signal${sellSignals > 1 ? 's' : ''}`;
+  if (cached > 0) text += ` | oldest: ${getOldestTechData()}`;
+  el.textContent = text;
+}
+
+function selectTechnicalTicker(ticker) {
+  // Will be used by chart page in Session 2
+  state._selectedTechTicker = ticker;
 }
 
 // ═══ CHANGE 3: MARKET ALERT (standalone quick scan) ═══
@@ -5383,11 +5815,149 @@ function refreshAll() {
   refreshDashboard();
   refreshHoldings();
   refreshAnalysisConfig();
-  // New visualization pages (only refresh if data exists to avoid unnecessary DOM work)
+  refreshTechnicals();
+  updateTechDataSummary();
   if (state.analysisData) {
     refreshMacro();
     refreshIdeas();
     refreshTarget();
+  }
+}
+
+// ═══ TECHNICALS PAGE RENDERING ═══
+function refreshTechnicals() {
+  const hasData = Object.keys(state.technicalData).length > 0;
+  document.getElementById('techEmpty').style.display = hasData ? 'none' : 'block';
+  document.getElementById('techContent').style.display = hasData ? 'block' : 'none';
+  
+  // Populate ticker selector
+  const sel = document.getElementById('techTickerSelect');
+  const current = sel.value || state._selectedTechTicker || '';
+  const tickers = [...new Set([
+    ...state.positions.map(p => p.symbol),
+    ...state.watchlist.map(w => w.ticker),
+    ...Object.keys(state.technicalData)
+  ])].sort();
+  sel.innerHTML = '<option value="">Select ticker...</option>' +
+    tickers.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t}${state.technicalData[t.toUpperCase()] ? ' ✓' : ''}</option>`).join('');
+  
+  // Set timeframe selector
+  document.getElementById('techTfSelect').value = state.profile?.bxTimeframe || 'monthly';
+  
+  if (current) renderTechDetail(current);
+}
+
+function onTechTickerChange(ticker) {
+  state._selectedTechTicker = ticker;
+  if (ticker) renderTechDetail(ticker);
+}
+
+function onTechTimeframeChange(tf) {
+  // Just update the preference — user needs to refresh to fetch new data
+  state.profile.bxTimeframe = tf;
+  saveState();
+}
+
+async function refreshSelectedTicker() {
+  const ticker = document.getElementById('techTickerSelect').value;
+  if (!ticker) { toast('Select a ticker first', 'error'); return; }
+  if (!state.settings.avKey) { toast('Set Alpha Vantage key in Settings', 'error'); return; }
+  const btn = document.getElementById('techRefreshBtn');
+  btn.disabled = true; btn.textContent = '⏳...';
+  const tf = document.getElementById('techTfSelect').value;
+  await fetchAndComputeBX(ticker, tf);
+  btn.disabled = false; btn.textContent = '🔄 Refresh';
+  renderTechDetail(ticker);
+  refreshHoldings();
+  updateTechDataSummary();
+  toast(`${ticker} BX data refreshed`);
+}
+
+function renderTechDetail(ticker) {
+  const key = ticker.toUpperCase();
+  const td = state.technicalData[key];
+  
+  document.getElementById('techTickerLabel').textContent = ticker;
+  
+  if (!td || !td.computed || !td.computed.short || td.computed.short.length === 0) {
+    document.getElementById('techBXBadge').innerHTML = '<span style="color:var(--text-tertiary);">No data — tap Refresh</span>';
+    document.getElementById('techLastSignal').textContent = '';
+    document.getElementById('techDataAge').textContent = '';
+    document.getElementById('techInterpretation').textContent = '';
+    document.getElementById('techShortBars').innerHTML = '';
+    document.getElementById('techLongBars').innerHTML = '';
+    document.getElementById('techSignalHistory').innerHTML = '';
+    return;
+  }
+  
+  // Badge
+  const badge = getBXSignalBadge(ticker);
+  document.getElementById('techBXBadge').innerHTML = badge.html;
+  
+  // Data age
+  const age = td.lastFetched ? Math.floor((Date.now() - new Date(td.lastFetched).getTime()) / (1000*60*60*24)) : '?';
+  document.getElementById('techDataAge').textContent = `${td.timeframe || 'monthly'} | data: ${age}d ago | ${td.bars?.length || 0} bars`;
+  
+  // Last signal
+  const signals = td.computed.signals || [];
+  const bars = td.bars || [];
+  if (signals.length > 0) {
+    const last = signals[signals.length - 1];
+    const signalDate = bars[last.bar] ? bars[last.bar].date : '?';
+    document.getElementById('techLastSignal').textContent = `Last signal: ${last.type} @ ${signalDate}`;
+  } else {
+    document.getElementById('techLastSignal').textContent = 'No signals in range';
+  }
+  
+  // Interpretation
+  const lastShort = td.computed.short[td.computed.short.length - 1];
+  const lastLong = td.computed.long[td.computed.long.length - 1];
+  const shortDesc = { BULL:'Short oscillator positive & rising — strong uptrend', FADE:'Short oscillator positive but falling — uptrend weakening, watch for breakdown',
+    TURN:'Short oscillator negative but rising — potential reversal forming', BEAR:'Short oscillator negative & falling — strong downtrend' };
+  const longCtx = lastLong.value > 0 ? 'Long trend is POSITIVE (supportive backdrop).' : 'Long trend is NEGATIVE (headwind).';
+  document.getElementById('techInterpretation').textContent = (shortDesc[lastShort.state] || '') + ' ' + longCtx;
+  
+  // Render short oscillator bars (inline histogram)
+  const shortData = td.computed.short;
+  const maxVal = Math.max(...shortData.map(b => Math.abs(b.value)), 1);
+  const barWidth = Math.max(4, Math.floor((100 / shortData.length) * 3));
+  document.getElementById('techShortBars').innerHTML = shortData.map((b, i) => {
+    const h = Math.abs(b.value) / maxVal * 100;
+    const isPos = b.value >= 0;
+    const date = bars[i] ? bars[i].date.substring(0, 7) : '';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:${barWidth}px;" title="${date}: ${b.value.toFixed(1)} (${b.state})">
+      ${isPos ? `<div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:1px 1px 0 0;opacity:0.8;"></div>` :
+        `<div style="flex:1;"></div><div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:0 0 1px 1px;opacity:0.8;"></div>`}
+    </div>`;
+  }).join('');
+  
+  // Render long trend bars
+  const longData = td.computed.long;
+  const maxLong = Math.max(...longData.map(b => Math.abs(b.value)), 1);
+  document.getElementById('techLongBars').innerHTML = longData.map((b, i) => {
+    const h = Math.abs(b.value) / maxLong * 100;
+    const isPos = b.value >= 0;
+    const date = bars[i] ? bars[i].date.substring(0, 7) : '';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:${barWidth}px;" title="${date}: ${b.value.toFixed(1)}">
+      ${isPos ? `<div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:1px 1px 0 0;opacity:0.5;"></div>` :
+        `<div style="flex:1;"></div><div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:0 0 1px 1px;opacity:0.5;"></div>`}
+    </div>`;
+  }).join('');
+  
+  // Signal history table
+  if (signals.length > 0) {
+    document.getElementById('techSignalHistory').innerHTML = `<table style="width:100%;"><thead><tr>
+      <th>Date</th><th>Signal</th><th>Oscillator</th><th>Price</th>
+    </tr></thead><tbody>` +
+    signals.slice().reverse().map(s => {
+      const date = bars[s.bar] ? bars[s.bar].date : '?';
+      const price = bars[s.bar] ? '$' + bars[s.bar].close.toFixed(2) : '—';
+      const osc = shortData[s.bar] ? shortData[s.bar].value.toFixed(1) : '—';
+      const color = s.type === 'BUY' ? 'var(--green)' : 'var(--red)';
+      return `<tr><td>${date}</td><td style="color:${color};font-weight:700;">${s.type === 'BUY' ? '▲ BUY' : '▼ SELL'}</td><td class="num">${osc}</td><td class="num">${price}</td></tr>`;
+    }).join('') + '</tbody></table>';
+  } else {
+    document.getElementById('techSignalHistory').innerHTML = '<div style="color:var(--text-tertiary);padding:12px;text-align:center;">No BX signals detected in the available data range</div>';
   }
 }
 
