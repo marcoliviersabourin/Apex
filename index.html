@@ -886,7 +886,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.0.1 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.0.2 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1993,7 +1993,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.1</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.2</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2022,8 +2022,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.0.1';
-const APEX_BUILD = '2026-04-19-002';
+const APEX_VERSION = '3.0.2';
+const APEX_BUILD = '2026-04-19-003';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3265,7 +3265,7 @@ function calcBXTrender(closes, params) {
   const longL2 = (params && params.longL2) || 5;
   const sensitivity = (params && params.sensitivity) || 0;
   
-  if (closes.length < 25) return { short: [], long: [], signals: [] };
+  if (closes.length < 15) return { short: [], long: [], signals: [] };
   
   // Short oscillator: RSI( EMA(close,5) - EMA(close,20), 5 ) - 50
   const emaFast = calcEMA(closes, shortL1);
@@ -3403,7 +3403,7 @@ async function fetchOHLC(ticker, timeframe) {
             low: parseFloat(vals['3. low']), close: parseFloat(vals['4. close']),
             volume: parseInt(vals['5. volume'] || 0)
           })).sort((a, b) => a.date.localeCompare(b.date));
-          const maxBars = (timeframe || 'monthly') === 'weekly' ? 104 : 24;
+          const maxBars = (timeframe || 'monthly') === 'weekly' ? 104 : 36;
           return bars.slice(-maxBars);
         }
       }
@@ -3417,7 +3417,7 @@ async function fetchOHLC(ticker, timeframe) {
       low: parseFloat(vals['3. low']), close: parseFloat(vals['4. close']),
       volume: parseInt(vals['5. volume'] || 0)
     })).sort((a, b) => a.date.localeCompare(b.date));
-    const maxBars = (timeframe || 'monthly') === 'weekly' ? 104 : 24;
+    const maxBars = (timeframe || 'monthly') === 'weekly' ? 104 : 36;
     return bars.slice(-maxBars);
   } catch(e) {
     console.error('AV fetch error for', ticker, e);
@@ -3452,10 +3452,11 @@ async function fetchAllTechnicals(tickers, timeframe) {
   toast(`Fetching OHLC data: 0/${total}...`);
   
   for (const ticker of tickers) {
-    // Check cache freshness (skip if < 7 days old and same timeframe)
-    const cached = state.technicalData[ticker.toUpperCase()];
-    if (cached && cached.lastFetched && cached.timeframe === tf) {
-      const age = (Date.now() - new Date(cached.lastFetched).getTime()) / (1000*60*60*24);
+    // Check cache freshness (skip if < 7 days old, same timeframe, AND has valid computed data)
+    const cachedEntry = state.technicalData[ticker.toUpperCase()];
+    const hasValidComputed = cachedEntry?.computed?.short?.length > 0;
+    if (cachedEntry && cachedEntry.lastFetched && cachedEntry.timeframe === tf && hasValidComputed) {
+      const age = (Date.now() - new Date(cachedEntry.lastFetched).getTime()) / (1000*60*60*24);
       if (age < 7) { done++; continue; }
     }
     const result = await fetchAndComputeBX(ticker, tf);
@@ -3470,11 +3471,10 @@ async function fetchAllTechnicals(tickers, timeframe) {
     if (done < total) await new Promise(r => setTimeout(r, 12000));
   }
   refreshHoldings();
-  const cached = Object.keys(state.technicalData).length;
-  toast(`Technical data: ${cached} tickers cached${rateLimited ? ` (${rateLimited} rate-limited)` : ''}`);
-  // Update AV status in settings
+  const cachedCount = Object.keys(state.technicalData).length;
+  toast(`Technical data: ${cachedCount} tickers cached${rateLimited ? ` (${rateLimited} rate-limited)` : ''}`);
   const statusEl = document.getElementById('avDataStatus');
-  if (statusEl) statusEl.textContent = `${cached} tickers cached — oldest: ${getOldestTechData()}`;
+  if (statusEl) statusEl.textContent = `${cachedCount} tickers cached — oldest: ${getOldestTechData()}`;
 }
 
 function getOldestTechData() {
@@ -3517,15 +3517,37 @@ async function refreshAllTechData() {
   if (!state.settings.avKey) { toast('Set Alpha Vantage API key in Settings first', 'error'); return; }
   const btn = document.getElementById('refreshTechBtn');
   btn.disabled = true; btn.textContent = '⏳ Fetching...';
+  // Clean up tickers no longer in portfolio or watchlist
+  cleanupTechData();
   await fetchAllTechnicals(tickers, state.profile?.bxTimeframe || 'monthly');
   btn.disabled = false; btn.textContent = '📈 Refresh BX Trender';
-  // Force full UI refresh to show badges
   refreshHoldings();
   refreshTechnicals();
   updateTechDataSummary();
   const withData = state.positions.filter(p => state.technicalData[p.symbol.toUpperCase()]?.computed?.short?.length > 0).length;
   const total = state.positions.length;
   toast(`BX Trender: ${withData}/${total} positions have signals. Check the BX column.`);
+}
+
+function cleanupTechData() {
+  // Remove cached data for tickers no longer in portfolio, watchlist, or ideas
+  const activeTickers = new Set();
+  state.positions.forEach(p => activeTickers.add(p.symbol.toUpperCase()));
+  state.watchlist.forEach(w => activeTickers.add(w.ticker.toUpperCase()));
+  if (state.analysisData?.newIdeas) {
+    state.analysisData.newIdeas.forEach(i => activeTickers.add(i.ticker.toUpperCase()));
+  }
+  let removed = 0;
+  Object.keys(state.technicalData).forEach(key => {
+    if (!activeTickers.has(key)) {
+      delete state.technicalData[key];
+      removed++;
+    }
+  });
+  if (removed > 0) {
+    console.log(`APEX: Cleaned up ${removed} stale technical data entries`);
+    saveState();
+  }
 }
 
 async function refreshWatchlistTechData() {
