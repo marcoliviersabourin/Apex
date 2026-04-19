@@ -886,7 +886,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.0.2 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.0.3 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1135,6 +1135,7 @@ input[type="range"]::-webkit-slider-thumb {
     <!-- Technical Data Refresh -->
     <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;" id="techDataBar">
       <button class="btn btn-sm" onclick="refreshAllTechData()" id="refreshTechBtn" title="Fetch OHLC data from Alpha Vantage and compute BX Trender for all positions">📈 Refresh BX Trender</button>
+      <button class="btn btn-sm" onclick="clearTechCache()" title="Clear all cached BX data and force re-fetch">🗑 Clear BX Cache</button>
       <span style="font-size:10px;color:var(--text-tertiary);" id="techDataSummary">No technical data</span>
     </div>
 
@@ -1993,7 +1994,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.2</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.3</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2022,8 +2023,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.0.2';
-const APEX_BUILD = '2026-04-19-003';
+const APEX_VERSION = '3.0.3';
+const APEX_BUILD = '2026-04-19-004';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3427,18 +3428,28 @@ async function fetchOHLC(ticker, timeframe) {
 
 async function fetchAndComputeBX(ticker, timeframe) {
   const bars = await fetchOHLC(ticker, timeframe);
-  if (!bars || bars === 'RATE_LIMITED') return bars;
+  if (bars === 'RATE_LIMITED') return 'RATE_LIMITED';
+  if (!bars || bars.length === 0) {
+    console.warn(`APEX BX: No data returned for ${ticker}`);
+    return null;
+  }
+  console.log(`APEX BX: ${ticker} — ${bars.length} bars fetched, date range: ${bars[0].date} to ${bars[bars.length-1].date}`);
   const closes = bars.map(b => b.close);
   const prof = state.profile || getDefaultProfile();
   const bx = calcBXTrender(closes, { sensitivity: prof.bxSensitivity || 0 });
   
-  // Store
-  const key = ticker.toUpperCase();
-  if (!state.technicalData[key]) state.technicalData[key] = {};
-  state.technicalData[key].lastFetched = new Date().toISOString();
-  state.technicalData[key].timeframe = timeframe || 'monthly';
-  state.technicalData[key].bars = bars;
-  state.technicalData[key].computed = bx;
+  if (!bx.short || bx.short.length === 0) {
+    console.warn(`APEX BX: ${ticker} — computation returned empty (${closes.length} closes, need ≥15)`);
+    return null;
+  }
+  console.log(`APEX BX: ${ticker} — computed ${bx.short.length} bars, ${bx.signals.length} signals, current state: ${bx.short[bx.short.length-1]?.state}`);
+  
+  const storeKey = ticker.toUpperCase();
+  if (!state.technicalData[storeKey]) state.technicalData[storeKey] = {};
+  state.technicalData[storeKey].lastFetched = new Date().toISOString();
+  state.technicalData[storeKey].timeframe = timeframe || 'monthly';
+  state.technicalData[storeKey].bars = bars;
+  state.technicalData[storeKey].computed = bx;
   saveState();
   return bars;
 }
@@ -3448,31 +3459,36 @@ async function fetchAllTechnicals(tickers, timeframe) {
   if (!key) { toast('Set Alpha Vantage key in Settings first', 'error'); return; }
   const tf = timeframe || state.profile?.bxTimeframe || 'monthly';
   const total = tickers.length;
-  let done = 0, rateLimited = 0;
+  let done = 0, rateLimited = 0, fetched = 0, skipped = 0, failed = 0;
   toast(`Fetching OHLC data: 0/${total}...`);
   
   for (const ticker of tickers) {
-    // Check cache freshness (skip if < 7 days old, same timeframe, AND has valid computed data)
     const cachedEntry = state.technicalData[ticker.toUpperCase()];
     const hasValidComputed = cachedEntry?.computed?.short?.length > 0;
     if (cachedEntry && cachedEntry.lastFetched && cachedEntry.timeframe === tf && hasValidComputed) {
       const age = (Date.now() - new Date(cachedEntry.lastFetched).getTime()) / (1000*60*60*24);
-      if (age < 7) { done++; continue; }
+      if (age < 7) { done++; skipped++; continue; }
     }
     const result = await fetchAndComputeBX(ticker, tf);
     done++;
     if (result === 'RATE_LIMITED') {
       rateLimited++;
-      toast(`Rate limited at ${done}/${total} — remaining tickers will fetch tomorrow`, 'error');
+      toast(`Rate limited at ${done}/${total} — wait 1 min or try tomorrow`, 'error');
       break;
+    } else if (!result) {
+      failed++;
+    } else {
+      fetched++;
     }
-    toast(`Fetching OHLC: ${done}/${total} (${ticker})`);
-    // Rate limit: wait 12 seconds between calls (5/min limit)
-    if (done < total) await new Promise(r => setTimeout(r, 12000));
+    toast(`Fetching OHLC: ${done}/${total} (${ticker})${failed > 0 ? ' — ' + failed + ' failed' : ''}`);
+    if (done < total && result) await new Promise(r => setTimeout(r, 12000));
+    // If fetch failed, shorter delay (no data to rate-limit for)
+    if (done < total && !result) await new Promise(r => setTimeout(r, 2000));
   }
   refreshHoldings();
   const cachedCount = Object.keys(state.technicalData).length;
-  toast(`Technical data: ${cachedCount} tickers cached${rateLimited ? ` (${rateLimited} rate-limited)` : ''}`);
+  console.log(`APEX BX: Done — ${fetched} fetched, ${skipped} cached, ${failed} failed, ${rateLimited} rate-limited`);
+  toast(`BX: ${fetched} new, ${skipped} cached, ${failed} failed${rateLimited ? ', rate-limited' : ''}`);
   const statusEl = document.getElementById('avDataStatus');
   if (statusEl) statusEl.textContent = `${cachedCount} tickers cached — oldest: ${getOldestTechData()}`;
 }
@@ -3530,7 +3546,6 @@ async function refreshAllTechData() {
 }
 
 function cleanupTechData() {
-  // Remove cached data for tickers no longer in portfolio, watchlist, or ideas
   const activeTickers = new Set();
   state.positions.forEach(p => activeTickers.add(p.symbol.toUpperCase()));
   state.watchlist.forEach(w => activeTickers.add(w.ticker.toUpperCase()));
@@ -3539,15 +3554,18 @@ function cleanupTechData() {
   }
   let removed = 0;
   Object.keys(state.technicalData).forEach(key => {
-    if (!activeTickers.has(key)) {
-      delete state.technicalData[key];
-      removed++;
-    }
+    if (!activeTickers.has(key)) { delete state.technicalData[key]; removed++; }
   });
-  if (removed > 0) {
-    console.log(`APEX: Cleaned up ${removed} stale technical data entries`);
-    saveState();
-  }
+  if (removed > 0) { console.log(`APEX: Cleaned up ${removed} stale entries`); saveState(); }
+}
+
+function clearTechCache() {
+  const count = Object.keys(state.technicalData).length;
+  state.technicalData = {};
+  saveState();
+  refreshHoldings();
+  updateTechDataSummary();
+  toast(`Cleared ${count} cached entries. Tap "Refresh BX Trender" to re-fetch.`);
 }
 
 async function refreshWatchlistTechData() {
