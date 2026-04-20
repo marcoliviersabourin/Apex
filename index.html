@@ -1956,7 +1956,14 @@ input[type="range"]::-webkit-slider-thumb {
             <input type="password" class="form-input" id="avKeyInput" placeholder="Your Alpha Vantage key..." style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;">
             <button class="btn btn-sm" onclick="testAlphaVantage()">🔌 Test</button>
           </div>
-          <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">Free key from <strong>alphavantage.co</strong> — enables BX Trender signals and technical charts. 25 calls/day.</div>
+          <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">Free key from <strong>alphavantage.co</strong> — enables BX Trender signals and technical charts.</div>
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label class="form-label">Daily API Call Limit</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" class="form-input" id="avDailyLimitInput" value="25" min="1" max="500" style="width:80px;font-family:'IBM Plex Mono',monospace;font-size:13px;">
+            <span style="font-size:11px;color:var(--text-tertiary);">Free tier = 25/day. Premium plans allow 75-500+/min.</span>
+          </div>
         </div>
         <div id="avTestResult" style="margin-top:8px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
         <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;" id="avDataStatus"></div>
@@ -2024,8 +2031,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.0.4';
-const APEX_BUILD = '2026-04-20-001';
+const APEX_VERSION = '3.0.5';
+const APEX_BUILD = '2026-04-20-002';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -2056,7 +2063,7 @@ let state = {
   analysisData: null,
   watchlist: [],
   cashBalances: { USD: 0, CAD: 0, EUR: 0 },
-  settings: { apiKey:'', avKey:'', model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
+  settings: { apiKey:'', avKey:'', avDailyLimit:25, model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
   technicalData: {}, // per-ticker OHLC + computed indicators
   currentPage: 'dashboard',
   importBuffer: [],
@@ -2111,6 +2118,7 @@ function loadState() {
     // Restore API keys & model
     if (state.settings.apiKey) document.getElementById('apiKeyInput').value = state.settings.apiKey;
     if (state.settings.avKey) document.getElementById('avKeyInput').value = state.settings.avKey;
+    if (state.settings.avDailyLimit) document.getElementById('avDailyLimitInput').value = state.settings.avDailyLimit;
     if (state.settings.model) document.getElementById('modelSelect').value = state.settings.model;
   } catch(e) { console.error('Load error:', e); state.profile = getDefaultProfile(); }
 }
@@ -3048,6 +3056,7 @@ function refreshAnalysisConfig() {
 function saveAPIKey() {
   state.settings.apiKey = document.getElementById('apiKeyInput').value.trim();
   state.settings.avKey = document.getElementById('avKeyInput').value.trim();
+  state.settings.avDailyLimit = parseInt(document.getElementById('avDailyLimitInput').value) || 25;
   state.settings.model = document.getElementById('modelSelect').value;
   saveState();
   toast('API settings saved');
@@ -3459,39 +3468,85 @@ async function fetchAllTechnicals(tickers, timeframe) {
   const key = state.settings.avKey;
   if (!key) { toast('Set Alpha Vantage key in Settings first', 'error'); return; }
   const tf = timeframe || state.profile?.bxTimeframe || 'monthly';
-  const total = tickers.length;
-  let done = 0, rateLimited = 0, fetched = 0, skipped = 0, failed = 0;
-  toast(`Fetching OHLC data: 0/${total}...`);
+  const dailyLimit = (state.settings.avDailyLimit || 25) - 1; // Reserve 1 for test/diagnose
   
-  for (const ticker of tickers) {
-    const cachedEntry = state.technicalData[ticker.toUpperCase()];
-    const hasValidComputed = cachedEntry?.computed?.short?.length > 0;
-    if (cachedEntry && cachedEntry.lastFetched && cachedEntry.timeframe === tf && hasValidComputed) {
-      const age = (Date.now() - new Date(cachedEntry.lastFetched).getTime()) / (1000*60*60*24);
-      if (age < 7) { done++; skipped++; continue; }
+  // ═══ PRIORITIZE: no data first, stale second, fresh skipped ═══
+  const needsFetch = []; // { ticker, priority: 0=no data, 1=empty computed, 2=stale }
+  const freshSkip = [];
+  
+  tickers.forEach(ticker => {
+    const cached = state.technicalData[ticker.toUpperCase()];
+    if (!cached || !cached.lastFetched) {
+      needsFetch.push({ ticker, priority: 0, reason: 'no data' });
+    } else if (!cached.computed?.short?.length || cached.timeframe !== tf) {
+      needsFetch.push({ ticker, priority: 1, reason: 'empty/wrong tf' });
+    } else {
+      const age = (Date.now() - new Date(cached.lastFetched).getTime()) / (1000*60*60*24);
+      if (age >= 7) {
+        needsFetch.push({ ticker, priority: 2, reason: `stale (${Math.floor(age)}d)` });
+      } else {
+        freshSkip.push(ticker);
+      }
     }
+  });
+  
+  // Sort by priority (0 first = most urgent)
+  needsFetch.sort((a, b) => a.priority - b.priority);
+  
+  const totalNeeded = needsFetch.length;
+  const totalSkipped = freshSkip.length;
+  
+  if (totalNeeded === 0) {
+    toast(`All ${tickers.length} tickers have fresh BX data (< 7 days old)`);
+    return;
+  }
+  
+  // Cap at daily limit
+  const toFetch = needsFetch.slice(0, dailyLimit);
+  const deferred = needsFetch.slice(dailyLimit);
+  
+  console.log(`APEX BX: Queue — ${toFetch.length} to fetch, ${deferred.length} deferred, ${totalSkipped} fresh`);
+  toast(`BX: ${toFetch.length} to fetch (${totalSkipped} cached, ${deferred.length} deferred to tomorrow)...`);
+  
+  let fetched = 0, failed = 0, rateLimited = 0;
+  
+  for (let i = 0; i < toFetch.length; i++) {
+    const { ticker, reason } = toFetch[i];
     const result = await fetchAndComputeBX(ticker, tf);
-    done++;
+    
     if (result === 'RATE_LIMITED') {
-      rateLimited++;
-      toast(`Rate limited at ${done}/${total} — wait 1 min or try tomorrow`, 'error');
+      rateLimited = toFetch.length - i; // remaining count
+      toast(`Rate limited — ${fetched} fetched, ${rateLimited} remaining for tomorrow`, 'error');
       break;
     } else if (!result) {
       failed++;
     } else {
       fetched++;
     }
-    toast(`Fetching OHLC: ${done}/${total} (${ticker})${failed > 0 ? ' — ' + failed + ' failed' : ''}`);
-    if (done < total && result) await new Promise(r => setTimeout(r, 12000));
-    // If fetch failed, shorter delay (no data to rate-limit for)
-    if (done < total && !result) await new Promise(r => setTimeout(r, 2000));
+    
+    toast(`Fetching: ${i + 1}/${toFetch.length} (${ticker})${failed ? ' — ' + failed + ' failed' : ''}`);
+    
+    // Rate limit delay
+    if (i < toFetch.length - 1) {
+      await new Promise(r => setTimeout(r, result ? 12000 : 2000));
+    }
   }
+  
   refreshHoldings();
-  const cachedCount = Object.keys(state.technicalData).length;
-  console.log(`APEX BX: Done — ${fetched} fetched, ${skipped} cached, ${failed} failed, ${rateLimited} rate-limited`);
-  toast(`BX: ${fetched} new, ${skipped} cached, ${failed} failed${rateLimited ? ', rate-limited' : ''}`);
+  const validCount = Object.values(state.technicalData).filter(t => t.computed?.short?.length > 0).length;
+  const totalTickers = tickers.length;
+  
+  let summary = `BX: ${validCount}/${totalTickers} with signals`;
+  if (fetched > 0) summary += ` (${fetched} new)`;
+  if (failed > 0) summary += ` | ${failed} failed`;
+  if (deferred.length > 0) summary += ` | ${deferred.length} deferred`;
+  if (rateLimited > 0) summary += ` | hit daily limit`;
+  
+  console.log('APEX BX:', summary);
+  toast(summary);
+  
   const statusEl = document.getElementById('avDataStatus');
-  if (statusEl) statusEl.textContent = `${cachedCount} tickers cached — oldest: ${getOldestTechData()}`;
+  if (statusEl) statusEl.textContent = `${validCount}/${totalTickers} tickers with BX data — limit: ${dailyLimit + 1}/day`;
 }
 
 function getOldestTechData() {
