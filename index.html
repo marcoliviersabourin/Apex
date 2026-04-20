@@ -1136,6 +1136,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;" id="techDataBar">
       <button class="btn btn-sm" onclick="refreshAllTechData()" id="refreshTechBtn" title="Fetch OHLC data from Alpha Vantage and compute BX Trender for all positions">📈 Refresh BX Trender</button>
       <button class="btn btn-sm" onclick="clearTechCache()" title="Clear all cached BX data and force re-fetch">🗑 Clear BX Cache</button>
+      <button class="btn btn-sm" onclick="diagnoseTechFetch()" title="Test-fetch one ticker and show raw result">🔍 Diagnose</button>
       <span style="font-size:10px;color:var(--text-tertiary);" id="techDataSummary">No technical data</span>
     </div>
 
@@ -2023,8 +2024,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.0.3';
-const APEX_BUILD = '2026-04-19-004';
+const APEX_VERSION = '3.0.4';
+const APEX_BUILD = '2026-04-20-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3566,6 +3567,70 @@ function clearTechCache() {
   refreshHoldings();
   updateTechDataSummary();
   toast(`Cleared ${count} cached entries. Tap "Refresh BX Trender" to re-fetch.`);
+}
+
+async function diagnoseTechFetch() {
+  const avKey = state.settings.avKey;
+  if (!avKey) { toast('Set AV key in Settings first', 'error'); return; }
+  // Pick first position or default to AAPL
+  const ticker = state.positions.length > 0 ? state.positions[0].symbol : 'AAPL';
+  const exchange = getExchangeForTicker(ticker);
+  const avSymbol = getAVSymbol(ticker, exchange);
+  
+  toast(`Diagnosing: ${ticker} → AV symbol "${avSymbol}"...`);
+  
+  try {
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${avSymbol}&apikey=${avKey}&datatype=json`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const keys = Object.keys(data);
+    const preview = JSON.stringify(data).substring(0, 500);
+    
+    let diagnosis = '';
+    if (data['Monthly Time Series']) {
+      const dates = Object.keys(data['Monthly Time Series']);
+      diagnosis = `✓ SUCCESS: ${dates.length} months of data for "${avSymbol}"\nFirst: ${dates[dates.length-1]}, Last: ${dates[0]}`;
+    } else if (data['Note']) {
+      diagnosis = `⚠ RATE LIMITED: ${data['Note'].substring(0, 200)}`;
+    } else if (data['Information']) {
+      diagnosis = `⚠ API MESSAGE: ${data['Information'].substring(0, 200)}`;
+    } else if (data['Error Message']) {
+      diagnosis = `✗ ERROR: ${data['Error Message']}`;
+    } else {
+      diagnosis = `✗ UNEXPECTED: keys=[${keys.join(',')}]\n${preview}`;
+    }
+    
+    showModal(`
+      <div class="modal-header">
+        <span class="modal-title">🔍 AV Fetch Diagnostic</span>
+        <button class="btn btn-sm btn-icon" onclick="closeModal()">✕</button>
+      </div>
+      <div style="font-size:12px;margin-bottom:8px;">
+        <div><strong>Ticker:</strong> ${ticker}</div>
+        <div><strong>Exchange:</strong> ${exchange || 'unknown'}</div>
+        <div><strong>AV Symbol:</strong> ${avSymbol}</div>
+        <div><strong>URL:</strong> <span style="word-break:break-all;font-size:10px;">${url.replace(avKey, '***')}</span></div>
+      </div>
+      <div style="background:var(--bg-tertiary);padding:12px;border-radius:6px;margin-top:8px;">
+        <pre style="font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;margin:0;color:${diagnosis.startsWith('✓') ? 'var(--green)' : diagnosis.startsWith('⚠') ? 'var(--amber)' : 'var(--red)'};">${diagnosis}</pre>
+      </div>
+      <div style="background:var(--bg-tertiary);padding:12px;border-radius:6px;margin-top:8px;">
+        <div style="font-size:10px;color:var(--text-tertiary);margin-bottom:4px;">Raw response (first 500 chars):</div>
+        <pre style="font-family:'IBM Plex Mono',monospace;font-size:9px;white-space:pre-wrap;word-break:break-word;margin:0;color:var(--text-secondary);">${preview.replace(/</g,'&lt;')}</pre>
+      </div>
+    `);
+  } catch(e) {
+    showModal(`
+      <div class="modal-header">
+        <span class="modal-title">🔍 AV Fetch Diagnostic</span>
+        <button class="btn btn-sm btn-icon" onclick="closeModal()">✕</button>
+      </div>
+      <div style="color:var(--red);padding:16px;">
+        <strong>Network Error:</strong> ${e.message}<br><br>
+        This usually means CORS is blocking the request, or the device is offline.
+      </div>
+    `);
+  }
 }
 
 async function refreshWatchlistTechData() {
