@@ -886,7 +886,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.0.3 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.1.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1397,8 +1397,8 @@ input[type="range"]::-webkit-slider-thumb {
           <span class="form-label" style="margin:0;">Max Deployment %</span>
           <span class="slider-value" id="maxDeployVal">100%</span>
         </div>
-        <input type="range" min="80" max="110" step="5" value="100" id="maxDeploySlider" oninput="document.getElementById('maxDeployVal').textContent=this.value+'%'">
-        <div style="font-size:9px;color:var(--text-tertiary);">Below 100% = always keep some cash. Above 100% = aggressive deployment using available margin.</div>
+        <input type="range" min="70" max="120" step="5" value="100" id="maxDeploySlider" oninput="document.getElementById('maxDeployVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">Below 100% = hold cash. Above 100% = leverage (negative cash position). Use BX consensus to guide this.</div>
       </div>
 
       <div class="slider-group" style="margin-top:8px;">
@@ -1556,14 +1556,16 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
       <div class="card fade-in stagger-2" style="margin-top:12px;">
         <div class="card-title" style="margin-bottom:8px;">BX Trender — Short Oscillator</div>
-        <div id="techChartShort" style="height:180px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;">
-          <div id="techShortBars" style="display:flex;align-items:flex-end;height:100%;gap:1px;padding:8px;"></div>
+        <div id="techChartShort" style="height:180px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;position:relative;">
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border-strong);z-index:1;"></div>
+          <div id="techShortBars" style="display:flex;align-items:stretch;height:100%;gap:1px;padding:4px 8px;"></div>
         </div>
       </div>
       <div class="card fade-in stagger-3" style="margin-top:12px;">
         <div class="card-title" style="margin-bottom:8px;">BX Trender — Long Trend</div>
-        <div id="techChartLong" style="height:120px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;">
-          <div id="techLongBars" style="display:flex;align-items:flex-end;height:100%;gap:1px;padding:8px;"></div>
+        <div id="techChartLong" style="height:120px;background:var(--bg-tertiary);border-radius:var(--radius-sm);overflow:hidden;position:relative;">
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border-strong);z-index:1;"></div>
+          <div id="techLongBars" style="display:flex;align-items:stretch;height:100%;gap:1px;padding:4px 8px;"></div>
         </div>
       </div>
       <!-- Signal history table -->
@@ -1852,6 +1854,15 @@ input[type="range"]::-webkit-slider-thumb {
     <div id="targetContent" style="display:none;">
       <!-- Rules applied strip -->
       <div class="card fade-in" id="targetRulesStrip" style="padding:12px 16px;font-size:11px;font-family:'IBM Plex Mono',monospace;"></div>
+      <!-- BX Consensus Deployment Suggestion -->
+      <div class="card fade-in" id="bxConsensusCard" style="display:none;border-left:3px solid var(--purple);margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:var(--purple);font-family:'IBM Plex Mono',monospace;">📈 BX CONSENSUS</span>
+          <span id="bxConsensusLabel" style="font-size:13px;color:var(--text-primary);font-weight:600;"></span>
+          <span id="bxConsensusSuggestion" style="font-size:12px;color:var(--text-secondary);margin-left:auto;"></span>
+        </div>
+        <div id="bxConsensusDetail" style="font-size:11px;color:var(--text-tertiary);margin-top:6px;"></div>
+      </div>
       <!-- Before/After metrics -->
       <div class="card fade-in">
         <div class="card-title" style="margin-bottom:12px;">Before → After</div>
@@ -2002,7 +2013,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.0.3</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.1.0</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2031,8 +2042,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.0.5';
-const APEX_BUILD = '2026-04-20-002';
+const APEX_VERSION = '3.1.0';
+const APEX_BUILD = '2026-04-21-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3365,7 +3376,88 @@ function getBXSignalBadge(ticker) {
   return badgeMap[last.state] || { html:'—', state:'none' };
 }
 
-// ═══ ALPHA VANTAGE DATA FETCH ═══
+function getBXConsensus() {
+  // Compute portfolio-wide BX consensus and suggest deployment %
+  const positions = state.positions;
+  if (positions.length === 0) return null;
+  
+  let bull = 0, fade = 0, turn = 0, bear = 0, buy = 0, sell = 0, noData = 0;
+  positions.forEach(p => {
+    const badge = getBXSignalBadge(p.symbol);
+    switch(badge.state) {
+      case 'BULL': bull++; break;
+      case 'FADE': fade++; break;
+      case 'TURN': turn++; break;
+      case 'BEAR': bear++; break;
+      case 'BUY': buy++; bull++; break;  // BUY is a bullish signal
+      case 'SELL': sell++; bear++; break; // SELL is a bearish signal
+      default: noData++; break;
+    }
+  });
+  
+  const total = positions.length - noData;
+  if (total === 0) return null;
+  
+  const bullPct = (bull + fade) / total * 100; // positive oscillator
+  const bearPct = (bear + turn) / total * 100; // negative oscillator
+  
+  // Long-term trend overlay
+  let longPositive = 0;
+  positions.forEach(p => {
+    const td = state.technicalData[p.symbol.toUpperCase()];
+    if (td?.computed?.long?.length > 0) {
+      const lastLong = td.computed.long[td.computed.long.length - 1];
+      if (lastLong.value > 0) longPositive++;
+    }
+  });
+  const longPct = total > 0 ? (longPositive / total * 100) : 50;
+  const longModifier = longPct > 65 ? 5 : longPct < 35 ? -5 : 0;
+  
+  // Deployment suggestion
+  let baseDeploy, stance, color;
+  if (bullPct >= 70) {
+    baseDeploy = 110; stance = 'AGGRESSIVE'; color = 'var(--green)';
+  } else if (bullPct >= 50) {
+    baseDeploy = 100; stance = 'NORMAL'; color = 'var(--green)';
+  } else if (bullPct >= 30) {
+    baseDeploy = 90; stance = 'CAUTIOUS'; color = 'var(--amber)';
+  } else {
+    baseDeploy = 80; stance = 'DEFENSIVE'; color = 'var(--red)';
+  }
+  
+  const suggestedDeploy = Math.max(70, Math.min(120, baseDeploy + longModifier));
+  
+  return {
+    bull, fade, turn, bear, buy, sell, noData, total,
+    bullPct, bearPct, longPct, longModifier,
+    suggestedDeploy, stance, color
+  };
+}
+
+function renderBXConsensus() {
+  const card = document.getElementById('bxConsensusCard');
+  const consensus = getBXConsensus();
+  
+  if (!consensus || consensus.total === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  
+  card.style.display = 'block';
+  card.style.borderLeftColor = consensus.color;
+  
+  document.getElementById('bxConsensusLabel').innerHTML =
+    `<span style="color:${consensus.color};">${consensus.stance}</span> — suggested deployment: <strong>${consensus.suggestedDeploy}%</strong>`;
+  
+  document.getElementById('bxConsensusSuggestion').textContent =
+    consensus.suggestedDeploy > 100 ? `Leverage OK (${consensus.suggestedDeploy - 100}% margin)` :
+    consensus.suggestedDeploy < 100 ? `Hold ${100 - consensus.suggestedDeploy}% cash` : 'Fully invested';
+  
+  document.getElementById('bxConsensusDetail').textContent =
+    `${consensus.bull} BULL + ${consensus.fade} FADE (${consensus.bullPct.toFixed(0)}% positive) | ` +
+    `${consensus.bear} BEAR + ${consensus.turn} TURN (${consensus.bearPct.toFixed(0)}% negative) | ` +
+    `${consensus.noData} no data | Long trend: ${consensus.longPct.toFixed(0)}% positive (${consensus.longModifier > 0 ? '+' : ''}${consensus.longModifier}% modifier)`;
+}
 // Map exchange to Alpha Vantage symbol suffix
 function getAVSymbol(ticker, exchange) {
   const exch = (exchange || '').toUpperCase();
@@ -5271,6 +5363,10 @@ function refreshTarget() {
       const on = rules[r.key];
       return `<span style="margin-right:10px;color:${on ? 'var(--green)' : 'var(--text-muted)'};">${on ? '✓' : '✗'} ${r.label}</span>`;
     }).join('');
+  
+  // BX Consensus deployment suggestion
+  renderBXConsensus();
+  
   const verdicts = ad.verdicts || [];
   const newIdeas = ad.newIdeas || [];
 
@@ -6143,30 +6239,39 @@ function renderTechDetail(ticker) {
   const longCtx = lastLong.value > 0 ? 'Long trend is POSITIVE (supportive backdrop).' : 'Long trend is NEGATIVE (headwind).';
   document.getElementById('techInterpretation').textContent = (shortDesc[lastShort.state] || '') + ' ' + longCtx;
   
-  // Render short oscillator bars (inline histogram)
+  // Render short oscillator bars — positive above center, negative below
   const shortData = td.computed.short;
   const maxVal = Math.max(...shortData.map(b => Math.abs(b.value)), 1);
-  const barWidth = Math.max(4, Math.floor((100 / shortData.length) * 3));
   document.getElementById('techShortBars').innerHTML = shortData.map((b, i) => {
-    const h = Math.abs(b.value) / maxVal * 100;
+    const hPct = Math.abs(b.value) / maxVal * 50; // max 50% of container height per direction
     const isPos = b.value >= 0;
     const date = bars[i] ? bars[i].date.substring(0, 7) : '';
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:${barWidth}px;" title="${date}: ${b.value.toFixed(1)} (${b.state})">
-      ${isPos ? `<div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:1px 1px 0 0;opacity:0.8;"></div>` :
-        `<div style="flex:1;"></div><div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:0 0 1px 1px;opacity:0.8;"></div>`}
+    // Top half = positive space (bar grows down from top toward center)
+    // Bottom half = negative space (bar grows down from center)
+    return `<div style="flex:1;display:flex;flex-direction:column;min-width:3px;" title="${date}: ${b.value.toFixed(1)} (${b.state})">
+      <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-end;">
+        ${isPos ? `<div style="background:${b.color};width:100%;height:${hPct * 2}%;min-height:${hPct > 0 ? 2 : 0}px;border-radius:1px 1px 0 0;opacity:0.85;"></div>` : ''}
+      </div>
+      <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-start;">
+        ${!isPos ? `<div style="background:${b.color};width:100%;height:${hPct * 2}%;min-height:${hPct > 0 ? 2 : 0}px;border-radius:0 0 1px 1px;opacity:0.85;"></div>` : ''}
+      </div>
     </div>`;
   }).join('');
   
-  // Render long trend bars
+  // Render long trend bars — same center-line layout
   const longData = td.computed.long;
   const maxLong = Math.max(...longData.map(b => Math.abs(b.value)), 1);
   document.getElementById('techLongBars').innerHTML = longData.map((b, i) => {
-    const h = Math.abs(b.value) / maxLong * 100;
+    const hPct = Math.abs(b.value) / maxLong * 50;
     const isPos = b.value >= 0;
     const date = bars[i] ? bars[i].date.substring(0, 7) : '';
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:${barWidth}px;" title="${date}: ${b.value.toFixed(1)}">
-      ${isPos ? `<div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:1px 1px 0 0;opacity:0.5;"></div>` :
-        `<div style="flex:1;"></div><div style="background:${b.color};width:100%;height:${h}%;min-height:2px;border-radius:0 0 1px 1px;opacity:0.5;"></div>`}
+    return `<div style="flex:1;display:flex;flex-direction:column;min-width:3px;" title="${date}: ${b.value.toFixed(1)}">
+      <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-end;">
+        ${isPos ? `<div style="background:${b.color};width:100%;height:${hPct * 2}%;min-height:${hPct > 0 ? 2 : 0}px;border-radius:1px 1px 0 0;opacity:0.6;"></div>` : ''}
+      </div>
+      <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-start;">
+        ${!isPos ? `<div style="background:${b.color};width:100%;height:${hPct * 2}%;min-height:${hPct > 0 ? 2 : 0}px;border-radius:0 0 1px 1px;opacity:0.6;"></div>` : ''}
+      </div>
     </div>`;
   }).join('');
   
