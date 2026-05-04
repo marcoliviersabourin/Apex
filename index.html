@@ -886,7 +886,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.1.2 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.1.3 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2022,7 +2022,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.1.2</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.1.3</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2051,8 +2051,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.1.2';
-const APEX_BUILD = '2026-04-21-003';
+const APEX_VERSION = '3.1.3';
+const APEX_BUILD = '2026-04-22-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -3094,10 +3094,10 @@ async function testAlphaVantage() {
   el.style.display = 'block'; el.style.background = 'var(--bg-tertiary)'; el.style.color = 'var(--text-secondary)';
   el.textContent = 'Testing...';
   try {
-    const resp = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=AAPL&apikey=${key}&datatype=json`);
+    const resp = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=AAPL&apikey=${key}&datatype=json`);
     const data = await resp.json();
-    if (data['Monthly Time Series']) {
-      const dates = Object.keys(data['Monthly Time Series']);
+    if (data['Monthly Adjusted Time Series']) {
+      const dates = Object.keys(data['Monthly Adjusted Time Series']);
       el.style.color = 'var(--green)'; el.textContent = `✓ Connected — ${dates.length} months of data available for AAPL`;
       state.settings.avKey = key; saveState();
     } else if (data['Note']) {
@@ -3494,27 +3494,31 @@ function getExchangeForTicker(ticker) {
 async function fetchOHLC(ticker, timeframe) {
   const avKey = state.settings.avKey;
   if (!avKey) { toast('Set Alpha Vantage API key in Settings', 'error'); return null; }
-  const func = (timeframe || 'monthly') === 'weekly' ? 'TIME_SERIES_WEEKLY' : 'TIME_SERIES_MONTHLY';
-  const tsKey = (timeframe || 'monthly') === 'weekly' ? 'Weekly Time Series' : 'Monthly Time Series';
+  // Use ADJUSTED endpoints to handle stock splits correctly
+  const func = (timeframe || 'monthly') === 'weekly' ? 'TIME_SERIES_WEEKLY_ADJUSTED' : 'TIME_SERIES_MONTHLY_ADJUSTED';
+  const tsKey = (timeframe || 'monthly') === 'weekly' ? 'Weekly Adjusted Time Series' : 'Monthly Adjusted Time Series';
   const exchange = getExchangeForTicker(ticker);
   const avSymbol = getAVSymbol(ticker, exchange);
-  console.log(`APEX: Fetching OHLC for ${ticker} as AV symbol "${avSymbol}" (exchange: ${exchange || 'unknown'})`);
+  console.log(`APEX: Fetching adjusted OHLC for ${ticker} as AV symbol "${avSymbol}" (exchange: ${exchange || 'unknown'})`);
+  
+  const parseBars = (ts) => Object.entries(ts).map(([date, vals]) => ({
+    date, open: parseFloat(vals['1. open']), high: parseFloat(vals['2. high']),
+    low: parseFloat(vals['3. low']),
+    close: parseFloat(vals['5. adjusted close'] || vals['4. close']),
+    volume: parseInt(vals['6. volume'] || vals['5. volume'] || 0)
+  })).sort((a, b) => a.date.localeCompare(b.date));
+  
   try {
     const resp = await fetch(`https://www.alphavantage.co/query?function=${func}&symbol=${avSymbol}&apikey=${avKey}&datatype=json`);
     const data = await resp.json();
     if (data['Note']) { console.warn('AV rate limit for', ticker); return 'RATE_LIMITED'; }
     if (data['Error Message']) {
       console.warn('AV error for', avSymbol, '— trying without suffix');
-      // Retry without suffix as fallback
       if (avSymbol !== ticker) {
         const resp2 = await fetch(`https://www.alphavantage.co/query?function=${func}&symbol=${ticker}&apikey=${avKey}&datatype=json`);
         const data2 = await resp2.json();
         if (data2[tsKey]) {
-          const bars = Object.entries(data2[tsKey]).map(([date, vals]) => ({
-            date, open: parseFloat(vals['1. open']), high: parseFloat(vals['2. high']),
-            low: parseFloat(vals['3. low']), close: parseFloat(vals['4. close']),
-            volume: parseInt(vals['5. volume'] || 0)
-          })).sort((a, b) => a.date.localeCompare(b.date));
+          const bars = parseBars(data2[tsKey]);
           const maxBars = (timeframe || 'monthly') === 'weekly' ? 200 : 120;
           return bars.slice(-maxBars);
         }
@@ -3523,12 +3527,8 @@ async function fetchOHLC(ticker, timeframe) {
       return null;
     }
     const ts = data[tsKey];
-    if (!ts) return null;
-    const bars = Object.entries(ts).map(([date, vals]) => ({
-      date, open: parseFloat(vals['1. open']), high: parseFloat(vals['2. high']),
-      low: parseFloat(vals['3. low']), close: parseFloat(vals['4. close']),
-      volume: parseInt(vals['5. volume'] || 0)
-    })).sort((a, b) => a.date.localeCompare(b.date));
+    if (!ts) { console.warn('AV: No time series key found. Keys:', Object.keys(data)); return null; }
+    const bars = parseBars(ts);
     const maxBars = (timeframe || 'monthly') === 'weekly' ? 200 : 120;
     return bars.slice(-maxBars);
   } catch(e) {
@@ -3736,15 +3736,20 @@ async function diagnoseTechFetch() {
   toast(`Diagnosing: ${ticker} → AV symbol "${avSymbol}"...`);
   
   try {
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${avSymbol}&apikey=${avKey}&datatype=json`;
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${avSymbol}&apikey=${avKey}&datatype=json`;
     const resp = await fetch(url);
     const data = await resp.json();
     const keys = Object.keys(data);
     const preview = JSON.stringify(data).substring(0, 500);
     
     let diagnosis = '';
-    if (data['Monthly Time Series']) {
-      const dates = Object.keys(data['Monthly Time Series']);
+    if (data['Monthly Adjusted Time Series']) {
+      const dates = Object.keys(data['Monthly Adjusted Time Series']);
+      const latest = data['Monthly Adjusted Time Series'][dates[0]];
+      const adjClose = latest['5. adjusted close'];
+      const rawClose = latest['4. close'];
+      diagnosis = `✓ SUCCESS: ${dates.length} months for "${avSymbol}"\nFirst: ${dates[dates.length-1]}, Last: ${dates[0]}\nLatest adj close: $${adjClose} | raw close: $${rawClose}`;
+    } else if (data['Monthly Time Series']) {
       diagnosis = `✓ SUCCESS: ${dates.length} months of data for "${avSymbol}"\nFirst: ${dates[dates.length-1]}, Last: ${dates[0]}`;
     } else if (data['Note']) {
       diagnosis = `⚠ RATE LIMITED: ${data['Note'].substring(0, 200)}`;
