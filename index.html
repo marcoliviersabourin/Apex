@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.2.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.3.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -895,6 +895,9 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div class="nav-item" data-page="macro" onclick="navigateTo('macro')">
       <span class="nav-icon">🌍</span> Macro Outlook
+    </div>
+    <div class="nav-item" data-page="regime" onclick="navigateTo('regime')">
+      <span class="nav-icon">⚡</span> Regime
     </div>
     <div class="nav-item" data-page="portfolio" onclick="navigateTo('portfolio')">
       <span class="nav-icon">📁</span> Portfolio
@@ -1091,6 +1094,93 @@ input[type="range"]::-webkit-slider-thumb {
         <div class="card-title" style="margin-bottom:8px;">Relevance to Your Portfolio</div>
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;" id="macroRelevance"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: REGIME ═══ -->
+<div class="page" id="page-regime">
+  <div class="page-header">
+    <div>
+      <div class="page-title">⚡ REGIME DETECTION</div>
+      <div class="page-subtitle" id="regimeSubtitle">Market regime analysis &amp; opportunity radar</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="computeRegime()">🔄 Recompute</button>
+      <button class="btn btn-sm btn-primary" onclick="runScenario()">💭 What If...</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Regime Banner -->
+    <div class="card fade-in" id="regimeBanner" style="padding:16px 20px;border-left:4px solid var(--green);">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:24px;">⚡</span>
+        <span style="font-size:18px;font-weight:800;font-family:'IBM Plex Mono',monospace;" id="regimeLabel">TRENDING</span>
+        <span style="font-size:13px;color:var(--text-secondary);" id="regimeDescription">Technical signals are reliable. Normal trading rules apply.</span>
+        <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;" id="regimeTimestamp"></span>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;" id="regimeAdvice"></div>
+    </div>
+
+    <!-- Score Breakdown -->
+    <div class="card fade-in stagger-1" style="margin-top:12px;">
+      <div class="card-title" style="margin-bottom:12px;">Regime Score Breakdown</div>
+      <div id="regimeScoreTable"></div>
+      <div style="margin-top:10px;font-size:13px;font-family:'IBM Plex Mono',monospace;" id="regimeTotalScore"></div>
+    </div>
+
+    <!-- Manual Override -->
+    <div class="card fade-in stagger-2" style="margin-top:12px;">
+      <div class="card-title" style="margin-bottom:12px;">Manual Override</div>
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;min-width:160px;">
+          <label class="form-label">Regime Override</label>
+          <select class="form-select" id="regimeOverrideSelect" onchange="applyRegimeOverride()">
+            <option value="auto">Auto (computed)</option>
+            <option value="trending">Force TRENDING</option>
+            <option value="volatile">Force VOLATILE</option>
+            <option value="crisis">Force CRISIS</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+          <label class="form-label">Override Reason</label>
+          <input type="text" class="form-input" id="regimeOverrideReason" placeholder="e.g. Iran escalation likely within 2 weeks..." style="font-size:12px;">
+        </div>
+        <button class="btn btn-sm" onclick="clearRegimeOverride()" style="margin-top:18px;">Clear Override</button>
+      </div>
+      <div id="regimeOverrideActive" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(245,158,11,0.1);border-radius:var(--radius-sm);font-size:12px;color:var(--amber);"></div>
+    </div>
+
+    <!-- Sector Stances -->
+    <div class="card fade-in stagger-2" style="margin-top:12px;">
+      <div class="card-title" style="margin-bottom:12px;">Sector Stances</div>
+      <div id="sectorStancesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;"></div>
+    </div>
+
+    <!-- Opportunity Radar -->
+    <div class="card fade-in stagger-3" style="margin-top:12px;">
+      <div class="card-header">
+        <span class="card-title">🎯 Opportunity Radar</span>
+        <button class="btn btn-sm" onclick="enrichOpportunities()" title="Fetch fundamental data for dislocated tickers via Claude">🔍 Enrich Fundamentals</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Tickers showing value dislocation + quality + bottom signals. Higher score = stronger opportunity.</div>
+      <div id="opportunityRadar"></div>
+    </div>
+
+    <!-- Scenario Engine -->
+    <div class="card fade-in stagger-3" style="margin-top:12px;">
+      <div class="card-header">
+        <span class="card-title">💭 AI Scenario Engine</span>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <textarea class="form-input" id="scenarioInput" rows="3" placeholder="Describe a scenario: e.g. 'US initiates military action against Iran within 2 weeks' or 'Fed announces emergency 50bp rate cut' or 'AI bubble bursts — major tech earnings miss across the board'" style="font-size:13px;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-sm btn-primary" onclick="evaluateScenario()" id="scenarioBtn">⚡ Evaluate Scenario</button>
+        <button class="btn btn-sm" onclick="applyScenarioResult()" id="applyScenarioBtn" style="display:none;">✓ Apply This Scenario</button>
+      </div>
+      <div id="scenarioResult" style="margin-top:12px;display:none;"></div>
+      <div id="scenarioHistory" style="margin-top:12px;"></div>
     </div>
   </div>
 </div>
@@ -2043,7 +2133,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.2.0</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.0</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2072,8 +2162,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.2.0';
-const APEX_BUILD = '2026-04-22-002';
+const APEX_VERSION = '3.3.0';
+const APEX_BUILD = '2026-04-23-001';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -6575,6 +6665,470 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
   });
   ro.observe(container);
 }
+
+// ═══ REGIME DETECTION ENGINE ═══
+function computeRegime() {
+  const positions = state.positions;
+  const prof = state.profile || getDefaultProfile();
+  const ad = state.analysisData || {};
+  
+  // Initialize regime state
+  if (!state.regime) state.regime = { override: 'auto', overrideReason: '', sectorStances: {}, scenarios: [], lastComputed: null };
+  
+  // ═══ SCORE FACTORS ═══
+  const factors = [];
+  
+  // 1. VIX level (from technicalData if fetched)
+  const vixData = state.technicalData['^VIX'] || state.technicalData['VIX'] || null;
+  let vixLevel = null, vixChange = null;
+  if (vixData?.bars?.length > 0) {
+    const lastVix = vixData.bars[vixData.bars.length - 1].close;
+    const prevVix = vixData.bars.length > 1 ? vixData.bars[vixData.bars.length - 2].close : lastVix;
+    vixLevel = lastVix;
+    vixChange = prevVix > 0 ? ((lastVix - prevVix) / prevVix * 100) : 0;
+    factors.push({ label: 'VIX Level', current: lastVix.toFixed(1), threshold: '> 25', triggered: lastVix > 25, points: lastVix > 30 ? 2 : lastVix > 25 ? 1 : 0 });
+    factors.push({ label: 'VIX 1-Month Change', current: (vixChange >= 0 ? '+' : '') + vixChange.toFixed(0) + '%', threshold: '> 30% spike', triggered: vixChange > 30, points: vixChange > 30 ? 1 : 0 });
+  } else {
+    factors.push({ label: 'VIX Level', current: 'No data', threshold: '> 25', triggered: false, points: 0, noData: true });
+    factors.push({ label: 'VIX 1-Month Change', current: 'No data', threshold: '> 30% spike', triggered: false, points: 0, noData: true });
+  }
+  
+  // 2. S&P 500 vs 200-day MA
+  const spData = state.technicalData['^GSPC'] || state.technicalData['SPY'] || state.technicalData['VOO'] || null;
+  if (spData?.bars?.length >= 20) {
+    const closes = spData.bars.map(b => b.close);
+    const ma20 = calcEMA(closes, 20); // 20-month EMA as proxy for 200-day MA
+    const lastClose = closes[closes.length - 1];
+    const lastMA = ma20[ma20.length - 1];
+    const pctFromMA = ((lastClose - lastMA) / lastMA * 100);
+    factors.push({ label: 'S&P 500 vs 20M EMA', current: (pctFromMA >= 0 ? '+' : '') + pctFromMA.toFixed(1) + '%', threshold: 'Below = stress', triggered: pctFromMA < 0, points: pctFromMA < -5 ? 2 : pctFromMA < 0 ? 1 : 0 });
+  } else {
+    factors.push({ label: 'S&P 500 vs 20M EMA', current: 'No data (fetch VOO)', threshold: 'Below = stress', triggered: false, points: 0, noData: true });
+  }
+  
+  // 3. Portfolio BX Consensus
+  const consensus = getBXConsensus();
+  if (consensus && consensus.total > 0) {
+    const bearPct = consensus.bearPct;
+    factors.push({ label: 'Portfolio BX Consensus', current: bearPct.toFixed(0) + '% negative', threshold: '> 60% negative', triggered: bearPct > 60, points: bearPct > 70 ? 2 : bearPct > 60 ? 1 : 0 });
+  } else {
+    factors.push({ label: 'Portfolio BX Consensus', current: 'No BX data', threshold: '> 60% negative', triggered: false, points: 0, noData: true });
+  }
+  
+  // 4. Sector Correlation
+  if (consensus && consensus.total > 3) {
+    const totalDirectional = consensus.bull + consensus.bear + consensus.fade + consensus.turn;
+    const dominant = Math.max(consensus.bull + consensus.fade, consensus.bear + consensus.turn);
+    const corrPct = totalDirectional > 0 ? (dominant / totalDirectional * 100) : 50;
+    factors.push({ label: 'Sector Correlation', current: corrPct.toFixed(0) + '% same direction', threshold: '> 80% = crisis', triggered: corrPct > 80, points: corrPct > 80 ? 1 : 0 });
+  } else {
+    factors.push({ label: 'Sector Correlation', current: 'Insufficient data', threshold: '> 80%', triggered: false, points: 0, noData: true });
+  }
+  
+  // 5. Macro Mood Score
+  const macroMood = ad.macro?.moodScore;
+  if (macroMood !== undefined && macroMood !== null) {
+    factors.push({ label: 'Macro Mood Score', current: macroMood.toString(), threshold: '< 35 = stress', triggered: macroMood < 35, points: macroMood < 25 ? 2 : macroMood < 35 ? 1 : 0 });
+  } else {
+    factors.push({ label: 'Macro Mood Score', current: 'Run analysis first', threshold: '< 35', triggered: false, points: 0, noData: true });
+  }
+  
+  // 6. User Override
+  const override = state.regime.override || 'auto';
+  if (override !== 'auto') {
+    factors.push({ label: 'User Override', current: override.toUpperCase(), threshold: 'Manual', triggered: true, points: override === 'crisis' ? 99 : override === 'volatile' ? 50 : -99 });
+  } else {
+    factors.push({ label: 'User Override', current: 'None (auto)', threshold: 'Manual', triggered: false, points: 0 });
+  }
+  
+  // Compute total score
+  const totalScore = factors.reduce((s, f) => s + f.points, 0);
+  
+  // Determine regime
+  let regime, regimeColor, regimeDesc, regimeAdvice;
+  if (override === 'crisis' || totalScore >= 4) {
+    regime = 'CRISIS'; regimeColor = 'var(--red)';
+    regimeDesc = 'Technicals are unreliable. Switch to fundamentals-first, quality-focused approach.';
+    regimeAdvice = 'Strategy: DCA into quality names showing value dislocation. Wider stop-losses. Hold cash reserve. Check Opportunity Radar for crisis buys.';
+  } else if (override === 'volatile' || totalScore >= 2) {
+    regime = 'VOLATILE'; regimeColor = 'var(--amber)';
+    regimeDesc = 'Mixed signals. Require fundamental confirmation before acting on technicals.';
+    regimeAdvice = 'Strategy: Tighten stops. Reduce new position sizes. Sell signals are more trustworthy than buy signals. Consider raising cash.';
+  } else if (override === 'trending') {
+    regime = 'TRENDING'; regimeColor = 'var(--green)';
+    regimeDesc = 'Technical signals are reliable. Normal trading rules apply.';
+    regimeAdvice = 'Strategy: Follow BX Trender signals. Buy on momentum reversal, sell on trend breakdown. Full position sizing.';
+  } else {
+    regime = 'TRENDING'; regimeColor = 'var(--green)';
+    regimeDesc = 'Technical signals are reliable. Normal trading rules apply.';
+    regimeAdvice = 'Strategy: Follow BX Trender signals. Normal position sizing and deployment levels.';
+  }
+  
+  state.regime.current = regime;
+  state.regime.score = totalScore;
+  state.regime.factors = factors;
+  state.regime.lastComputed = new Date().toISOString();
+  
+  // ═══ COMPUTE OPPORTUNITY SCORES ═══
+  const opportunities = computeOpportunities();
+  state.regime.opportunities = opportunities;
+  
+  saveState();
+  renderRegimePage(regime, regimeColor, regimeDesc, regimeAdvice, totalScore, factors, opportunities);
+}
+
+function computeOpportunities() {
+  const allTickers = [
+    ...state.positions.map(p => ({ ticker: p.symbol, source: 'HELD', tag: p.tag, sector: p.sector, value: p.value })),
+    ...state.watchlist.map(w => ({ ticker: w.ticker, source: 'WATCH', tag: w.tag || 'core', sector: w.evalData?.sector || SECTOR_MAP[w.ticker] || 'Other', value: 0 })),
+    ...((state.analysisData?.newIdeas || []).map(i => ({ ticker: i.ticker, source: 'IDEA', tag: (i.tag || 'core').toLowerCase(), sector: i.sector || 'Other', value: 0 })))
+  ];
+  // Deduplicate
+  const seen = new Set();
+  const unique = allTickers.filter(t => { const k = t.ticker.toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  
+  return unique.map(t => {
+    const td = state.technicalData[t.ticker.toUpperCase()];
+    const bars = td?.bars || [];
+    const bx = td?.computed?.short || [];
+    const signals = td?.computed?.signals || [];
+    const verdict = (state.analysisData?.verdicts || []).find(v => v.ticker?.toUpperCase() === t.ticker.toUpperCase());
+    
+    let dislocationScore = 0, qualityScore = 0, bottomScore = 0;
+    let high52 = 0, pctFromHigh = 0;
+    
+    // === VALUE DISLOCATION ===
+    if (bars.length > 0) {
+      high52 = Math.max(...bars.slice(-12).map(b => b.high));
+      const lastClose = bars[bars.length - 1].close;
+      pctFromHigh = high52 > 0 ? ((lastClose - high52) / high52 * 100) : 0;
+      if (pctFromHigh < -30) dislocationScore += 2;
+      else if (pctFromHigh < -20) dislocationScore += 1;
+    }
+    // Fundamental data from analysis (if available)
+    if (verdict) {
+      const vs = (verdict.valueSummary || '').toLowerCase();
+      if (vs.includes('undervalue') || vs.includes('cheap') || vs.includes('discount')) dislocationScore += 1;
+      if (vs.includes('fcf') || vs.includes('free cash') || vs.includes('cash generat')) dislocationScore += 1;
+      if (vs.includes('revenue growth') || vs.includes('growing revenue')) dislocationScore += 1;
+    }
+    
+    // === QUALITY FILTER ===
+    if (t.tag === 'core') qualityScore += 1;
+    if (verdict && verdict.verdict !== 'EXIT') qualityScore += 1;
+    if (t.source === 'HELD') qualityScore += 1; // Already vetted
+    
+    // === BOTTOM SIGNAL ===
+    if (bx.length >= 2) {
+      const last = bx[bx.length - 1];
+      const prev = bx[bx.length - 2];
+      if (last.state === 'TURN') bottomScore += 2; // Negative but rising
+      else if (last.state === 'BEAR' && last.value > prev.value) bottomScore += 1; // Still bear but decelerating
+      // Check for BUY signal in recent bars
+      const recentBuy = signals.filter(s => s.type === 'BUY' && s.bar >= bx.length - 3);
+      if (recentBuy.length > 0) bottomScore += 1;
+    }
+    
+    const totalScore = dislocationScore + qualityScore + bottomScore;
+    const maxScore = 14;
+    let status = totalScore >= 10 ? 'STRONG_BUY' : totalScore >= 7 ? 'ACTIONABLE' : totalScore >= 4 ? 'WATCH' : 'NONE';
+    
+    return {
+      ticker: t.ticker, source: t.source, tag: t.tag, sector: t.sector,
+      dislocationScore, qualityScore, bottomScore, totalScore, maxScore, status,
+      pctFromHigh, bxState: bx.length > 0 ? bx[bx.length - 1].state : 'none',
+      verdict: verdict?.verdict || '—'
+    };
+  }).filter(o => o.totalScore >= 3).sort((a, b) => b.totalScore - a.totalScore);
+}
+
+function renderRegimePage(regime, color, desc, advice, score, factors, opportunities) {
+  // Banner
+  const banner = document.getElementById('regimeBanner');
+  banner.style.borderLeftColor = color;
+  document.getElementById('regimeLabel').textContent = regime;
+  document.getElementById('regimeLabel').style.color = color;
+  document.getElementById('regimeDescription').textContent = desc;
+  document.getElementById('regimeAdvice').textContent = advice;
+  document.getElementById('regimeTimestamp').textContent = 'Score: ' + score + ' | ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  
+  // Score breakdown table
+  document.getElementById('regimeScoreTable').innerHTML = `<table style="width:100%;"><thead><tr>
+    <th>Factor</th><th>Current</th><th>Threshold</th><th>Status</th><th class="num">Pts</th>
+  </tr></thead><tbody>` + factors.map(f => {
+    const statusColor = f.noData ? 'var(--text-tertiary)' : f.triggered ? 'var(--red)' : 'var(--green)';
+    const statusIcon = f.noData ? '○' : f.triggered ? '⚠' : '✓';
+    return `<tr>
+      <td style="font-weight:600;">${f.label}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;">${f.current}</td>
+      <td style="color:var(--text-tertiary);">${f.threshold}</td>
+      <td style="color:${statusColor};">${statusIcon} ${f.noData ? 'No data' : f.triggered ? 'Triggered' : 'Normal'}</td>
+      <td class="num" style="font-weight:700;color:${f.points > 0 ? 'var(--red)' : 'var(--green)'};">${f.points}</td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
+  
+  document.getElementById('regimeTotalScore').innerHTML = `Total: <span style="color:${color};font-weight:800;">${score}</span> → <span style="color:${color};">${regime}</span> <span style="color:var(--text-tertiary);">(0-1: Trending, 2-3: Volatile, 4+: Crisis)</span>`;
+  
+  // Override state
+  const ovr = state.regime?.override || 'auto';
+  document.getElementById('regimeOverrideSelect').value = ovr;
+  document.getElementById('regimeOverrideReason').value = state.regime?.overrideReason || '';
+  const ovrActive = document.getElementById('regimeOverrideActive');
+  if (ovr !== 'auto') {
+    ovrActive.style.display = 'block';
+    ovrActive.textContent = `⚠ Override active: ${ovr.toUpperCase()}${state.regime.overrideReason ? ' — ' + state.regime.overrideReason : ''}`;
+  } else { ovrActive.style.display = 'none'; }
+  
+  // Sector stances
+  renderSectorStances();
+  
+  // Opportunity radar
+  renderOpportunityRadar(opportunities);
+  
+  // Scenario history
+  renderScenarioHistory();
+}
+
+function renderSectorStances() {
+  const grid = document.getElementById('sectorStancesGrid');
+  const focusSectors = (state.profile?.focusSectors || FOCUS_SECTORS_DEFAULT);
+  const stances = state.regime?.sectorStances || {};
+  
+  grid.innerHTML = focusSectors.map(sector => {
+    // Auto-compute stance from BX data
+    const sectorPositions = state.positions.filter(p => p.sector === sector);
+    let autoStance = 'NEUTRAL';
+    if (sectorPositions.length > 0) {
+      const bullCount = sectorPositions.filter(p => { const b = getBXSignalBadge(p.symbol); return b.state === 'BULL' || b.state === 'BUY'; }).length;
+      const bearCount = sectorPositions.filter(p => { const b = getBXSignalBadge(p.symbol); return b.state === 'BEAR' || b.state === 'SELL'; }).length;
+      if (bullCount > bearCount) autoStance = 'BULL';
+      else if (bearCount > bullCount) autoStance = 'BEAR';
+    }
+    const currentStance = stances[sector] || 'auto';
+    const displayStance = currentStance === 'auto' ? autoStance : currentStance.toUpperCase();
+    const stColor = displayStance === 'BULL' ? 'var(--green)' : displayStance === 'BEAR' ? 'var(--red)' : 'var(--amber)';
+    
+    return `<div style="background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:10px;border-left:3px solid ${stColor};">
+      <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">${sector}</div>
+      <select class="form-select" style="font-size:11px;padding:4px 8px;" onchange="setSectorStance('${sector}',this.value)">
+        <option value="auto" ${currentStance === 'auto' ? 'selected' : ''}>Auto: ${autoStance}</option>
+        <option value="bull" ${currentStance === 'bull' ? 'selected' : ''}>BULL ↑</option>
+        <option value="neutral" ${currentStance === 'neutral' ? 'selected' : ''}>NEUTRAL →</option>
+        <option value="bear" ${currentStance === 'bear' ? 'selected' : ''}>BEAR ↓</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function setSectorStance(sector, value) {
+  if (!state.regime) state.regime = {};
+  if (!state.regime.sectorStances) state.regime.sectorStances = {};
+  state.regime.sectorStances[sector] = value;
+  saveState();
+}
+
+function applyRegimeOverride() {
+  if (!state.regime) state.regime = {};
+  state.regime.override = document.getElementById('regimeOverrideSelect').value;
+  state.regime.overrideReason = document.getElementById('regimeOverrideReason').value;
+  saveState();
+  computeRegime();
+}
+
+function clearRegimeOverride() {
+  if (!state.regime) state.regime = {};
+  state.regime.override = 'auto';
+  state.regime.overrideReason = '';
+  document.getElementById('regimeOverrideSelect').value = 'auto';
+  document.getElementById('regimeOverrideReason').value = '';
+  saveState();
+  computeRegime();
+}
+
+function renderOpportunityRadar(opportunities) {
+  const el = document.getElementById('opportunityRadar');
+  if (!opportunities || opportunities.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:16px;">No significant opportunities detected. Run BX Trender refresh and weekly analysis to populate data.</div>';
+    return;
+  }
+  
+  el.innerHTML = `<table style="width:100%;"><thead><tr>
+    <th>Ticker</th><th>Source</th><th>Sector</th><th>BX</th><th>From High</th>
+    <th class="num">Value</th><th class="num">Quality</th><th class="num">Bottom</th><th class="num">Total</th><th>Status</th>
+  </tr></thead><tbody>` + opportunities.map(o => {
+    const statusBadge = o.status === 'STRONG_BUY' ? '<span class="badge badge-buy" style="background:rgba(34,197,94,0.25);">★ STRONG BUY</span>' :
+      o.status === 'ACTIONABLE' ? '<span class="badge badge-buy">ACTIONABLE</span>' :
+      '<span class="badge badge-hold">WATCH</span>';
+    const srcBadge = o.source === 'HELD' ? '<span class="badge badge-core">HELD</span>' :
+      o.source === 'WATCH' ? '<span class="badge badge-hold">WATCH</span>' :
+      '<span class="badge badge-tactical">IDEA</span>';
+    const bxBadge = getBXSignalBadge(o.ticker).html;
+    return `<tr>
+      <td style="font-weight:700;">${o.ticker}</td>
+      <td>${srcBadge}</td>
+      <td style="font-size:11px;">${o.sector}</td>
+      <td>${bxBadge}</td>
+      <td style="color:${o.pctFromHigh < -20 ? 'var(--red)' : 'var(--text-secondary)'};">${o.pctFromHigh.toFixed(0)}%</td>
+      <td class="num" style="color:${o.dislocationScore >= 3 ? 'var(--green)' : 'var(--text-secondary)'};">${o.dislocationScore}/6</td>
+      <td class="num">${o.qualityScore}/3</td>
+      <td class="num" style="color:${o.bottomScore >= 2 ? 'var(--green)' : 'var(--text-secondary)'};">${o.bottomScore}/5</td>
+      <td class="num" style="font-weight:700;color:${o.totalScore >= 10 ? 'var(--green)' : o.totalScore >= 7 ? 'var(--blue)' : 'var(--text-secondary)'};">${o.totalScore}/14</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
+}
+
+// ═══ SCENARIO ENGINE ═══
+async function evaluateScenario() {
+  const text = document.getElementById('scenarioInput').value.trim();
+  if (!text) { toast('Describe a scenario first', 'error'); return; }
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings', 'error'); return; }
+  
+  const btn = document.getElementById('scenarioBtn');
+  btn.disabled = true; btn.textContent = '⏳ Evaluating...';
+  
+  const prof = state.profile || getDefaultProfile();
+  const total = getTotalValue();
+  const positionsSummary = state.positions.map(p => `${p.symbol} (${p.sector}, ${p.tag}, ${(p.value/total*100).toFixed(1)}%)`).join(', ');
+  const currentRegime = state.regime?.current || 'TRENDING';
+  const opportunities = (state.regime?.opportunities || []).filter(o => o.totalScore >= 5).map(o => `${o.ticker} (opp:${o.totalScore}/14)`).join(', ');
+  
+  const prompt = `You are the APEX Analyst Panel evaluating a hypothetical scenario for a portfolio investor.
+
+CURRENT STATE:
+- Regime: ${currentRegime} (score: ${state.regime?.score || 0})
+- Portfolio: $${formatNum(total)}, ${state.positions.length} positions
+- Holdings: ${positionsSummary}
+- Focus sectors: ${prof.focusSectors.join(', ')}
+- Current opportunities: ${opportunities || 'none flagged'}
+
+SCENARIO TO EVALUATE:
+"${text}"
+
+Analyze this scenario and respond with structured sections:
+
+## REGIME IMPACT
+Would this scenario change the regime? From ${currentRegime} to what? Why? (1-2 sentences)
+
+## SECTOR IMPACT TABLE
+| Sector | Impact | Reason |
+For each of these sectors: ${prof.focusSectors.join(', ')}
+Impact must be: STRONG TAILWIND / TAILWIND / NEUTRAL / HEADWIND / STRONG HEADWIND
+
+## PORTFOLIO WINNERS & LOSERS
+| Ticker | Impact | Magnitude | Reason |
+Review each position. Impact: BENEFIT / NEUTRAL / SUFFER. Magnitude: High/Medium/Low.
+
+## RECOMMENDED STRATEGY SHIFT
+Specific actionable changes: positions to trim/add, deployment level, cash stance. Be concrete.
+
+## CRISIS OPPORTUNITIES
+If this scenario creates selloffs, which quality stocks (in portfolio, watchlist, or new) would become value opportunities? What price levels would represent genuine value entry points?
+
+## SUGGESTED OVERRIDE
+Should the user override the regime? To what? For how long?
+
+Use web search if needed for current context.`;
+
+  try {
+    const result = await callClaude(key, state.settings.model, [{role:'user', content: prompt}], true, 4000);
+    const html = result.text
+      .replace(/^##\s*(.+)/gm, '<h3 style="color:var(--text-primary);margin:16px 0 8px;">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    
+    document.getElementById('scenarioResult').style.display = 'block';
+    document.getElementById('scenarioResult').innerHTML = `
+      <div style="background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:16px;border-left:3px solid var(--purple);">
+        <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:8px;">SCENARIO: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">${html}</div>
+      </div>`;
+    document.getElementById('applyScenarioBtn').style.display = 'inline-block';
+    
+    // Save to history
+    if (!state.regime.scenarios) state.regime.scenarios = [];
+    state.regime.scenarios.unshift({ text, result: result.text, date: new Date().toISOString() });
+    if (state.regime.scenarios.length > 10) state.regime.scenarios = state.regime.scenarios.slice(0, 10);
+    state.regime._lastScenarioResult = result.text;
+    saveState();
+    renderScenarioHistory();
+    
+  } catch(e) {
+    toast('Scenario evaluation failed: ' + e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = '⚡ Evaluate Scenario';
+}
+
+function runScenario() { document.getElementById('scenarioInput').focus(); }
+
+function applyScenarioResult() {
+  // Parse the scenario result for regime suggestion and apply
+  const result = state.regime?._lastScenarioResult || '';
+  const lower = result.toLowerCase();
+  if (lower.includes('crisis')) {
+    state.regime.override = 'crisis';
+  } else if (lower.includes('volatile')) {
+    state.regime.override = 'volatile';
+  }
+  state.regime.overrideReason = 'Applied from scenario: ' + (state.regime.scenarios?.[0]?.text || '').substring(0, 80);
+  saveState();
+  computeRegime();
+  toast('Scenario applied — regime override set');
+}
+
+function renderScenarioHistory() {
+  const el = document.getElementById('scenarioHistory');
+  const scenarios = state.regime?.scenarios || [];
+  if (scenarios.length === 0) { el.innerHTML = ''; return; }
+  
+  el.innerHTML = `<div style="font-size:11px;color:var(--text-tertiary);margin-bottom:6px;">Past Scenarios (${scenarios.length})</div>` +
+    scenarios.slice(0, 5).map((s, i) => `
+      <div style="background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;cursor:pointer;font-size:11px;" onclick="this.querySelector('.sc-detail').style.display=this.querySelector('.sc-detail').style.display==='none'?'block':'none'">
+        <div style="display:flex;justify-content:space-between;color:var(--text-secondary);">
+          <span>"${s.text.substring(0, 60)}${s.text.length > 60 ? '...' : ''}"</span>
+          <span style="color:var(--text-tertiary);">${new Date(s.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}</span>
+        </div>
+        <div class="sc-detail" style="display:none;margin-top:8px;font-size:12px;color:var(--text-secondary);max-height:200px;overflow:auto;">${s.result.substring(0, 500)}...</div>
+      </div>
+    `).join('');
+}
+
+async function enrichOpportunities() {
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings', 'error'); return; }
+  const opps = (state.regime?.opportunities || []).filter(o => o.dislocationScore >= 1);
+  if (opps.length === 0) { toast('No dislocated tickers to enrich', 'error'); return; }
+  
+  const tickers = opps.slice(0, 10).map(o => o.ticker).join(', ');
+  toast('Fetching fundamentals for ' + opps.length + ' tickers...');
+  
+  try {
+    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+      `Look up current fundamental data for these stocks: ${tickers}. For each, provide forward P/E, sector average P/E, FCF yield %, and whether revenue is growing. Return ONLY JSON: [{"ticker":"XYZ","forwardPE":25,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]`
+    }], true, 2000);
+    
+    let parsed;
+    try {
+      let jsonStr = result.text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim();
+      const m = jsonStr.match(/\[[\s\S]*\]/);
+      parsed = JSON.parse(m ? m[0] : jsonStr);
+    } catch(e) { throw new Error('Failed to parse fundamentals'); }
+    
+    // Store enrichment data
+    if (!state.regime.fundamentals) state.regime.fundamentals = {};
+    parsed.forEach(f => { state.regime.fundamentals[f.ticker.toUpperCase()] = f; });
+    saveState();
+    computeRegime(); // Recompute with enriched data
+    toast(`Enriched ${parsed.length} tickers with fundamental data`);
+  } catch(e) {
+    toast('Enrichment failed: ' + e.message, 'error');
+  }
+}
+
+// Add regime to refreshAll
+function refreshRegime() { if (state.regime?.lastComputed) computeRegime(); }
 
 // ═══ SERVICE WORKER REGISTRATION (for PWA) ═══
 if ('serviceWorker' in navigator) {
