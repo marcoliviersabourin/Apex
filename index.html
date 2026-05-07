@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.3.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.3.1 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2133,7 +2133,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.0</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.1</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2162,8 +2162,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.3.0';
-const APEX_BUILD = '2026-04-23-001';
+const APEX_VERSION = '3.3.1';
+const APEX_BUILD = '2026-04-23-002';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -2241,6 +2241,7 @@ function loadState() {
       state.cashBalances = parsed.cashBalances || { USD:0, CAD:0, EUR:0 };
       state.settings = { ...state.settings, ...(parsed.settings || {}) };
       state.technicalData = parsed.technicalData || {};
+      state.regime = parsed.regime || null;
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
@@ -2256,18 +2257,66 @@ function loadState() {
 
 function saveState() {
   try {
+    // Prune reports: strip raw chunks from older reports (keep only 2 newest with full data)
+    const prunedReports = (state.reports || []).map((r, i) => {
+      if (i >= 2) {
+        const { _rawChunkA, _rawChunkB, _rawChunkC, ...lean } = r;
+        return lean;
+      }
+      return r;
+    });
+    
+    // Prune technicalData: store only last 36 bars (not 120 warmup bars) + computed signals
+    const prunedTech = {};
+    Object.entries(state.technicalData || {}).forEach(([key, td]) => {
+      prunedTech[key] = {
+        lastFetched: td.lastFetched,
+        timeframe: td.timeframe,
+        bars: (td.bars || []).slice(-36), // Keep 36 for display, discard warmup
+        computed: td.computed // Signals are small, keep fully
+      };
+    });
+    
     localStorage.setItem('apex_state', JSON.stringify({
       positions: state.positions,
-      reports: state.reports,
+      reports: prunedReports,
       analysisData: state.analysisData,
       watchlist: state.watchlist,
       cashBalances: state.cashBalances,
-      technicalData: state.technicalData,
+      technicalData: prunedTech,
+      regime: state.regime,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
     document.getElementById('lastUpdated').textContent = 'Saved: ' + new Date().toLocaleTimeString();
-  } catch(e) { console.error('Save error:', e); toast('Storage error — data may be too large', 'error'); }
+  } catch(e) {
+    console.error('Save error:', e);
+    // Emergency pruning: drop technical bars entirely, keep only computed signals
+    if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
+      console.warn('APEX: Storage full — emergency pruning');
+      const emergencyTech = {};
+      Object.entries(state.technicalData || {}).forEach(([key, td]) => {
+        emergencyTech[key] = { lastFetched: td.lastFetched, timeframe: td.timeframe, bars: (td.bars || []).slice(-12), computed: td.computed };
+      });
+      const emergencyReports = (state.reports || []).slice(0, 6).map(r => {
+        const { _rawChunkA, _rawChunkB, _rawChunkC, ...lean } = r;
+        return lean;
+      });
+      try {
+        localStorage.setItem('apex_state', JSON.stringify({
+          positions: state.positions, reports: emergencyReports,
+          analysisData: state.analysisData, watchlist: state.watchlist,
+          cashBalances: state.cashBalances, technicalData: emergencyTech,
+          regime: state.regime, settings: state.settings
+        }));
+        toast('Storage was full — pruned old data to fit', 'error');
+      } catch(e2) {
+        toast('Storage critically full — clear old reports in Settings', 'error');
+      }
+    } else {
+      toast('Storage error: ' + e.message, 'error');
+    }
+  }
 }
 
 function getDefaultProfile() {
