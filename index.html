@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.3.2 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.3.3 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2166,7 +2166,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.2</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.3</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2195,8 +2195,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.3.2';
-const APEX_BUILD = '2026-04-23-003';
+const APEX_VERSION = '3.3.3';
+const APEX_BUILD = '2026-04-23-004';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -7224,25 +7224,49 @@ async function enrichOpportunities() {
   if (opps.length === 0) { toast('No dislocated tickers to enrich', 'error'); return; }
   
   const tickers = opps.slice(0, 10).map(o => o.ticker).join(', ');
-  toast('Fetching fundamentals for ' + opps.length + ' tickers...');
+  toast('Fetching fundamentals for ' + opps.slice(0, 10).length + ' tickers...');
   
   try {
-    const result = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
-      `Look up current fundamental data for these stocks: ${tickers}. For each, provide forward P/E, sector average P/E, FCF yield %, and whether revenue is growing. Return ONLY JSON: [{"ticker":"XYZ","forwardPE":25,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]`
-    }], true, 2000);
+    const result = await callClaude(key, state.settings.model, [{role:'user', content:
+      `Look up current fundamental data for these stocks using web search: ${tickers}
+
+For each stock, find: forward P/E ratio, the sector average P/E, FCF yield %, and whether revenue is growing year-over-year.
+
+Respond with ONLY a raw JSON array. No markdown, no explanation, no preamble. Start with [ and end with ].
+
+Example format:
+[{"ticker":"AAPL","forwardPE":28,"sectorPE":32,"fcfYield":3.8,"revenueGrowing":true},{"ticker":"JPM","forwardPE":12,"sectorPE":14,"fcfYield":6.2,"revenueGrowing":true}]
+
+If you cannot find exact data for a ticker, use your best estimate. Include ALL tickers listed above.`
+    }], true, 3000);
     
-    let parsed;
-    try {
-      let jsonStr = result.text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim();
-      const m = jsonStr.match(/\[[\s\S]*\]/);
-      parsed = JSON.parse(m ? m[0] : jsonStr);
-    } catch(e) { throw new Error('Failed to parse fundamentals'); }
+    console.log('APEX: Enrichment raw response:', result.text.substring(0, 500));
     
-    // Store enrichment data
+    let parsed = parseHaikuJSON(result.text);
+    if (!parsed) {
+      // Try extracting array specifically
+      const arrMatch = result.text.match(/\[[\s\S]*\]/);
+      if (arrMatch) {
+        try { parsed = JSON.parse(arrMatch[0].replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
+      }
+    }
+    // If parsed is an object with a key containing the array, extract it
+    if (parsed && !Array.isArray(parsed)) {
+      const vals = Object.values(parsed);
+      const arr = vals.find(v => Array.isArray(v));
+      if (arr) parsed = arr;
+    }
+    
+    if (!parsed || !Array.isArray(parsed)) {
+      toast('Enrichment: could not parse response — check debug', 'error');
+      state._lastEnrichRaw = result.text;
+      return;
+    }
+    
     if (!state.regime.fundamentals) state.regime.fundamentals = {};
-    parsed.forEach(f => { state.regime.fundamentals[f.ticker.toUpperCase()] = f; });
+    parsed.forEach(f => { if (f.ticker) state.regime.fundamentals[f.ticker.toUpperCase()] = f; });
     saveState();
-    computeRegime(); // Recompute with enriched data
+    computeRegime();
     toast(`Enriched ${parsed.length} tickers with fundamental data`);
   } catch(e) {
     toast('Enrichment failed: ' + e.message, 'error');
