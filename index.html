@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.3.1 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.3.2 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1163,7 +1163,40 @@ input[type="range"]::-webkit-slider-thumb {
         <span class="card-title">🎯 Opportunity Radar</span>
         <button class="btn btn-sm" onclick="enrichOpportunities()" title="Fetch fundamental data for dislocated tickers via Claude">🔍 Enrich Fundamentals</button>
       </div>
-      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Tickers showing value dislocation + quality + bottom signals. Higher score = stronger opportunity.</div>
+      
+      <!-- Guidance -->
+      <div style="background:var(--bg-tertiary);border-radius:var(--radius-sm);padding:12px;margin:8px 0 12px;font-size:12px;color:var(--text-secondary);line-height:1.6;">
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">How to read this table</div>
+        Scans all tickers (holdings + watchlist + ideas) for potential opportunities using three dimensions: <strong>Value</strong> (is it cheap?), <strong>Quality</strong> (does it deserve to recover?), and <strong>Bottom Signal</strong> (is the reversal starting?). Works in ALL regimes — not just crisis. A dislocated quality stock in a trending market is an opportunity too.
+        <div style="margin-top:8px;font-weight:700;color:var(--text-primary);">How to act by regime:</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+          <span><span style="color:var(--green);font-weight:700;">TRENDING:</span> Trust BX signals. TURN + high value = buy with normal sizing.</span>
+          <span><span style="color:var(--amber);font-weight:700;">VOLATILE:</span> Require confirmation. Wait for fundamental enrichment before acting.</span>
+          <span><span style="color:var(--red);font-weight:700;">CRISIS:</span> DCA approach. Don't go all-in on first signal. Scale in over 2-3 months.</span>
+        </div>
+      </div>
+      
+      <!-- Legend -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;padding:8px 0;border-bottom:1px solid var(--border-subtle);">
+        <div style="color:var(--text-tertiary);font-weight:700;">SCORES:</div>
+        <div><strong>Value (0-6):</strong> Price vs high, forward P/E vs sector, FCF yield, revenue growth</div>
+        <div><strong>Quality (0-3):</strong> Core tag, analyst not EXIT, already vetted</div>
+        <div><strong>Bottom (0-5):</strong> BX TURN signal, recent BUY, decelerating decline</div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;">
+        <div style="color:var(--text-tertiary);font-weight:700;">STATUS:</div>
+        <div><span class="badge badge-buy" style="background:rgba(34,197,94,0.25);font-size:9px;">★ STRONG BUY</span> Score ≥ 10 — deeply undervalued + bottom forming</div>
+        <div><span class="badge badge-buy" style="font-size:9px;">ACTIONABLE</span> Score 7-9 — good setup, consider entering</div>
+        <div><span class="badge badge-hold" style="font-size:9px;">WATCH</span> Score 4-6 — potential, wait for more confirmation</div>
+        <div><span style="font-size:9px;color:var(--text-tertiary);">Below 4 = not shown</span></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;">
+        <div style="color:var(--text-tertiary);font-weight:700;">SOURCES:</div>
+        <div><span class="badge badge-core" style="font-size:9px;">HELD</span> In your portfolio</div>
+        <div><span class="badge badge-hold" style="font-size:9px;">WATCH</span> On your watchlist</div>
+        <div><span class="badge badge-tactical" style="font-size:9px;">IDEA</span> From weekly analysis</div>
+      </div>
+      
       <div id="opportunityRadar"></div>
     </div>
 
@@ -2133,7 +2166,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.1</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.2</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2162,8 +2195,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.3.1';
-const APEX_BUILD = '2026-04-23-002';
+const APEX_VERSION = '3.3.2';
+const APEX_BUILD = '2026-04-23-003';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -6716,13 +6749,36 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
 }
 
 // ═══ REGIME DETECTION ENGINE ═══
-function computeRegime() {
+async function computeRegime() {
   const positions = state.positions;
   const prof = state.profile || getDefaultProfile();
   const ad = state.analysisData || {};
   
-  // Initialize regime state
   if (!state.regime) state.regime = { override: 'auto', overrideReason: '', sectorStances: {}, scenarios: [], lastComputed: null };
+  
+  // Auto-fetch VIX proxy if missing (AV doesn't support ^VIX directly)
+  const avKey = state.settings.avKey;
+  const vixCached = state.technicalData['^VIX'];
+  const vixStale = !vixCached?.bars?.length || ((Date.now() - new Date(vixCached?.lastFetched || 0).getTime()) / 86400000 > 7);
+  if (avKey && vixStale) {
+    toast('Fetching VIX proxy...');
+    try {
+      const vixBars = await fetchOHLC('VIXY', 'monthly');
+      if (vixBars && vixBars !== 'RATE_LIMITED' && vixBars.length > 0) {
+        state.technicalData['^VIX'] = { lastFetched: new Date().toISOString(), timeframe: 'monthly', bars: vixBars, computed: { short:[], long:[], signals:[] } };
+      }
+    } catch(e) { console.warn('APEX: VIX proxy fetch failed:', e); }
+    // Fallback: compute realized volatility from VOO
+    if (!state.technicalData['^VIX']?.bars?.length) {
+      const vooData = state.technicalData['VOO'];
+      if (vooData?.bars?.length >= 3) {
+        const rets = vooData.bars.slice(-12).map((b,i,a) => i > 0 ? Math.abs((b.close - a[i-1].close)/a[i-1].close*100) : 0).filter((_,i) => i > 0);
+        const synthVix = (rets.reduce((s,r) => s+r, 0) / rets.length) * 5;
+        state.technicalData['^VIX'] = { lastFetched: new Date().toISOString(), timeframe: 'monthly', bars: [{ date: new Date().toISOString().substring(0,10), close: synthVix, open: synthVix, high: synthVix, low: synthVix }], computed: { short:[], long:[], signals:[] }, synthetic: true };
+        console.log('APEX: Synthetic VIX from VOO:', synthVix.toFixed(1));
+      }
+    }
+  }
   
   // ═══ SCORE FACTORS ═══
   const factors = [];
@@ -6742,13 +6798,14 @@ function computeRegime() {
     factors.push({ label: 'VIX 1-Month Change', current: 'No data', threshold: '> 30% spike', triggered: false, points: 0, noData: true });
   }
   
-  // 2. S&P 500 vs 200-day MA
-  const spData = state.technicalData['^GSPC'] || state.technicalData['SPY'] || state.technicalData['VOO'] || null;
-  if (spData?.bars?.length >= 20) {
+  // 2. S&P 500 vs 200-day MA (use VOO as proxy, or any available)
+  const spData = state.technicalData['VOO'] || state.technicalData['^GSPC'] || state.technicalData['SPY'] || null;
+  if (spData?.bars?.length >= 3) {
     const closes = spData.bars.map(b => b.close);
-    const ma20 = calcEMA(closes, 20); // 20-month EMA as proxy for 200-day MA
+    const maPeriod = Math.min(20, closes.length - 1);
+    const ma = calcEMA(closes, maPeriod); // 20-month EMA as proxy for 200-day MA
     const lastClose = closes[closes.length - 1];
-    const lastMA = ma20[ma20.length - 1];
+    const lastMA = ma[ma.length - 1];
     const pctFromMA = ((lastClose - lastMA) / lastMA * 100);
     factors.push({ label: 'S&P 500 vs 20M EMA', current: (pctFromMA >= 0 ? '+' : '') + pctFromMA.toFixed(1) + '%', threshold: 'Below = stress', triggered: pctFromMA < 0, points: pctFromMA < -5 ? 2 : pctFromMA < 0 ? 1 : 0 });
   } else {
@@ -6829,12 +6886,12 @@ function computeRegime() {
 function computeOpportunities() {
   const allTickers = [
     ...state.positions.map(p => ({ ticker: p.symbol, source: 'HELD', tag: p.tag, sector: p.sector, value: p.value })),
-    ...state.watchlist.map(w => ({ ticker: w.ticker, source: 'WATCH', tag: w.tag || 'core', sector: w.evalData?.sector || SECTOR_MAP[w.ticker] || 'Other', value: 0 })),
-    ...((state.analysisData?.newIdeas || []).map(i => ({ ticker: i.ticker, source: 'IDEA', tag: (i.tag || 'core').toLowerCase(), sector: i.sector || 'Other', value: 0 })))
+    ...state.watchlist.map(w => ({ ticker: w.ticker, source: 'WATCH', tag: w.tag || 'core', sector: w.evalData?.sector || SECTOR_MAP[w.ticker] || 'Other', value: 0, evalVerdict: w.evalData?.verdict })),
+    ...((state.analysisData?.newIdeas || []).map(i => ({ ticker: i.ticker, source: 'IDEA', tag: (i.tag||'core').toLowerCase(), sector: i.sector||'Other', value: 0, suggestedWeight: i.suggestedWeight, leadAnalyst: i.leadAnalyst })))
   ];
-  // Deduplicate
   const seen = new Set();
   const unique = allTickers.filter(t => { const k = t.ticker.toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  const enriched = state.regime?.fundamentals || {};
   
   return unique.map(t => {
     const td = state.technicalData[t.ticker.toUpperCase()];
@@ -6842,40 +6899,56 @@ function computeOpportunities() {
     const bx = td?.computed?.short || [];
     const signals = td?.computed?.signals || [];
     const verdict = (state.analysisData?.verdicts || []).find(v => v.ticker?.toUpperCase() === t.ticker.toUpperCase());
+    const idea = (state.analysisData?.newIdeas || []).find(i => i.ticker?.toUpperCase() === t.ticker.toUpperCase());
+    const fundData = enriched[t.ticker.toUpperCase()];
+    const hasBX = bx.length > 0;
     
     let dislocationScore = 0, qualityScore = 0, bottomScore = 0;
     let high52 = 0, pctFromHigh = 0;
     
-    // === VALUE DISLOCATION ===
+    // VALUE DISLOCATION (0-6)
     if (bars.length > 0) {
       high52 = Math.max(...bars.slice(-12).map(b => b.high));
       const lastClose = bars[bars.length - 1].close;
       pctFromHigh = high52 > 0 ? ((lastClose - high52) / high52 * 100) : 0;
       if (pctFromHigh < -30) dislocationScore += 2;
-      else if (pctFromHigh < -20) dislocationScore += 1;
+      else if (pctFromHigh < -15) dislocationScore += 1;
     }
-    // Fundamental data from analysis (if available)
-    if (verdict) {
-      const vs = (verdict.valueSummary || '').toLowerCase();
+    if (fundData) {
+      if (fundData.forwardPE && fundData.sectorPE && fundData.forwardPE < fundData.sectorPE * 0.8) dislocationScore += 2;
+      else if (fundData.forwardPE && fundData.sectorPE && fundData.forwardPE < fundData.sectorPE) dislocationScore += 1;
+      if (fundData.fcfYield && fundData.fcfYield > 5) dislocationScore += 1;
+      if (fundData.revenueGrowing) dislocationScore += 1;
+    } else {
+      const vs = (verdict?.valueSummary || idea?.valueSummary || '').toLowerCase();
       if (vs.includes('undervalue') || vs.includes('cheap') || vs.includes('discount')) dislocationScore += 1;
       if (vs.includes('fcf') || vs.includes('free cash') || vs.includes('cash generat')) dislocationScore += 1;
       if (vs.includes('revenue growth') || vs.includes('growing revenue')) dislocationScore += 1;
     }
     
-    // === QUALITY FILTER ===
+    // QUALITY (0-3)
     if (t.tag === 'core') qualityScore += 1;
-    if (verdict && verdict.verdict !== 'EXIT') qualityScore += 1;
-    if (t.source === 'HELD') qualityScore += 1; // Already vetted
+    if (t.source === 'HELD') {
+      if (verdict && verdict.verdict !== 'EXIT') qualityScore += 1;
+      qualityScore += 1;
+    } else if (t.source === 'WATCH') {
+      if (t.evalVerdict === 'STRONG_BUY' || t.evalVerdict === 'BUY') qualityScore += 2;
+      else if (t.evalVerdict === 'WATCH') qualityScore += 1;
+    } else if (t.source === 'IDEA') {
+      if (t.leadAnalyst === 'dual') qualityScore += 2;
+      else if (t.leadAnalyst === 'value' || t.leadAnalyst === 'technical') qualityScore += 1;
+      if (t.suggestedWeight && t.suggestedWeight >= 2) qualityScore += 1;
+    }
     
-    // === BOTTOM SIGNAL ===
-    if (bx.length >= 2) {
+    // BOTTOM SIGNAL (0-5)
+    if (hasBX && bx.length >= 2) {
       const last = bx[bx.length - 1];
       const prev = bx[bx.length - 2];
-      if (last.state === 'TURN') bottomScore += 2; // Negative but rising
-      else if (last.state === 'BEAR' && last.value > prev.value) bottomScore += 1; // Still bear but decelerating
-      // Check for BUY signal in recent bars
+      if (last.state === 'TURN') bottomScore += 2;
+      else if (last.state === 'BEAR' && last.value > prev.value) bottomScore += 1;
+      if (last.state === 'BULL' && prev.state === 'TURN') bottomScore += 1;
       const recentBuy = signals.filter(s => s.type === 'BUY' && s.bar >= bx.length - 3);
-      if (recentBuy.length > 0) bottomScore += 1;
+      if (recentBuy.length > 0) bottomScore += 2;
     }
     
     const totalScore = dislocationScore + qualityScore + bottomScore;
@@ -6885,10 +6958,10 @@ function computeOpportunities() {
     return {
       ticker: t.ticker, source: t.source, tag: t.tag, sector: t.sector,
       dislocationScore, qualityScore, bottomScore, totalScore, maxScore, status,
-      pctFromHigh, bxState: bx.length > 0 ? bx[bx.length - 1].state : 'none',
-      verdict: verdict?.verdict || '—'
+      pctFromHigh, bxState: hasBX ? bx[bx.length - 1].state : 'no data',
+      verdict: verdict?.verdict || idea?.tag?.toUpperCase() || '—', hasBX
     };
-  }).filter(o => o.totalScore >= 3).sort((a, b) => b.totalScore - a.totalScore);
+  }).filter(o => o.totalScore >= 2).sort((a, b) => b.totalScore - a.totalScore);
 }
 
 function renderRegimePage(regime, color, desc, advice, score, factors, opportunities) {
