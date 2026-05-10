@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.3.3 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.3.4 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1956,6 +1956,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div id="watchlistContent" style="display:none;">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-primary" onclick="evaluateWatchlist()" id="evalWatchlistBtn">🤖 Evaluate Pending</button>
+        <button class="btn btn-sm" onclick="reEvaluateAllWatchlist()" id="reEvalWatchlistBtn" title="Re-evaluate all items with latest market data">🔄 Re-evaluate All</button>
         <button class="btn btn-sm" onclick="promoteEvaluatedToIdeas()" title="Bulk-promote only STRONG_BUY items. Use per-row Promote button for BUY/WATCH.">→ Promote STRONG BUY</button>
         <button class="btn btn-sm" onclick="refreshWatchlistTechData()" id="refreshWatchTechBtn" title="Fetch BX Trender data for watchlist tickers">📈 Refresh BX Data</button>
       </div>
@@ -2166,7 +2167,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.3</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.4</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2195,8 +2196,8 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.3.3';
-const APEX_BUILD = '2026-04-23-004';
+const APEX_VERSION = '3.3.4';
+const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
   'Technology','Materials','Defence','Healthcare','Finance',
@@ -5403,6 +5404,26 @@ For PASS or WATCH verdicts, set suggestedWeight to 0.`;
   btn.disabled = false; btn.textContent = '🤖 Evaluate Pending';
 }
 
+async function reEvaluateAllWatchlist() {
+  if (state.watchlist.length === 0) { toast('No watchlist items to re-evaluate', 'error'); return; }
+  // Reset ALL items including promoted back to pending
+  state.watchlist.forEach(w => {
+    // If was promoted, remove from ideas list so it can be re-evaluated fresh
+    if (w.status === 'promoted' && state.analysisData?.newIdeas) {
+      state.analysisData.newIdeas = state.analysisData.newIdeas.filter(i => 
+        i.ticker?.toUpperCase() !== w.ticker.toUpperCase() || i._source !== 'watchlist'
+      );
+    }
+    w.status = 'pending';
+    w.evalData = null;
+    w.lastEval = null;
+  });
+  saveState();
+  refreshWatchlist();
+  toast(`Reset ${state.watchlist.length} items — evaluating with latest market data...`);
+  await evaluateWatchlist();
+}
+
 function promoteEvaluatedToIdeas() {
   // Bulk promote — only STRONG_BUY by default. BUY/WATCH require manual per-row promotion.
   const toPromote = state.watchlist.filter(w =>
@@ -6821,14 +6842,22 @@ async function computeRegime() {
     factors.push({ label: 'Portfolio BX Consensus', current: 'No BX data', threshold: '> 60% negative', triggered: false, points: 0, noData: true });
   }
   
-  // 4. Sector Correlation
-  if (consensus && consensus.total > 3) {
-    const totalDirectional = consensus.bull + consensus.bear + consensus.fade + consensus.turn;
-    const dominant = Math.max(consensus.bull + consensus.fade, consensus.bear + consensus.turn);
-    const corrPct = totalDirectional > 0 ? (dominant / totalDirectional * 100) : 50;
-    factors.push({ label: 'Sector Correlation', current: corrPct.toFixed(0) + '% same direction', threshold: '> 80% = crisis', triggered: corrPct > 80, points: corrPct > 80 ? 1 : 0 });
+  // 4. Sector Correlation — compute directly from all available BX data
+  let posWithBX = 0, posPositive = 0, posNegative = 0;
+  state.positions.forEach(p => {
+    const td = state.technicalData[p.symbol.toUpperCase()];
+    if (td?.computed?.short?.length > 0) {
+      posWithBX++;
+      const lastBX = td.computed.short[td.computed.short.length - 1];
+      if (lastBX.value > 0) posPositive++; else posNegative++;
+    }
+  });
+  if (posWithBX >= 2) {
+    const dominant = Math.max(posPositive, posNegative);
+    const corrPct = (dominant / posWithBX * 100);
+    factors.push({ label: 'Sector Correlation', current: corrPct.toFixed(0) + '% same direction (' + posPositive + '↑ ' + posNegative + '↓ of ' + posWithBX + ')', threshold: '> 80% = crisis', triggered: corrPct > 80, points: corrPct > 80 ? 1 : 0 });
   } else {
-    factors.push({ label: 'Sector Correlation', current: 'Insufficient data', threshold: '> 80%', triggered: false, points: 0, noData: true });
+    factors.push({ label: 'Sector Correlation', current: posWithBX + ' tickers with BX data (need 2+)', threshold: '> 80%', triggered: false, points: 0, noData: true });
   }
   
   // 5. Macro Mood Score
@@ -7073,11 +7102,12 @@ function renderOpportunityRadar(opportunities) {
     el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:16px;">No significant opportunities detected. Run BX Trender refresh and weekly analysis to populate data.</div>';
     return;
   }
+  const enriched = state.regime?.fundamentals || {};
   
   el.innerHTML = `<table style="width:100%;"><thead><tr>
     <th>Ticker</th><th>Source</th><th>Sector</th><th>BX</th><th>From High</th>
     <th class="num">Value</th><th class="num">Quality</th><th class="num">Bottom</th><th class="num">Total</th><th>Status</th>
-  </tr></thead><tbody>` + opportunities.map(o => {
+  </tr></thead><tbody>` + opportunities.map((o, idx) => {
     const statusBadge = o.status === 'STRONG_BUY' ? '<span class="badge badge-buy" style="background:rgba(34,197,94,0.25);">★ STRONG BUY</span>' :
       o.status === 'ACTIONABLE' ? '<span class="badge badge-buy">ACTIONABLE</span>' :
       '<span class="badge badge-hold">WATCH</span>';
@@ -7085,7 +7115,24 @@ function renderOpportunityRadar(opportunities) {
       o.source === 'WATCH' ? '<span class="badge badge-hold">WATCH</span>' :
       '<span class="badge badge-tactical">IDEA</span>';
     const bxBadge = getBXSignalBadge(o.ticker).html;
-    return `<tr>
+    
+    // Build detail content
+    const td = state.technicalData[o.ticker.toUpperCase()];
+    const bars = td?.bars || [];
+    const bx = td?.computed?.short || [];
+    const signals = td?.computed?.signals || [];
+    const fund = enriched[o.ticker.toUpperCase()];
+    const verdict = (state.analysisData?.verdicts || []).find(v => v.ticker?.toUpperCase() === o.ticker.toUpperCase());
+    const idea = (state.analysisData?.newIdeas || []).find(i => i.ticker?.toUpperCase() === o.ticker.toUpperCase());
+    
+    const lastPrice = bars.length > 0 ? '$' + bars[bars.length-1].close.toFixed(2) : '—';
+    const high52 = bars.length > 0 ? '$' + Math.max(...bars.slice(-12).map(b => b.high)).toFixed(2) : '—';
+    const bxVal = bx.length > 0 ? bx[bx.length-1].value.toFixed(1) : '—';
+    const bxPrev = bx.length > 1 ? bx[bx.length-2].value.toFixed(1) : '—';
+    const bxState = bx.length > 0 ? bx[bx.length-1].state : 'no data';
+    const recentSignals = signals.slice(-3).reverse().map(s => `${s.type} @ ${bars[s.bar]?.date || '?'}`).join(', ') || 'None in range';
+    
+    return `<tr style="cursor:pointer;" onclick="document.getElementById('oppDetail_${idx}').style.display=document.getElementById('oppDetail_${idx}').style.display==='none'?'table-row':'none'">
       <td style="font-weight:700;">${o.ticker}</td>
       <td>${srcBadge}</td>
       <td style="font-size:11px;">${o.sector}</td>
@@ -7096,6 +7143,36 @@ function renderOpportunityRadar(opportunities) {
       <td class="num" style="color:${o.bottomScore >= 2 ? 'var(--green)' : 'var(--text-secondary)'};">${o.bottomScore}/5</td>
       <td class="num" style="font-weight:700;color:${o.totalScore >= 10 ? 'var(--green)' : o.totalScore >= 7 ? 'var(--blue)' : 'var(--text-secondary)'};">${o.totalScore}/14</td>
       <td>${statusBadge}</td>
+    </tr>
+    <tr id="oppDetail_${idx}" style="display:none;">
+      <td colspan="10" style="padding:12px;background:var(--bg-tertiary);border-left:3px solid ${o.totalScore >= 7 ? 'var(--green)' : 'var(--amber)'};">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;">
+          <div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Value Dislocation (${o.dislocationScore}/6)</div>
+            <div>Price: ${lastPrice} | 52w High: ${high52}</div>
+            <div>From High: <span style="color:${o.pctFromHigh < -20 ? 'var(--red)' : 'var(--text-secondary)'};">${o.pctFromHigh.toFixed(1)}%</span></div>
+            ${fund ? `<div>Fwd P/E: <strong>${fund.forwardPE}</strong> vs Sector: ${fund.sectorPE} ${fund.forwardPE < fund.sectorPE ? '<span style="color:var(--green);">✓ cheap</span>' : ''}</div>
+            <div>FCF Yield: ${fund.fcfYield}%${fund.fcfYield > 5 ? ' <span style="color:var(--green);">✓ strong</span>' : ''}</div>
+            <div>Revenue: ${fund.revenueGrowing ? '<span style="color:var(--green);">✓ Growing</span>' : '<span style="color:var(--red);">✗ Declining</span>'}</div>` :
+            `<div style="color:var(--text-tertiary);font-style:italic;">Tap "Enrich Fundamentals" for P/E & FCF data</div>`}
+            ${verdict?.valueSummary ? `<div style="margin-top:4px;color:var(--text-tertiary);font-size:11px;">${verdict.valueSummary.substring(0, 120)}</div>` : ''}
+          </div>
+          <div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">⭐ Quality (${o.qualityScore}/3)</div>
+            <div>Source: ${o.source} ${o.source === 'HELD' ? '(vetted by ownership)' : o.source === 'WATCH' ? '(evaluated)' : '(AI recommended)'}</div>
+            <div>Tag: ${o.tag?.toUpperCase() || '—'}</div>
+            <div>Verdict: ${o.verdict}</div>
+            ${idea ? `<div>Lead: ${idea.leadAnalyst || '—'} | Weight: ${idea.suggestedWeight || '—'}%</div>` : ''}
+          </div>
+          <div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📈 Bottom Signal (${o.bottomScore}/5)</div>
+            ${o.hasBX ? `<div>BX Oscillator: <strong style="color:${bx.length > 0 ? bx[bx.length-1].color : 'inherit'};">${bxVal}</strong> (prev: ${bxPrev})</div>
+            <div>State: <span style="font-weight:700;">${bxState}</span> ${bxState === 'TURN' ? '← reversal forming' : bxState === 'BEAR' ? '← still declining' : bxState === 'BULL' ? '← uptrend' : ''}</div>
+            <div>Recent signals: ${recentSignals}</div>` :
+            `<div style="color:var(--text-tertiary);font-style:italic;">No BX data — fetch from Portfolio → Refresh BX Trender</div>`}
+          </div>
+        </div>
+      </td>
     </tr>`;
   }).join('') + '</tbody></table>';
 }
