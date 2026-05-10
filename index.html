@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.3.4 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.4.0 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -1553,6 +1553,14 @@ input[type="range"]::-webkit-slider-thumb {
         </select>
         <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">Monthly uses less API quota (1 call/ticker). Weekly gives finer signals but 4× data.</div>
       </div>
+      <div class="form-group" style="margin-top:12px;">
+        <div class="slider-header">
+          <span class="form-label" style="margin:0;">Target Portfolio Inclusion Margin</span>
+          <span class="slider-value" id="inclusionMarginVal">2</span>
+        </div>
+        <input type="range" min="0" max="5" value="2" id="inclusionMarginSlider" oninput="document.getElementById('inclusionMarginVal').textContent=this.value">
+        <div style="font-size:9px;color:var(--text-tertiary);">New ideas must beat the weakest same-sector position by this many conviction points to enter the target portfolio. 0 = include all, 5 = very selective.</div>
+      </div>
     </div>
 
     <!-- Focus Sectors -->
@@ -2167,7 +2175,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.3.4</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.4.0</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2196,7 +2204,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.3.4';
+const APEX_VERSION = '3.4.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2364,6 +2372,7 @@ function getDefaultProfile() {
     maxIdeasPerSector:3, concentrationThreshold:15,
     minRebalanceThreshold:1, maxDeployment:100,
     bxSensitivity:0, bxTimeframe:'monthly',
+    inclusionMargin:2,
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -3177,6 +3186,8 @@ function applyProfile() {
   document.getElementById('bxSensSlider').value = prof.bxSensitivity || 0;
   document.getElementById('bxSensVal').textContent = prof.bxSensitivity || 0;
   document.getElementById('bxTimeframeSelect').value = prof.bxTimeframe || 'monthly';
+  document.getElementById('inclusionMarginSlider').value = prof.inclusionMargin ?? 2;
+  document.getElementById('inclusionMarginVal').textContent = prof.inclusionMargin ?? 2;
   document.getElementById('rrSlider').value = prof.minRR;
   document.getElementById('rrVal').textContent = prof.minRR + ':1';
   document.getElementById('profGeo').value = prof.geo;
@@ -3221,6 +3232,7 @@ function saveProfile() {
   prof.maxDeployment = parseInt(document.getElementById('maxDeploySlider').value);
   prof.bxSensitivity = parseFloat(document.getElementById('bxSensSlider').value);
   prof.bxTimeframe = document.getElementById('bxTimeframeSelect').value;
+  prof.inclusionMargin = parseInt(document.getElementById('inclusionMarginSlider').value);
   prof.geo = document.getElementById('profGeo').value;
   prof.notes = document.getElementById('profNotes').value;
   prof.excludePenny = document.getElementById('togglePenny').classList.contains('active');
@@ -3508,6 +3520,7 @@ function calcBXTrender(closes, params) {
   const shortBars = [];
   const longBars = [];
   const signals = [];
+  let inPosition = false;
   
   for (let i = 0; i < closes.length; i++) {
     const val = shortOsc[i];
@@ -3535,17 +3548,24 @@ function calcBXTrender(closes, params) {
     else lColor = '#8B0000';
     longBars.push({ value: lVal, color: lColor });
     
-    // Signal detection: transitions
+    // Signal detection: position-aware (prevents duplicate BUYs, requires position for SELL)
     if (i > 0) {
       const prevState = shortBars[i-1].state;
       const curState = state_label;
-      // BUY: BEAR → TURN (dark red → light red) or BEAR → BULL (strong reversal skipping TURN)
-      if (prevState === 'BEAR' && (curState === 'TURN' || curState === 'BULL')) {
+      // BUY: BEAR → TURN or BEAR → BULL (only when flat)
+      if (!inPosition && prevState === 'BEAR' && (curState === 'TURN' || curState === 'BULL')) {
         signals.push({ bar: i, type: 'BUY', label: curState === 'BULL' ? 'BX Buy: strong reversal' : 'BX Buy: momentum reversal' });
+        inPosition = true;
       }
-      // SELL: positive → negative crossover (BULL/FADE → TURN/BEAR)
-      if ((prevState === 'BULL' || prevState === 'FADE') && (curState === 'TURN' || curState === 'BEAR')) {
+      // SELL 1: positive → negative crossover (BULL/FADE → TURN/BEAR)
+      if (inPosition && (prevState === 'BULL' || prevState === 'FADE') && (curState === 'TURN' || curState === 'BEAR')) {
         signals.push({ bar: i, type: 'SELL', label: 'BX Sell: trend breakdown' });
+        inPosition = false;
+      }
+      // SELL 2: TURN → BEAR (failed reversal — bought on TURN but recovery failed)
+      if (inPosition && prevState === 'TURN' && curState === 'BEAR') {
+        signals.push({ bar: i, type: 'SELL', label: 'BX Sell: failed reversal' });
+        inPosition = false;
       }
     }
   }
@@ -3695,12 +3715,20 @@ async function fetchOHLC(ticker, timeframe) {
   const avSymbol = getAVSymbol(ticker, exchange);
   console.log(`APEX: Fetching adjusted OHLC for ${ticker} as AV symbol "${avSymbol}" (exchange: ${exchange || 'unknown'})`);
   
-  const parseBars = (ts) => Object.entries(ts).map(([date, vals]) => ({
-    date, open: parseFloat(vals['1. open']), high: parseFloat(vals['2. high']),
-    low: parseFloat(vals['3. low']),
-    close: parseFloat(vals['5. adjusted close'] || vals['4. close']),
-    volume: parseInt(vals['6. volume'] || vals['5. volume'] || 0)
-  })).sort((a, b) => a.date.localeCompare(b.date));
+  const parseBars = (ts) => Object.entries(ts).map(([date, vals]) => {
+    const rawClose = parseFloat(vals['4. close']);
+    const adjClose = parseFloat(vals['5. adjusted close'] || vals['4. close']);
+    // Compute adjustment ratio for stock splits (adjClose / rawClose)
+    const ratio = (rawClose > 0 && adjClose > 0) ? adjClose / rawClose : 1;
+    return {
+      date,
+      open: parseFloat(vals['1. open']) * ratio,
+      high: parseFloat(vals['2. high']) * ratio,
+      low: parseFloat(vals['3. low']) * ratio,
+      close: adjClose,
+      volume: parseInt(vals['6. volume'] || vals['5. volume'] || 0)
+    };
+  }).sort((a, b) => a.date.localeCompare(b.date));
   
   try {
     const resp = await fetch(`https://www.alphavantage.co/query?function=${func}&symbol=${avSymbol}&apikey=${avKey}&datatype=json`);
@@ -5656,9 +5684,13 @@ function refreshTarget() {
     });
   });
 
-  // ═══ STEP 2: ADD NEW IDEAS ═══
+  // ═══ STEP 2: ADD NEW IDEAS WITH INCLUSION GATE ═══
+  const inclusionMargin = prof.inclusionMargin ?? 2;
+  const excludedIdeas = [];
+  
   newIdeas.forEach(idea => {
-    if (idea.suggestedWeight && idea.suggestedWeight > 0) {
+    if (!idea.suggestedWeight || idea.suggestedWeight <= 0) return;
+    if (idea._forceInclude) { // User overrode the gate
       newCount++;
       const leadScore = { 'dual': 2, 'value': 1, 'technical': 1, 'speculative': 0 };
       const riskAdj = { 'Low': 1, 'Medium': 0, 'High': -1 };
@@ -5669,6 +5701,47 @@ function refreshTarget() {
         tag: (idea.tag || 'core').toLowerCase(), sector: idea.sector || '', currency: 'USD',
         markPrice: 0, isNew: true, exchange: idea.exchange || '',
         _locked: false, _conviction: conviction
+      });
+      return;
+    }
+    
+    // Score the idea
+    const leadScore = { 'dual': 4, 'value': 3, 'technical': 3, 'speculative': 1 };
+    const riskAdj = { 'Low': 1, 'Medium': 0, 'High': -1 };
+    const sourceScore = { 'weekly': 3, 'research': 2, 'watchlist': 2 };
+    const ideaScore = (leadScore[idea.leadAnalyst] || 1) + (riskAdj[idea.riskLevel] || 0) +
+      (sourceScore[idea._source] || 2) + (idea.suggestedWeight >= 3 ? 1 : 0);
+    
+    // Find weakest same-sector competitor, or overall weakest if no same-sector
+    const sameSector = targetEntries.filter(e => e.sector === (idea.sector || '') && e.status !== 'EXIT');
+    const competitors = sameSector.length > 0 ? sameSector : targetEntries.filter(e => e.status !== 'EXIT');
+    
+    let weakestScore = Infinity, weakestTicker = '—';
+    competitors.forEach(e => {
+      if (e._conviction < weakestScore) { weakestScore = e._conviction; weakestTicker = e.ticker; }
+    });
+    
+    const margin = ideaScore - weakestScore;
+    
+    if (inclusionMargin === 0 || margin >= inclusionMargin) {
+      // Idea passes the gate
+      newCount++;
+      const conviction = 4 + 2 + 2 + (leadScore[idea.leadAnalyst] || 0) + (riskAdj[idea.riskLevel] || 0);
+      targetEntries.push({
+        ticker: idea.ticker, name: idea.thesis || idea.sector || '', status: 'NEW',
+        currentWeight: 0, rawTargetWeight: idea.suggestedWeight, currentValue: 0,
+        tag: (idea.tag || 'core').toLowerCase(), sector: idea.sector || '', currency: 'USD',
+        markPrice: 0, isNew: true, exchange: idea.exchange || '',
+        _locked: false, _conviction: conviction,
+        _gateReason: `Beats ${weakestTicker} by ${margin} pts`
+      });
+    } else {
+      // Excluded — not superior enough
+      excludedIdeas.push({
+        ticker: idea.ticker, sector: idea.sector || '', tag: idea.tag || 'core',
+        thesis: idea.thesis || '', suggestedWeight: idea.suggestedWeight,
+        ideaScore, weakestScore, weakestTicker, margin,
+        reason: `Score ${ideaScore} vs ${weakestTicker} (${weakestScore}) — margin ${margin} < required ${inclusionMargin}`
       });
     }
   });
@@ -5900,11 +5973,54 @@ function refreshTarget() {
     <td colspan="4" style="font-size:11px;color:var(--text-tertiary);">${actionableCount} actionable trades</td>
   </tr>`;
 
+  // Excluded ideas section
+  if (excludedIdeas.length > 0) {
+    const exclEl = document.createElement('div');
+    exclEl.className = 'card fade-in';
+    exclEl.style.cssText = 'margin-top:12px;border-left:3px solid var(--amber);';
+    exclEl.innerHTML = `
+      <div class="card-header" style="cursor:pointer;" onclick="this.parentElement.querySelector('.excl-body').style.display=this.parentElement.querySelector('.excl-body').style.display==='none'?'block':'none'">
+        <span class="card-title" style="color:var(--amber);">🚫 Considered but Excluded (${excludedIdeas.length})</span>
+        <span style="font-size:11px;color:var(--text-tertiary);">Tap to expand — these ideas didn't beat existing positions by the required margin (${inclusionMargin} pts)</span>
+      </div>
+      <div class="excl-body" style="display:none;margin-top:8px;">
+        <table style="width:100%;"><thead><tr>
+          <th>Ticker</th><th>Sector</th><th>Idea Score</th><th>Weakest Competitor</th><th>Comp Score</th><th>Margin</th><th>Required</th><th></th>
+        </tr></thead><tbody>
+        ${excludedIdeas.map(e => `<tr>
+          <td style="font-weight:700;">${e.ticker}</td>
+          <td style="font-size:11px;">${e.sector}</td>
+          <td class="num" style="color:var(--green);">${e.ideaScore}</td>
+          <td style="font-size:11px;">${e.weakestTicker}</td>
+          <td class="num">${e.weakestScore}</td>
+          <td class="num" style="color:${e.margin >= e.inclusionMargin ? 'var(--green)' : 'var(--red)'};">${e.margin}</td>
+          <td class="num">${inclusionMargin}</td>
+          <td><button class="btn btn-sm" onclick="forceIncludeIdea('${e.ticker}')" style="font-size:9px;padding:2px 6px;" title="Override the gate and include in target">Force Include</button></td>
+        </tr>`).join('')}
+        </tbody></table>
+        <div style="font-size:10px;color:var(--text-tertiary);margin-top:8px;">Adjust "Inclusion Margin" in Profile → BX Trender Settings to change selectivity. 0 = include all ideas.</div>
+      </div>`;
+    document.getElementById('targetBody').parentElement.parentElement.appendChild(exclEl);
+  }
+
   // Projected compliance
   renderProjectedCompliance(targetEntries);
 
   // Projected sector chart
   renderProjectedSectors(targetEntries);
+}
+
+function forceIncludeIdea(ticker) {
+  const ideas = state.analysisData?.newIdeas || [];
+  const idea = ideas.find(i => i.ticker?.toUpperCase() === ticker.toUpperCase());
+  if (idea) {
+    idea._forceInclude = true;
+    saveState();
+    refreshTarget();
+    toast(`${ticker} force-included in target portfolio`);
+  } else {
+    toast(`${ticker} not found in ideas`, 'error');
+  }
 }
 
 function renderProjectedCompliance(entries) {
@@ -6944,8 +7060,9 @@ function computeOpportunities() {
       else if (pctFromHigh < -15) dislocationScore += 1;
     }
     if (fundData) {
-      if (fundData.forwardPE && fundData.sectorPE && fundData.forwardPE < fundData.sectorPE * 0.8) dislocationScore += 2;
-      else if (fundData.forwardPE && fundData.sectorPE && fundData.forwardPE < fundData.sectorPE) dislocationScore += 1;
+      if (fundData.forwardPE && fundData.forwardPE > 0 && fundData.sectorPE && fundData.sectorPE > 0 && fundData.forwardPE < fundData.sectorPE * 0.8) dislocationScore += 2;
+      else if (fundData.forwardPE && fundData.forwardPE > 0 && fundData.sectorPE && fundData.sectorPE > 0 && fundData.forwardPE < fundData.sectorPE) dislocationScore += 1;
+      // Negative earnings = NOT a value opportunity by P/E (no points awarded)
       if (fundData.fcfYield && fundData.fcfYield > 5) dislocationScore += 1;
       if (fundData.revenueGrowing) dislocationScore += 1;
     } else {
@@ -7151,7 +7268,7 @@ function renderOpportunityRadar(opportunities) {
             <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Value Dislocation (${o.dislocationScore}/6)</div>
             <div>Price: ${lastPrice} | 52w High: ${high52}</div>
             <div>From High: <span style="color:${o.pctFromHigh < -20 ? 'var(--red)' : 'var(--text-secondary)'};">${o.pctFromHigh.toFixed(1)}%</span></div>
-            ${fund ? `<div>Fwd P/E: <strong>${fund.forwardPE}</strong> vs Sector: ${fund.sectorPE} ${fund.forwardPE < fund.sectorPE ? '<span style="color:var(--green);">✓ cheap</span>' : ''}</div>
+            ${fund ? `<div>Fwd P/E: <strong>${fund.forwardPE && fund.forwardPE > 0 ? fund.forwardPE : 'N/A (negative earnings)'}</strong> vs Sector: ${fund.sectorPE || '—'} ${fund.forwardPE > 0 && fund.sectorPE > 0 && fund.forwardPE < fund.sectorPE ? '<span style="color:var(--green);">✓ cheap</span>' : fund.forwardPE <= 0 || !fund.forwardPE ? '<span style="color:var(--red);">✗ no earnings</span>' : ''}</div>
             <div>FCF Yield: ${fund.fcfYield}%${fund.fcfYield > 5 ? ' <span style="color:var(--green);">✓ strong</span>' : ''}</div>
             <div>Revenue: ${fund.revenueGrowing ? '<span style="color:var(--green);">✓ Growing</span>' : '<span style="color:var(--red);">✗ Declining</span>'}</div>` :
             `<div style="color:var(--text-tertiary);font-style:italic;">Tap "Enrich Fundamentals" for P/E & FCF data</div>`}
