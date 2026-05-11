@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.4.0 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.4.1 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2175,7 +2175,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.4.0</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.4.1</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2204,7 +2204,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.4.0';
+const APEX_VERSION = '3.4.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5385,23 +5385,43 @@ Return ONLY a JSON array (no markdown, no preamble):
 For PASS or WATCH verdicts, set suggestedWeight to 0.`;
 
   try {
-    const result = await callClaude(key, state.settings.model, [{role:'user', content: prompt}], true, 6000);
-    let parsed;
-    try {
-      let jsonStr = result.text.trim().replace(/```json\s*/gi,'').replace(/```/g,'').trim();
-      const arrMatch = jsonStr.match(/\[[\s\S]*\]/);
-      parsed = JSON.parse(arrMatch ? arrMatch[0] : jsonStr);
-    } catch(e) { throw new Error('Failed to parse evaluation response'); }
+    const result = await callClaude(key, state.settings.model, [{role:'user', content: prompt}], true, 3000);
+    console.log('APEX Watchlist eval raw:', result.text.substring(0, 800));
+    
+    // Robust JSON parsing — multiple strategies
+    let parsed = parseHaikuJSON(result.text);
+    if (!parsed) {
+      // Try non-greedy array extraction
+      const arrMatch = result.text.match(/\[[\s\S]*?\](?=[^}\]]*$)/);
+      if (arrMatch) {
+        try { parsed = JSON.parse(arrMatch[0].replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
+      }
+    }
+    if (!parsed) {
+      // Try extracting between first [ and last ]
+      const first = result.text.indexOf('[');
+      const last = result.text.lastIndexOf(']');
+      if (first >= 0 && last > first) {
+        try { parsed = JSON.parse(result.text.substring(first, last + 1).replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
+      }
+    }
+    if (!parsed || !Array.isArray(parsed)) {
+      // Save raw for debugging
+      state._lastWatchlistEvalRaw = result.text;
+      saveState();
+      toast('Evaluation response received but JSON parse failed — raw saved for debug. Check console.', 'error');
+      btn.disabled = false; btn.textContent = '🤖 Evaluate Pending';
+      return;
+    }
 
-    if (!Array.isArray(parsed)) parsed = [parsed];
     const evalMap = {};
-    parsed.forEach(e => { evalMap[e.ticker?.toUpperCase()] = e; });
+    parsed.forEach(e => { if (e.ticker) evalMap[e.ticker.toUpperCase().replace(/\s/g,'')] = e; });
 
-    let strongBuy = 0, buy = 0, watch = 0, pass = 0;
+    let strongBuy = 0, buy = 0, watch = 0, pass = 0, matched = 0;
     state.watchlist.forEach(w => {
       const ev = evalMap[w.ticker.toUpperCase()];
       if (ev) {
-        // Map verdict to status — only PASS goes to rejected; others stay evaluated for manual decision
+        matched++;
         w.status = ev.verdict === 'PASS' ? 'rejected' : 'evaluated';
         w.lastEval = new Date().toISOString();
         w.tag = (ev.tag || w.tag || 'core').toLowerCase();
@@ -5424,10 +5444,16 @@ For PASS or WATCH verdicts, set suggestedWeight to 0.`;
         else if (ev.verdict === 'PASS') pass++;
       }
     });
+    if (matched === 0) {
+      state._lastWatchlistEvalRaw = result.text;
+      toast(`Parsed ${parsed.length} items but matched 0 watchlist tickers — ticker mismatch? Raw saved.`, 'error');
+    } else {
+      toast(`Evaluated ${matched}: ${strongBuy} STRONG_BUY, ${buy} BUY, ${watch} WATCH, ${pass} PASS`);
+    }
     saveState(); refreshWatchlist();
-    toast(`Evaluated ${parsed.length}: ${strongBuy} STRONG_BUY, ${buy} BUY, ${watch} WATCH, ${pass} PASS — review and promote manually`);
   } catch(e) {
     toast('Evaluation failed: ' + e.message, 'error');
+    console.error('APEX Watchlist eval error:', e);
   }
   btn.disabled = false; btn.textContent = '🤖 Evaluate Pending';
 }
