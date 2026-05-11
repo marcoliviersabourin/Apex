@@ -887,7 +887,7 @@ input[type="range"]::-webkit-slider-thumb {
 <nav id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
-    <div class="sidebar-version" id="sidebarVersion">v3.4.2 — Portfolio Intelligence</div>
+    <div class="sidebar-version" id="sidebarVersion">v3.4.3 — Portfolio Intelligence</div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2178,7 +2178,7 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="card fade-in stagger-3">
       <div class="card-title" style="margin-bottom:10px;">About APEX</div>
       <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.4.2</span></div>
+        <div><strong>Version:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutVersion">3.4.3</span></div>
         <div><strong>Build:</strong> <span style="font-family:'IBM Plex Mono',monospace;" id="aboutBuild">2026-04-19-001</span></div>
         <div style="margin-top:8px;font-size:12px;color:var(--text-tertiary);">
           APEX is a client-side PWA. All data is stored in your browser's localStorage.
@@ -2207,7 +2207,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.4.2';
+const APEX_VERSION = '3.4.3';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5297,13 +5297,13 @@ async function evaluateSingleWatchlistItem(idx) {
   if (!w) return;
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
+  if (!confirm(`Evaluate ${w.ticker}? This uses Sonnet + web search. Estimated cost: ~$0.05-0.10`)) return;
   toast('Evaluating ' + w.ticker + '...');
-  // Temporarily make it the only pending item and run evaluate
   const origStatus = w.status;
   w.status = 'pending';
   state.watchlist.forEach((item, i) => { if (i !== idx) item._wasStatus = item.status; });
+  evaluateWatchlist._skipConfirm = true;
   await evaluateWatchlist();
-  // Restore other items' statuses if they were changed
   state.watchlist.forEach(item => { if (item._wasStatus) { item.status = item._wasStatus; delete item._wasStatus; } });
   refreshWatchlist();
 }
@@ -5386,6 +5386,13 @@ async function evaluateWatchlist() {
   if (pending.length === 0) { toast('No pending items to evaluate', 'error'); return; }
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
+  
+  // Skip confirmation if called from single-item eval or re-evaluate (already confirmed)
+  if (!evaluateWatchlist._skipConfirm) {
+    const estCost = (pending.length * 0.08).toFixed(2);
+    if (!confirm(`Evaluate ${pending.length} tickers using Sonnet + web search?\nEstimated cost: ~$${estCost}`)) return;
+  }
+  evaluateWatchlist._skipConfirm = false;
 
   const btn = document.getElementById('evalWatchlistBtn');
   btn.disabled = true; btn.textContent = '⏳ Evaluating...';
@@ -5442,7 +5449,17 @@ Return ONLY a JSON array (no markdown, no preamble):
 For PASS or WATCH verdicts, set suggestedWeight to 0.`;
 
   try {
-    const result = await callClaude(key, state.settings.model, [{role:'user', content: prompt}], true, 3000);
+    // Force Sonnet for evaluation — Opus is too expensive with web search
+    const evalModel = 'claude-sonnet-4-6';
+    const estCost = (pending.length * 0.08).toFixed(2);
+    apexLog('INFO', `Watchlist eval: ${pending.length} tickers, model=${evalModel}, est cost ~$${estCost}`);
+    
+    const result = await callClaude(key, evalModel, [{role:'user', content: prompt}], true, 2000);
+    
+    // Log actual token usage and estimated cost
+    const usage = result.data?.usage || {};
+    const actualCost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
+    apexLog('API', `Watchlist eval complete — cost ~$${actualCost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
     console.log('APEX Watchlist eval raw:', result.text.substring(0, 800));
     
     // Robust JSON parsing — multiple strategies
@@ -5517,6 +5534,8 @@ For PASS or WATCH verdicts, set suggestedWeight to 0.`;
 
 async function reEvaluateAllWatchlist() {
   if (state.watchlist.length === 0) { toast('No watchlist items to re-evaluate', 'error'); return; }
+  const estCost = (state.watchlist.length * 0.08).toFixed(2);
+  if (!confirm(`Re-evaluate ALL ${state.watchlist.length} watchlist items?\nThis resets promoted items too.\nEstimated cost: ~$${estCost}`)) return;
   // Reset ALL items including promoted back to pending
   state.watchlist.forEach(w => {
     // If was promoted, remove from ideas list so it can be re-evaluated fresh
@@ -5532,6 +5551,7 @@ async function reEvaluateAllWatchlist() {
   saveState();
   refreshWatchlist();
   toast(`Reset ${state.watchlist.length} items — evaluating with latest market data...`);
+  evaluateWatchlist._skipConfirm = true;
   await evaluateWatchlist();
 }
 
