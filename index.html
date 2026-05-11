@@ -888,6 +888,7 @@ input[type="range"]::-webkit-slider-thumb {
   <div class="sidebar-header">
     <div class="sidebar-logo">APEX</div>
     <div class="sidebar-version" id="sidebarVersion">v3.4.3 — Portfolio Intelligence</div>
+    <div style="margin-top:4px;"><a href="#" onclick="event.preventDefault();showDebugLog()" style="color:var(--text-tertiary);font-size:10px;text-decoration:none;font-family:'IBM Plex Mono',monospace;">📋 Debug Log</a></div>
   </div>
   <div class="sidebar-nav">
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
@@ -2098,6 +2099,7 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="page-title">SETTINGS</div>
       <div class="page-subtitle">API & preferences</div>
     </div>
+    <button class="btn btn-sm" onclick="showDebugLog()">📋 Debug Log</button>
   </div>
   <div class="page-content">
     <!-- API -->
@@ -2207,7 +2209,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.4.3';
+const APEX_VERSION = '3.4.6';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5297,15 +5299,69 @@ async function evaluateSingleWatchlistItem(idx) {
   if (!w) return;
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
-  if (!confirm(`Evaluate ${w.ticker}? This uses Sonnet + web search. Estimated cost: ~$0.05-0.10`)) return;
+  if (!confirm(`Evaluate ${w.ticker}? Estimated cost: ~$0.05-0.10`)) return;
+  
+  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
   toast('Evaluating ' + w.ticker + '...');
-  const origStatus = w.status;
-  w.status = 'pending';
-  state.watchlist.forEach((item, i) => { if (i !== idx) item._wasStatus = item.status; });
-  evaluateWatchlist._skipConfirm = true;
-  await evaluateWatchlist();
-  state.watchlist.forEach(item => { if (item._wasStatus) { item.status = item._wasStatus; delete item._wasStatus; } });
-  refreshWatchlist();
+  
+  const prof = state.profile || getDefaultProfile();
+  const guessSector = w.sector || SECTOR_MAP[w.ticker.toUpperCase()] || 'Unknown';
+  const sameSector = state.positions.filter(p => p.sector === guessSector);
+  const sectorPeers = sameSector.length > 0
+    ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}%)`).join(', ')
+    : 'none currently held';
+  
+  const prompt = `Evaluate this single stock for portfolio addition:
+
+TICKER: ${w.ticker} (${w.exchange || 'unknown'}, suggested tag: ${w.tag}${w.notes ? ', user note: ' + w.notes : ''})
+Likely sector: ${guessSector}
+Existing portfolio peers: ${sectorPeers}
+
+INVESTOR: ${prof.risk} risk, focus sectors: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
+
+Use web search to get current data. Return ONLY JSON (no markdown):
+{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer ticker or none"}
+
+For PASS/WATCH set suggestedWeight to 0.`;
+
+  try {
+    apexLog('INFO', `Single eval: ${w.ticker}, model=claude-sonnet-4-6`);
+    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 1000);
+    
+    const usage = result.data?.usage || {};
+    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
+    apexLog('API', `Single eval ${w.ticker} — cost ~$${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    
+    let parsed = parseHaikuJSON(result.text);
+    if (!parsed) {
+      const objMatch = result.text.match(/\{[\s\S]*\}/);
+      if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
+    }
+    
+    if (!parsed || !parsed.ticker) {
+      state._lastWatchlistEvalRaw = result.text;
+      toast('Parse failed for ' + w.ticker + ' — raw saved', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '🤖 Evaluate'; }
+      return;
+    }
+    
+    w.status = parsed.verdict === 'PASS' ? 'rejected' : 'evaluated';
+    w.lastEval = new Date().toISOString();
+    w.tag = (parsed.tag || w.tag || 'core').toLowerCase();
+    w.evalData = {
+      verdict: parsed.verdict, verdictReason: parsed.verdictReason || '',
+      comparedAgainst: parsed.comparedAgainst || '', thesis: parsed.thesis,
+      riskLevel: parsed.riskLevel, suggestedWeight: parsed.suggestedWeight,
+      fundamentals: parsed.fundamentals, risks: parsed.risks,
+      sector: parsed.sector, revenueTrend: parsed.revenueTrend, catalysts: parsed.catalysts
+    };
+    saveState(); refreshWatchlist();
+    toast(`${w.ticker}: ${parsed.verdict} — ${parsed.verdictReason || parsed.thesis || ''}`);
+  } catch(e) {
+    toast('Evaluation failed: ' + e.message, 'error');
+    apexLog('ERROR', `Single eval ${w.ticker} failed: ${e.message}`);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 Evaluate'; }
 }
 
 function reEvaluateWatchlistItem(idx) {
@@ -5387,149 +5443,94 @@ async function evaluateWatchlist() {
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
   
-  // Skip confirmation if called from single-item eval or re-evaluate (already confirmed)
   if (!evaluateWatchlist._skipConfirm) {
-    const estCost = (pending.length * 0.08).toFixed(2);
-    if (!confirm(`Evaluate ${pending.length} tickers using Sonnet + web search?\nEstimated cost: ~$${estCost}`)) return;
+    const estCost = (pending.length * 0.06).toFixed(2);
+    if (!confirm(`Evaluate ${pending.length} tickers one-by-one?\nEstimated cost: ~$${estCost}\nProgress saves after each ticker — safe to stop anytime.`)) return;
   }
   evaluateWatchlist._skipConfirm = false;
 
   const btn = document.getElementById('evalWatchlistBtn');
-  btn.disabled = true; btn.textContent = '⏳ Evaluating...';
-
-  const prof = state.profile;
+  btn.disabled = true;
   
-  // Build same-sector comparison context for each pending item
-  const itemsWithContext = pending.map(w => {
-    // Try to match sector — use SECTOR_MAP heuristic if no sector set yet
+  const prof = state.profile || getDefaultProfile();
+  let completed = 0, failed = 0, strongBuy = 0, buy = 0, watch = 0, pass = 0;
+  
+  for (let i = 0; i < state.watchlist.length; i++) {
+    const w = state.watchlist[i];
+    if (w.status !== 'pending') continue;
+    
+    btn.textContent = `⏳ ${completed + 1}/${pending.length} (${w.ticker})...`;
+    
     const guessSector = w.sector || SECTOR_MAP[w.ticker.toUpperCase()] || 'Unknown';
-    // Find user's positions in same sector for comparison
     const sameSector = state.positions.filter(p => p.sector === guessSector);
     const sectorPeers = sameSector.length > 0
-      ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}% of portfolio, $${formatNum(p.value)})`).join(', ')
+      ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}%)`).join(', ')
       : 'none currently held';
-    return { ticker: w.ticker, exchange: w.exchange || 'unknown', tag: w.tag, notes: w.notes || '', guessSector, sectorPeers };
-  });
-  
-  const tickerBlock = itemsWithContext.map(i =>
-    `${i.ticker} (${i.exchange}, suggested tag: ${i.tag}${i.notes ? ', user note: ' + i.notes : ''})\n  Likely sector: ${i.guessSector}\n  Existing portfolio peers in same sector: ${i.sectorPeers}`
-  ).join('\n\n');
-
-  const prompt = `You are the APEX Analyst Panel evaluating watchlist tickers for potential addition to the user's portfolio.
-
-INVESTOR PROFILE: ${prof.risk} risk, ${prof.horizon} horizon, focus sectors: ${prof.focusSectors.join(', ')}, min market cap $${prof.minCap}M
-
-TICKERS TO EVALUATE (with same-sector portfolio peers shown for comparison):
-${tickerBlock}
-
-═══ EVALUATION DISCIPLINE — READ CAREFULLY ═══
-
-For each ticker, you must determine TWO things:
-
-1. **Standalone quality:** is the stock fundamentally compelling on its own merits? Cite at least 2 of: forward P/E, PEG ratio, FCF yield, revenue growth rate, margin trend.
-
-2. **Comparative quality:** is the stock materially better than the weakest sector peer the user already holds? If sector peers exist, compare directly. If no peers exist, compare against the user's overall portfolio quality bar.
-
-Use web search to get current data for each ticker.
-
-═══ VERDICT MEANINGS — BE SELECTIVE ═══
-
-- **STRONG_BUY**: Clearly superior to existing sector peers. Worth replacing a current holding. Reserve for ideas with a clear edge — typically no more than 1-2 per evaluation batch.
-- **BUY**: Good standalone quality and at least as good as existing peers. Worth adding if cash allows, but not worth forcing an exit.
-- **WATCH**: Interesting but not yet ready — needs a catalyst, better entry price, or more clarity. Stays in watchlist, not promoted.
-- **PASS**: Does not meet the quality bar. Either fundamentally weak or strictly worse than what the user already holds.
-
-DEFAULT TO WATCH OR PASS unless you have strong evidence. The user has limited capital and existing positions — every BUY recommendation should be defensible against the alternative of holding cash or sticking with current positions.
-
-═══ OUTPUT FORMAT ═══
-
-Return ONLY a JSON array (no markdown, no preamble):
-[{"ticker":"XYZ","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence explaining the verdict — what it beats or why it falls short","sector":"Technology","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with cited metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"ticker(s) of sector peer this was compared to, or 'none in sector'"}]
-
-For PASS or WATCH verdicts, set suggestedWeight to 0.`;
-
-  try {
-    // Force Sonnet for evaluation — Opus is too expensive with web search
-    const evalModel = 'claude-sonnet-4-6';
-    const estCost = (pending.length * 0.08).toFixed(2);
-    apexLog('INFO', `Watchlist eval: ${pending.length} tickers, model=${evalModel}, est cost ~$${estCost}`);
     
-    const result = await callClaude(key, evalModel, [{role:'user', content: prompt}], true, 2000);
-    
-    // Log actual token usage and estimated cost
-    const usage = result.data?.usage || {};
-    const actualCost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
-    apexLog('API', `Watchlist eval complete — cost ~$${actualCost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
-    console.log('APEX Watchlist eval raw:', result.text.substring(0, 800));
-    
-    // Robust JSON parsing — multiple strategies
-    let parsed = parseHaikuJSON(result.text);
-    if (!parsed) {
-      // Try non-greedy array extraction
-      const arrMatch = result.text.match(/\[[\s\S]*?\](?=[^}\]]*$)/);
-      if (arrMatch) {
-        try { parsed = JSON.parse(arrMatch[0].replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
+    const prompt = `Evaluate this stock for portfolio addition:
+
+TICKER: ${w.ticker} (${w.exchange || 'unknown'}, suggested tag: ${w.tag}${w.notes ? ', note: ' + w.notes : ''})
+Sector: ${guessSector} | Existing peers: ${sectorPeers}
+INVESTOR: ${prof.risk} risk, focus: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
+
+Use web search for current data. Return ONLY JSON (no markdown):
+{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer or none"}
+For PASS/WATCH set suggestedWeight to 0.`;
+
+    try {
+      apexLog('INFO', `Batch eval ${completed + 1}/${pending.length}: ${w.ticker}`);
+      const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 1000);
+      
+      const usage = result.data?.usage || {};
+      const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
+      apexLog('API', `Eval ${w.ticker} — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+      
+      let parsed = parseHaikuJSON(result.text);
+      if (!parsed) {
+        const objMatch = result.text.match(/\{[\s\S]*\}/);
+        if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
       }
-    }
-    if (!parsed) {
-      // Try extracting between first [ and last ]
-      const first = result.text.indexOf('[');
-      const last = result.text.lastIndexOf(']');
-      if (first >= 0 && last > first) {
-        try { parsed = JSON.parse(result.text.substring(first, last + 1).replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
-      }
-    }
-    if (!parsed || !Array.isArray(parsed)) {
-      // Save raw for debugging
-      state._lastWatchlistEvalRaw = result.text;
-      saveState();
-      toast('Evaluation response received but JSON parse failed — raw saved for debug. Check console.', 'error');
-      btn.disabled = false; btn.textContent = '🤖 Evaluate Pending';
-      return;
-    }
-
-    const evalMap = {};
-    parsed.forEach(e => { if (e.ticker) evalMap[e.ticker.toUpperCase().replace(/\s/g,'')] = e; });
-
-    let strongBuy = 0, buy = 0, watch = 0, pass = 0, matched = 0;
-    state.watchlist.forEach(w => {
-      const ev = evalMap[w.ticker.toUpperCase()];
-      if (ev) {
-        matched++;
-        w.status = ev.verdict === 'PASS' ? 'rejected' : 'evaluated';
+      
+      if (parsed && parsed.ticker) {
+        w.status = parsed.verdict === 'PASS' ? 'rejected' : 'evaluated';
         w.lastEval = new Date().toISOString();
-        w.tag = (ev.tag || w.tag || 'core').toLowerCase();
+        w.tag = (parsed.tag || w.tag || 'core').toLowerCase();
         w.evalData = {
-          verdict: ev.verdict,
-          verdictReason: ev.verdictReason || '',
-          comparedAgainst: ev.comparedAgainst || '',
-          thesis: ev.thesis,
-          riskLevel: ev.riskLevel,
-          suggestedWeight: ev.suggestedWeight,
-          fundamentals: ev.fundamentals,
-          risks: ev.risks,
-          sector: ev.sector,
-          revenueTrend: ev.revenueTrend,
-          catalysts: ev.catalysts
+          verdict: parsed.verdict, verdictReason: parsed.verdictReason || '',
+          comparedAgainst: parsed.comparedAgainst || '', thesis: parsed.thesis,
+          riskLevel: parsed.riskLevel, suggestedWeight: parsed.suggestedWeight,
+          fundamentals: parsed.fundamentals, risks: parsed.risks,
+          sector: parsed.sector, revenueTrend: parsed.revenueTrend, catalysts: parsed.catalysts
         };
-        if (ev.verdict === 'STRONG_BUY') strongBuy++;
-        else if (ev.verdict === 'BUY') buy++;
-        else if (ev.verdict === 'WATCH') watch++;
-        else if (ev.verdict === 'PASS') pass++;
+        if (parsed.verdict === 'STRONG_BUY') strongBuy++;
+        else if (parsed.verdict === 'BUY') buy++;
+        else if (parsed.verdict === 'WATCH') watch++;
+        else if (parsed.verdict === 'PASS') pass++;
+        completed++;
+        // Save after EACH successful evaluation — progress is never lost
+        saveState();
+        refreshWatchlist();
+      } else {
+        failed++;
+        apexLog('ERROR', `Parse failed for ${w.ticker}`, result.text.substring(0, 200));
       }
-    });
-    if (matched === 0) {
-      state._lastWatchlistEvalRaw = result.text;
-      toast(`Parsed ${parsed.length} items but matched 0 watchlist tickers — ticker mismatch? Raw saved.`, 'error');
-    } else {
-      toast(`Evaluated ${matched}: ${strongBuy} STRONG_BUY, ${buy} BUY, ${watch} WATCH, ${pass} PASS`);
+    } catch(e) {
+      failed++;
+      apexLog('ERROR', `Eval ${w.ticker} failed: ${e.message}`);
+      // If credit balance or network error, stop the batch — don't waste more money
+      if (e.message.includes('credit balance') || e.message.includes('Network error')) {
+        toast(`Stopped at ${w.ticker}: ${e.message}. ${completed} tickers saved. Resume later.`, 'error');
+        break;
+      }
     }
-    saveState(); refreshWatchlist();
-  } catch(e) {
-    toast('Evaluation failed: ' + e.message, 'error');
-    console.error('APEX Watchlist eval error:', e);
+    
+    // Small delay between calls to avoid rate limits
+    if (i < state.watchlist.length - 1) await new Promise(r => setTimeout(r, 2000));
   }
+  
   btn.disabled = false; btn.textContent = '🤖 Evaluate Pending';
+  const remaining = state.watchlist.filter(w => w.status === 'pending').length;
+  toast(`Done: ${completed} evaluated (${strongBuy} ★, ${buy} BUY, ${watch} WATCH, ${pass} PASS)${failed ? ', ' + failed + ' failed' : ''}${remaining ? ', ' + remaining + ' remaining' : ''}`);
 }
 
 async function reEvaluateAllWatchlist() {
