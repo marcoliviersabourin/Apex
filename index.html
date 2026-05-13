@@ -1826,6 +1826,18 @@ input[type="range"]::-webkit-slider-thumb {
 
     <!-- Run controls -->
     <div class="card fade-in stagger-3">
+      <!-- Resume indicator — shown when there's saved progress -->
+      <div id="analysisResumeBar" style="display:none;margin-bottom:12px;padding:12px 16px;background:rgba(245,158,11,0.1);border:1px solid var(--amber);border-radius:var(--radius-sm);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="color:var(--amber);font-weight:700;font-size:13px;">⚠ Incomplete Analysis Detected</span>
+          <span id="resumePhaseLabel" style="font-size:11px;color:var(--text-secondary);"></span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-sm btn-primary" id="resumeBtn" onclick="resumeSavedAnalysis()">▶ Resume</button>
+          <button class="btn btn-sm" onclick="reExtractStructuredData()">🔄 Re-extract Data Only ($0.02)</button>
+          <button class="btn btn-sm" onclick="discardSavedProgress()">🗑 Discard Progress</button>
+        </div>
+      </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
         <button class="btn" onclick="testAPI()">🔌 Test API</button>
         <button class="btn btn-tactical" onclick="runMarketAlert()" id="marketAlertBtn">
@@ -2209,7 +2221,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.4.6';
+const APEX_VERSION = '3.4.7';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2401,7 +2413,7 @@ function navigateTo(page) {
   });
   if (page === 'dashboard') refreshDashboard();
   if (page === 'portfolio') refreshHoldings();
-  if (page === 'analysis') { refreshAnalysisConfig(); updateCostEstimate(); }
+  if (page === 'analysis') { refreshAnalysisConfig(); updateCostEstimate(); checkAnalysisProgress(); }
   if (page === 'history') refreshHistory();
   if (page === 'macro') refreshMacro();
   if (page === 'ideas') refreshIdeas();
@@ -4508,6 +4520,86 @@ function startHeartbeat(btn, label) {
 }
 
 // ═══ OPTIMIZED ANALYSIS PIPELINE (2 chunks + Haiku JSON) ═══
+function checkAnalysisProgress() {
+  const prog = state._analysisProgress;
+  const bar = document.getElementById('analysisResumeBar');
+  if (!bar) return;
+  
+  if (prog && (prog.chunkA || prog.chunkB || prog.chunkC)) {
+    bar.style.display = 'block';
+    const chunks = [];
+    if (prog.chunkA) chunks.push('Parts 1-4 ✓');
+    if (prog.chunkB) chunks.push('Parts 5-7 ✓');
+    if (prog.chunkC) chunks.push('JSON ✓');
+    const nextPhase = !prog.chunkA ? 'Parts 1-4' : !prog.chunkB ? 'Parts 5-7' : !prog.chunkC ? 'JSON extraction' : 'Final save';
+    document.getElementById('resumePhaseLabel').textContent = 
+      `Saved: ${chunks.join(', ')} | Next: ${nextPhase} | Cost to resume: ~$${!prog.chunkB ? '0.15' : !prog.chunkC ? '0.02' : '0.00'}`;
+    document.getElementById('resumeBtn').textContent = prog.chunkA && prog.chunkB && prog.chunkC ? '✓ Finalize Report' : `▶ Resume from ${nextPhase}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function resumeSavedAnalysis() {
+  const prog = state._analysisProgress;
+  if (!prog) { toast('No saved progress found', 'error'); return; }
+  
+  // If all 3 chunks are done, just finalize
+  if (prog.chunkA && prog.chunkB && prog.chunkC) {
+    toast('All chunks complete — finalizing report...');
+    finalizeAnalysisFromProgress(prog);
+    return;
+  }
+  
+  const phase = !prog.chunkA ? 'chunkA' : !prog.chunkB ? 'chunkB' : 'chunkC';
+  runAnalysis(phase);
+}
+
+async function finalizeAnalysisFromProgress(prog) {
+  // Re-run the finalization step without re-calling any API
+  const fullReport = (prog.chunkA || '') + '\n\n' + (prog.chunkB || '');
+  
+  // Parse the JSON from chunkC
+  let structuredData = parseHaikuJSON(prog.chunkC);
+  if (!structuredData) {
+    toast('JSON re-parse failed — running re-extract...', 'error');
+    reExtractStructuredData();
+    return;
+  }
+  
+  // Apply the data
+  state.analysisData = structuredData;
+  const narrativeText = fullReport;
+  const report = {
+    date: new Date().toISOString(),
+    content: narrativeText,
+    _rawChunkA: prog.chunkA, _rawChunkB: prog.chunkB, _rawChunkC: prog.chunkC,
+    model: state.settings.model,
+    specificInstructions: document.getElementById('specificInstructions')?.value || '',
+    weeklyNotes: document.getElementById('weeklyNotes')?.value || ''
+  };
+  state.reports.unshift(report);
+  if (state.reports.length > 24) state.reports = state.reports.slice(0, 24);
+  state._analysisProgress = null;
+  saveState();
+  
+  updateHistoryBadge();
+  parseAndApplySentiment(fullReport, structuredData);
+  renderReport(narrativeText, 'analysisReport');
+  refreshHoldings(); refreshMacro(); refreshIdeas(); refreshTarget(); refreshDashboard();
+  
+  document.getElementById('analysisResumeBar').style.display = 'none';
+  toast('Report finalized from saved chunks — all pages updated');
+}
+
+function discardSavedProgress() {
+  if (!confirm('Discard saved analysis progress? The API costs for completed chunks cannot be recovered.')) return;
+  state._analysisProgress = null;
+  saveState();
+  document.getElementById('analysisResumeBar').style.display = 'none';
+  toast('Progress discarded');
+}
+
 async function runAnalysis(resumeFrom) {
   const key = state.settings.apiKey || document.getElementById('apiKeyInput').value.trim();
   if (!key) { toast('Set your API key in Settings first', 'error'); return; }
