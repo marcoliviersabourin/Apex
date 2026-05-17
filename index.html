@@ -920,6 +920,12 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="nav-item" data-page="watchlist" onclick="navigateTo('watchlist')">
       <span class="nav-icon">👁</span> Watchlist
     </div>
+    <div class="nav-item" data-page="research" onclick="navigateTo('research')">
+      <span class="nav-icon">🔬</span> Research
+    </div>
+    <div class="nav-item" data-page="universe" onclick="navigateTo('universe')">
+      <span class="nav-icon">🔍</span> Universe
+    </div>
     <div class="nav-item" data-page="target" onclick="navigateTo('target')">
       <span class="nav-icon">🎯</span> Target Portfolio
     </div>
@@ -2008,6 +2014,294 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- ═══ PAGE: RESEARCH HUB ═══ -->
+<div class="page" id="page-research">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔬 AI RESEARCH HUB</div>
+      <div class="page-subtitle">6 intelligence feeds — each surfaces investment candidates independently</div>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Feed Tabs -->
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;" id="researchTabs">
+      <button class="btn btn-sm btn-primary" onclick="showResearchFeed('analysis')" data-feed="analysis">🤖 Weekly</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('earnings')" data-feed="earnings">📊 Earnings</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('institutional')" data-feed="institutional">🏛 Institutional</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">🏛 Political</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('rotation')" data-feed="rotation">🔄 Rotation</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('insider')" data-feed="insider">💎 Insider</button>
+    </div>
+
+    <!-- Feed: Weekly Analysis -->
+    <div class="research-feed" id="feed-analysis">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🤖 Weekly Analysis</span>
+          <span id="feedDate-analysis" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Full 7-part analyst panel: macro, verdicts, new ideas, risk check. Your most comprehensive source.</div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="navigateTo('analysis')">Go to Analysis Page →</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.35-0.50 | Run weekly</span>
+        </div>
+        <div id="feedResults-analysis" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Earnings Whiplash -->
+    <div class="research-feed" id="feed-earnings" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">📊 Earnings Whiplash Map</span>
+          <span id="feedDate-earnings" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Upcoming earnings: which of your positions are at risk, and which non-held stocks could create entry opportunities.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Lookahead</label>
+            <select class="form-select" id="earnings-lookahead" style="font-size:11px;">
+              <option value="7">7 days</option><option value="14" selected>14 days</option><option value="21">21 days</option><option value="30">30 days</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Focus</label>
+            <select class="form-select" id="earnings-focus" style="font-size:11px;">
+              <option value="both" selected>My positions + opportunities</option><option value="mine">My positions only</option><option value="opps">Opportunities only</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="earnings-instructions" rows="2" placeholder="e.g. Focus on tech earnings, ignore banks..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('earnings')">▶ Run Earnings Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.10-0.15 | Run weekly</span>
+        </div>
+        <div id="feedResults-earnings" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Institutional Tracker -->
+    <div class="research-feed" id="feed-institutional" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🏛 Institutional Tracker</span>
+          <span id="feedDate-institutional" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Tracks smart money accumulation patterns. Identifies quiet institutional buys with low retail interest.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Lookback</label>
+            <select class="form-select" id="inst-lookback" style="font-size:11px;">
+              <option value="30">30 days</option><option value="60">60 days</option><option value="90" selected>90 days</option><option value="180">180 days</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Min Position Change</label>
+            <select class="form-select" id="inst-minsize" style="font-size:11px;">
+              <option value="any">Any</option><option value="1M">$1M+</option><option value="5M" selected>$5M+</option><option value="10M">$10M+</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">Institutions to Track</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;" id="inst-checkboxes">
+            <label><input type="checkbox" checked data-inst="Berkshire Hathaway"> Berkshire</label>
+            <label><input type="checkbox" checked data-inst="Bridgewater"> Bridgewater</label>
+            <label><input type="checkbox" checked data-inst="Renaissance Technologies"> Renaissance</label>
+            <label><input type="checkbox" checked data-inst="Citadel"> Citadel</label>
+            <label><input type="checkbox" checked data-inst="Two Sigma"> Two Sigma</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="inst-instructions" rows="2" placeholder="e.g. Focus on defense sector moves, ignore Chinese ADRs..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('institutional')">▶ Run Institutional Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.10-0.15 | Run quarterly</span>
+        </div>
+        <div id="feedResults-institutional" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Political Traders -->
+    <div class="research-feed" id="feed-political" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🏛 Political Traders</span>
+          <span id="feedDate-political" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Congressional stock trade disclosures. Tracks members with notable trading track records.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Lookback</label>
+            <select class="form-select" id="pol-lookback" style="font-size:11px;">
+              <option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Min Trade Size</label>
+            <select class="form-select" id="pol-minsize" style="font-size:11px;">
+              <option value="any">Any</option><option value="50K">$50K+</option><option value="100K" selected>$100K+</option><option value="500K">$500K+</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">Members to Track</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;" id="pol-checkboxes">
+            <label><input type="checkbox" checked data-pol="Nancy Pelosi"> Pelosi</label>
+            <label><input type="checkbox" checked data-pol="Ted Cruz"> Cruz</label>
+            <label><input type="checkbox" checked data-pol="Tim Moore"> Moore</label>
+            <label><input type="checkbox" checked data-pol="Marjorie Taylor Greene"> Greene</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="pol-instructions" rows="2" placeholder="e.g. Focus on trades preceding legislation..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('political')">▶ Run Political Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.08-0.12 | Run monthly</span>
+        </div>
+        <div id="feedResults-political" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Sector Rotation -->
+    <div class="research-feed" id="feed-rotation" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🔄 Sector Rotation Detector</span>
+          <span id="feedDate-rotation" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Detects money flow between sectors using BX Trender data + economic cycle mapping. Base computation is free.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:140px;">
+            <label class="form-label" style="font-size:9px;">Cycle Override</label>
+            <select class="form-select" id="rot-cycle" style="font-size:11px;">
+              <option value="auto" selected>Auto-detect</option><option value="early">Force: Early Cycle</option><option value="mid">Force: Mid Cycle</option><option value="late">Force: Late Cycle</option><option value="recession">Force: Recession</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">AI Enhancement</label>
+            <label style="font-size:11px;"><input type="checkbox" id="rot-enhance" checked> Add Claude analysis (+$0.08)</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="rot-instructions" rows="2" placeholder="e.g. I think we're entering late cycle despite indicators..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('rotation')">▶ Run Rotation Analysis</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Base: free | Enhanced: ~$0.08 | Run weekly</span>
+        </div>
+        <div id="feedResults-rotation" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Insider + Options -->
+    <div class="research-feed" id="feed-insider" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">💎 Insider + Options Flow</span>
+          <span id="feedDate-insider" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Large insider purchases + unusual options activity. Strongest signal when both align on the same ticker (confluence).</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Lookback</label>
+            <select class="form-select" id="ins-lookback" style="font-size:11px;">
+              <option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Min Insider Transaction</label>
+            <select class="form-select" id="ins-minsize" style="font-size:11px;">
+              <option value="100K">$100K+</option><option value="500K" selected>$500K+</option><option value="1M">$1M+</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:140px;">
+            <label class="form-label" style="font-size:9px;">Insider Role</label>
+            <select class="form-select" id="ins-role" style="font-size:11px;">
+              <option value="cxo">CEO/CFO only</option><option value="directors" selected>All directors</option><option value="all">All insiders</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="ins-instructions" rows="2" placeholder="e.g. Focus on tech and defense sectors, look for cluster buying..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('insider')">▶ Run Insider Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.10-0.15 | Run weekly</span>
+        </div>
+        <div id="feedResults-insider" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: UNIVERSE ═══ -->
+<div class="page" id="page-universe">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔍 UNIVERSE</div>
+      <div class="page-subtitle" id="universeSubtitle">All tickers from all sources — unified scoring</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="refreshUniverse()">🔄 Refresh</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Regime context -->
+    <div id="universeRegimeBanner" style="margin-bottom:12px;"></div>
+    
+    <!-- Controls -->
+    <div class="card fade-in" style="padding:10px 16px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <div style="font-size:10px;color:var(--text-tertiary);font-weight:700;">FILTER:</div>
+        <button class="btn btn-sm btn-primary" onclick="filterUniverse('all')" data-uf="all">All</button>
+        <button class="btn btn-sm" onclick="filterUniverse('held')" data-uf="held">Held</button>
+        <button class="btn btn-sm" onclick="filterUniverse('watchlist')" data-uf="watchlist">Watchlist</button>
+        <button class="btn btn-sm" onclick="filterUniverse('idea')" data-uf="idea">AI Ideas</button>
+        <button class="btn btn-sm" onclick="filterUniverse('research')" data-uf="research">Research</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <span style="font-size:10px;color:var(--text-tertiary);">Period:</span>
+          <select class="form-select" id="universePeriod" style="font-size:11px;width:80px;" onchange="refreshUniverse()">
+            <option value="1">1Y</option><option value="2">2Y</option><option value="3" selected>3Y</option><option value="5">5Y</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary strip -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;" id="universeSummary"></div>
+    
+    <!-- Universe table -->
+    <div class="card fade-in stagger-1" style="margin-top:4px;overflow-x:auto;">
+      <table style="width:100%;min-width:900px;" id="universeTable">
+        <thead><tr>
+          <th style="cursor:pointer;" onclick="sortUniverse('ticker')">Ticker</th>
+          <th>Source</th>
+          <th>Sector</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('signals')">Signals</th>
+          <th>BX</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('oppScore')">Opp</th>
+          <th>Verdict</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('sigReturn')">Sig Ret</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('bhReturn')">B&H</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('weight')">Weight</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="universeBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ PAGE: TARGET PORTFOLIO ═══ -->
 <div class="page" id="page-target">
   <div class="page-header">
@@ -2221,7 +2515,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.4.7';
+const APEX_VERSION = '3.6.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2301,6 +2595,7 @@ function loadState() {
       state.settings = { ...state.settings, ...(parsed.settings || {}) };
       state.technicalData = parsed.technicalData || {};
       state.regime = parsed.regime || null;
+      state.research = parsed.research || { config: {} };
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
@@ -2344,6 +2639,7 @@ function saveState() {
       cashBalances: state.cashBalances,
       technicalData: prunedTech,
       regime: state.regime,
+      research: state.research,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -2414,6 +2710,8 @@ function navigateTo(page) {
   if (page === 'dashboard') refreshDashboard();
   if (page === 'portfolio') refreshHoldings();
   if (page === 'analysis') { refreshAnalysisConfig(); updateCostEstimate(); checkAnalysisProgress(); }
+  if (page === 'research') { refreshResearch(); }
+  if (page === 'universe') { refreshUniverse(); }
   if (page === 'history') refreshHistory();
   if (page === 'macro') refreshMacro();
   if (page === 'ideas') refreshIdeas();
@@ -4294,14 +4592,17 @@ async function reExtractStructuredData() {
   if (!key) { toast('Set API key first', 'error'); return; }
   
   const lastReport = state.reports[0];
-  if (!lastReport || (!lastReport._rawChunkA && !lastReport.content)) {
-    toast('No saved narrative to re-extract from', 'error');
+  const prog = state._analysisProgress;
+  if (!lastReport && !prog) {
+    toast('No saved narrative to re-extract from — run analysis first', 'error');
     return;
   }
   
-  const fullNarrative = (lastReport._rawChunkA && lastReport._rawChunkB)
+  const fullNarrative = (lastReport?._rawChunkA && lastReport?._rawChunkB)
     ? lastReport._rawChunkA + '\n\n' + lastReport._rawChunkB
-    : lastReport.content;
+    : (prog?.chunkA && prog?.chunkB)
+    ? prog.chunkA + '\n\n' + prog.chunkB
+    : lastReport?.content || '';
   
   toast('Re-extracting structured data...');
   
@@ -4346,12 +4647,36 @@ CRITICAL: Include EVERY portfolio position in verdicts and EVERY new idea in new
       state.analysisData = structuredData;
       state.analysisData._reportDate = new Date().toISOString();
       state.analysisData._model = state.settings.model;
-      lastReport.structuredData = structuredData;
-      lastReport._rawChunkC = result.text;
+      
+      // If no report exists yet (analysis failed before save), create one from progress chunks
+      if (!lastReport && state._analysisProgress) {
+        const prog = state._analysisProgress;
+        const newReport = {
+          date: new Date().toISOString(),
+          content: fullNarrative,
+          _rawChunkA: prog.chunkA, _rawChunkB: prog.chunkB, _rawChunkC: result.text,
+          structuredData,
+          model: state.settings.model,
+          specificInstructions: document.getElementById('specificInstructions')?.value || '',
+          weeklyNotes: document.getElementById('weeklyNotes')?.value || ''
+        };
+        state.reports.unshift(newReport);
+        if (state.reports.length > 24) state.reports = state.reports.slice(0, 24);
+        state._analysisProgress = null;
+        updateHistoryBadge();
+        apexLog('INFO', 'Report created from saved progress + re-extract');
+      } else if (lastReport) {
+        lastReport.structuredData = structuredData;
+        lastReport._rawChunkC = result.text;
+      }
+      
       saveState();
       parseAndApplySentiment(fullNarrative, structuredData);
+      // Render the narrative report on the Analysis page
+      renderReport(fullNarrative, 'analysisReport');
       refreshHoldings(); refreshMacro(); refreshIdeas(); refreshTarget(); refreshDashboard();
-      toast(`✓ Extracted ${(structuredData.verdicts||[]).length} verdicts, ${(structuredData.newIdeas||[]).length} ideas`);
+      if (document.getElementById('analysisResumeBar')) document.getElementById('analysisResumeBar').style.display = 'none';
+      toast(`✓ Extracted ${(structuredData.verdicts||[]).length} verdicts, ${(structuredData.newIdeas||[]).length} ideas — report rendered`);
     } else {
       saveState();
       toast('Re-extraction failed — tap "🐛 Show Debug" to see what Haiku returned', 'error');
@@ -7079,6 +7404,676 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
     if (_equityChart) _equityChart.applyOptions({ width: container.clientWidth });
   });
   ro.observe(container);
+}
+
+// ═══ UNIVERSE ENGINE ═══
+let _universeData = [];
+let _universeSort = { col: 'signals', dir: 'desc' };
+let _universeFilter = 'all';
+
+function refreshUniverse() {
+  _universeData = buildUniverseData();
+  renderUniverseTable();
+}
+
+function buildUniverseData() {
+  const universe = {};
+  const total = getTotalValue();
+  
+  // Source 1: Portfolio positions
+  state.positions.forEach(p => {
+    const key = p.symbol.toUpperCase();
+    if (!universe[key]) universe[key] = createUniverseEntry(key);
+    const u = universe[key];
+    u.sources.add('held');
+    u.sector = p.sector || u.sector;
+    u.tag = p.tag || u.tag;
+    u.weight = total > 0 ? (p.value / total * 100) : 0;
+    u.price = p.markPrice;
+    u.value = p.value;
+  });
+  
+  // Source 2: Watchlist
+  state.watchlist.forEach(w => {
+    const key = w.ticker.toUpperCase();
+    if (!universe[key]) universe[key] = createUniverseEntry(key);
+    const u = universe[key];
+    u.sources.add('watchlist');
+    u.sector = w.evalData?.sector || u.sector;
+    u.tag = w.tag || u.tag;
+    u.watchVerdict = w.evalData?.verdict;
+    u.watchThesis = w.evalData?.thesis;
+  });
+  
+  // Source 3: AI Ideas (from weekly analysis)
+  (state.analysisData?.newIdeas || []).forEach(i => {
+    const key = i.ticker.toUpperCase();
+    if (!universe[key]) universe[key] = createUniverseEntry(key);
+    const u = universe[key];
+    u.sources.add('idea');
+    u.sector = i.sector || u.sector;
+    u.tag = (i.tag || u.tag || 'core').toLowerCase();
+    u.suggestedWeight = i.suggestedWeight;
+    u.ideaThesis = i.thesis;
+    u.ideaLead = i.leadAnalyst;
+  });
+  
+  // Source 4-8: Research feeds
+  const feedNames = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
+  feedNames.forEach(feed => {
+    const data = state.research?.[feed];
+    if (!data?.topPicks) return;
+    data.topPicks.forEach(pick => {
+      const key = pick.ticker.toUpperCase();
+      if (!universe[key]) universe[key] = createUniverseEntry(key);
+      const u = universe[key];
+      u.sources.add(feed);
+      u.feedSignals[feed] = { signal: pick.signal, confidence: pick.confidence, reason: pick.reason };
+      u.sector = pick.sector || u.sector;
+      u.tag = pick.suggestedTag?.toLowerCase() || u.tag;
+    });
+    // Also add overlap flags
+    (data.portfolioOverlap || []).forEach(ov => {
+      const key = ov.ticker.toUpperCase();
+      if (universe[key]) {
+        if (!universe[key].feedSignals[feed]) {
+          universe[key].feedSignals[feed] = { signal: ov.signal, confidence: 'Medium', reason: ov.note };
+        }
+      }
+    });
+  });
+  
+  // Now enrich each entry with BX data, opportunity score, analysis verdict, backtest
+  const period = parseInt(document.getElementById('universePeriod')?.value || '3');
+  
+  Object.values(universe).forEach(u => {
+    const td = state.technicalData[u.ticker];
+    const bx = td?.computed?.short || [];
+    const bars = td?.bars || [];
+    
+    // BX state
+    if (bx.length > 0) {
+      u.bxState = bx[bx.length - 1].state;
+      u.bxValue = bx[bx.length - 1].value;
+    }
+    
+    // Analysis verdict
+    const v = (state.analysisData?.verdicts || []).find(v => v.ticker?.toUpperCase() === u.ticker);
+    if (v) {
+      u.aiVerdict = v.verdict;
+      u.aiSentiment = v.sentiment;
+      u.aiAction = v.actionNote;
+    }
+    
+    // Opportunity score (from regime computation)
+    const opp = (state.regime?.opportunities || []).find(o => o.ticker.toUpperCase() === u.ticker);
+    if (opp) {
+      u.oppScore = opp.totalScore;
+      u.oppStatus = opp.status;
+      u.dislocation = opp.dislocationScore;
+      u.quality = opp.qualityScore;
+      u.bottom = opp.bottomScore;
+      u.pctFromHigh = opp.pctFromHigh;
+    }
+    
+    // Quick backtest (signal return vs buy-and-hold) over period
+    if (bars.length > 0 && td?.computed?.signals) {
+      const startDate = new Date();
+      startDate.setFullYear(startDate.getFullYear() - period);
+      const startStr = startDate.toISOString().substring(0, 10);
+      const startIdx = bars.findIndex(b => b.date >= startStr);
+      if (startIdx >= 0 && startIdx < bars.length - 1) {
+        const bhReturn = ((bars[bars.length-1].close - bars[startIdx].close) / bars[startIdx].close * 100);
+        u.bhReturn = bhReturn;
+        
+        // Signal return (simplified — walk through signals)
+        let cash = 10000, shares = 0, inMkt = false;
+        const sigs = td.computed.signals;
+        for (let i = startIdx; i < bars.length; i++) {
+          const sig = sigs.find(s => s.bar === i);
+          if (sig?.type === 'BUY' && !inMkt) { shares = cash / bars[i].close; cash = 0; inMkt = true; }
+          else if (sig?.type === 'SELL' && inMkt) { cash = shares * bars[i].close; shares = 0; inMkt = false; }
+        }
+        const finalVal = inMkt ? shares * bars[bars.length-1].close : cash;
+        u.sigReturn = ((finalVal - 10000) / 10000 * 100);
+      }
+    }
+    
+    // Signal count = number of distinct sources that flagged this ticker
+    u.signalCount = u.sources.size + Object.keys(u.feedSignals).length;
+    // Deduplicate: if a source is also a feed signal, don't double count
+    const allSources = new Set([...u.sources, ...Object.keys(u.feedSignals)]);
+    u.signalCount = allSources.size;
+  });
+  
+  return Object.values(universe);
+}
+
+function createUniverseEntry(ticker) {
+  return {
+    ticker, sources: new Set(), feedSignals: {},
+    sector: '', tag: 'core', weight: 0, price: 0, value: 0,
+    suggestedWeight: 0, bxState: '', bxValue: null,
+    aiVerdict: '', aiSentiment: '', aiAction: '',
+    oppScore: 0, oppStatus: '', dislocation: 0, quality: 0, bottom: 0, pctFromHigh: 0,
+    bhReturn: null, sigReturn: null, signalCount: 0,
+    watchVerdict: '', watchThesis: '', ideaThesis: '', ideaLead: ''
+  };
+}
+
+function filterUniverse(filter) {
+  _universeFilter = filter;
+  document.querySelectorAll('[data-uf]').forEach(b => b.className = 'btn btn-sm');
+  const btn = document.querySelector(`[data-uf="${filter}"]`);
+  if (btn) btn.className = 'btn btn-sm btn-primary';
+  renderUniverseTable();
+}
+
+function sortUniverse(col) {
+  if (_universeSort.col === col) _universeSort.dir = _universeSort.dir === 'desc' ? 'asc' : 'desc';
+  else { _universeSort.col = col; _universeSort.dir = 'desc'; }
+  renderUniverseTable();
+}
+
+function renderUniverseTable() {
+  let data = [..._universeData];
+  
+  // Filter
+  if (_universeFilter !== 'all') {
+    data = data.filter(u => {
+      if (_universeFilter === 'held') return u.sources.has('held');
+      if (_universeFilter === 'watchlist') return u.sources.has('watchlist');
+      if (_universeFilter === 'idea') return u.sources.has('idea');
+      if (_universeFilter === 'research') return Object.keys(u.feedSignals).length > 0;
+      return true;
+    });
+  }
+  
+  // Sort
+  const dir = _universeSort.dir === 'desc' ? -1 : 1;
+  data.sort((a, b) => {
+    switch(_universeSort.col) {
+      case 'ticker': return dir * a.ticker.localeCompare(b.ticker);
+      case 'signals': return dir * (a.signalCount - b.signalCount);
+      case 'oppScore': return dir * (a.oppScore - b.oppScore);
+      case 'sigReturn': return dir * ((a.sigReturn||0) - (b.sigReturn||0));
+      case 'bhReturn': return dir * ((a.bhReturn||0) - (b.bhReturn||0));
+      case 'weight': return dir * (a.weight - b.weight);
+      default: return dir * (a.signalCount - b.signalCount);
+    }
+  });
+  
+  // Summary strip
+  const held = _universeData.filter(u => u.sources.has('held')).length;
+  const watch = _universeData.filter(u => u.sources.has('watchlist')).length;
+  const ideas = _universeData.filter(u => u.sources.has('idea')).length;
+  const research = _universeData.filter(u => Object.keys(u.feedSignals).length > 0).length;
+  const convergent = _universeData.filter(u => u.signalCount >= 3).length;
+  
+  document.getElementById('universeSummary').innerHTML = `
+    <div class="metric-card" style="flex:1;min-width:70px;"><div class="metric-label">Total</div><div class="metric-value">${_universeData.length}</div></div>
+    <div class="metric-card" style="flex:1;min-width:70px;"><div class="metric-label">Held</div><div class="metric-value">${held}</div></div>
+    <div class="metric-card" style="flex:1;min-width:70px;"><div class="metric-label">Watchlist</div><div class="metric-value">${watch}</div></div>
+    <div class="metric-card" style="flex:1;min-width:70px;"><div class="metric-label">AI Ideas</div><div class="metric-value">${ideas}</div></div>
+    <div class="metric-card" style="flex:1;min-width:70px;"><div class="metric-label">Research</div><div class="metric-value">${research}</div></div>
+    <div class="metric-card" style="flex:1;min-width:80px;border-top:2px solid var(--green);"><div class="metric-label">3+ Signals</div><div class="metric-value" style="color:var(--green);">${convergent}</div></div>
+  `;
+  
+  // Regime banner
+  const regime = state.regime?.current || 'TRENDING';
+  const regimeColor = regime === 'CRISIS' ? 'var(--red)' : regime === 'VOLATILE' ? 'var(--amber)' : 'var(--green)';
+  document.getElementById('universeRegimeBanner').innerHTML = `
+    <div style="padding:8px 16px;border-radius:var(--radius-sm);border-left:3px solid ${regimeColor};background:var(--bg-secondary);font-size:12px;">
+      <span style="color:${regimeColor};font-weight:700;">⚡ ${regime}</span>
+      <span style="color:var(--text-secondary);margin-left:8px;">
+        ${regime === 'TRENDING' ? 'Trust BX signals for timing. Sort by Signal Count for highest conviction.' : 
+          regime === 'VOLATILE' ? 'Require confirmation. Focus on tickers with 3+ independent signals.' :
+          'Crisis mode: focus on high-quality dislocated names with bottom signals forming.'}
+      </span>
+    </div>`;
+  
+  // Table body
+  const body = document.getElementById('universeBody');
+  body.innerHTML = data.map(u => {
+    // Source badges
+    const srcBadges = [];
+    if (u.sources.has('held')) srcBadges.push('<span class="badge badge-core" style="font-size:8px;">HELD</span>');
+    if (u.sources.has('watchlist')) srcBadges.push('<span class="badge badge-hold" style="font-size:8px;">WATCH</span>');
+    if (u.sources.has('idea')) srcBadges.push('<span class="badge badge-tactical" style="font-size:8px;">IDEA</span>');
+    
+    // Feed signal icons
+    const feedIcons = [];
+    if (u.feedSignals.earnings) feedIcons.push('📊');
+    if (u.feedSignals.institutional) feedIcons.push('🏛');
+    if (u.feedSignals.political) feedIcons.push('🏛');
+    if (u.feedSignals.rotation) feedIcons.push('🔄');
+    if (u.feedSignals.insider) feedIcons.push('💎');
+    
+    // BX badge
+    const bxBadge = u.bxState ? getBXSignalBadge(u.ticker).html : '<span style="color:var(--text-tertiary);">—</span>';
+    
+    // Signal count with convergence highlight
+    const sigColor = u.signalCount >= 4 ? 'var(--green)' : u.signalCount >= 3 ? 'var(--blue)' : u.signalCount >= 2 ? 'var(--text-primary)' : 'var(--text-tertiary)';
+    
+    // Opp score
+    const oppBadge = u.oppScore >= 10 ? '<span class="badge badge-buy" style="font-size:8px;background:rgba(34,197,94,0.25);">★</span>' :
+      u.oppScore >= 7 ? '<span class="badge badge-buy" style="font-size:8px;">ACT</span>' :
+      u.oppScore >= 4 ? '<span class="badge badge-hold" style="font-size:8px;">W</span>' : '';
+    
+    // Verdict
+    const verdictColor = u.aiVerdict === 'BUY' ? 'var(--green)' : u.aiVerdict === 'TRIM' ? 'var(--amber)' : u.aiVerdict === 'EXIT' ? 'var(--red)' : 'var(--text-secondary)';
+    
+    // Returns
+    const sigRetStr = u.sigReturn !== null ? `<span style="color:${u.sigReturn >= 0 ? 'var(--green)' : 'var(--red)'};">${u.sigReturn >= 0 ? '+' : ''}${u.sigReturn.toFixed(0)}%</span>` : '—';
+    const bhRetStr = u.bhReturn !== null ? `<span style="color:${u.bhReturn >= 0 ? 'var(--green)' : 'var(--red)'};">${u.bhReturn >= 0 ? '+' : ''}${u.bhReturn.toFixed(0)}%</span>` : '—';
+    
+    // Weight
+    const weightStr = u.weight > 0 ? u.weight.toFixed(1) + '%' : u.suggestedWeight > 0 ? '<span style="color:var(--text-tertiary);">' + u.suggestedWeight + '%</span>' : '';
+    
+    return `<tr style="cursor:pointer;" onclick="toggleUniverseDetail(this,'${u.ticker}')">
+      <td style="font-weight:700;">${u.ticker}</td>
+      <td>${srcBadges.join(' ')}</td>
+      <td style="font-size:10px;">${u.sector || ''}</td>
+      <td style="text-align:center;">
+        <span style="font-weight:800;font-size:14px;color:${sigColor};">${u.signalCount}</span>
+        <span style="font-size:9px;">${feedIcons.join('')}</span>
+      </td>
+      <td>${bxBadge}</td>
+      <td class="num">${u.oppScore > 0 ? u.oppScore + '/14' : '—'} ${oppBadge}</td>
+      <td style="color:${verdictColor};font-weight:600;font-size:11px;">${u.aiVerdict || u.watchVerdict || '—'}</td>
+      <td class="num">${sigRetStr}</td>
+      <td class="num">${bhRetStr}</td>
+      <td class="num" style="font-size:11px;">${weightStr}</td>
+      <td><button class="btn btn-sm" style="font-size:8px;padding:2px 6px;" onclick="event.stopPropagation();addToTarget('${u.ticker}')">→ Target</button></td>
+    </tr>`;
+  }).join('');
+  
+  document.getElementById('universeSubtitle').textContent = `${data.length} tickers from ${_universeData.length} total — sorted by ${_universeSort.col} ${_universeSort.dir}`;
+}
+
+function toggleUniverseDetail(row, ticker) {
+  const existing = row.nextElementSibling;
+  if (existing?.classList?.contains('universe-detail')) { existing.remove(); return; }
+  
+  const u = _universeData.find(d => d.ticker === ticker);
+  if (!u) return;
+  
+  const detailRow = document.createElement('tr');
+  detailRow.className = 'universe-detail';
+  detailRow.innerHTML = `<td colspan="11" style="padding:12px;background:var(--bg-tertiary);border-left:3px solid var(--purple);">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:11px;">
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Sources & Signals</div>
+        ${u.sources.has('held') ? '<div>✓ Held in portfolio (' + u.weight.toFixed(1) + '%)</div>' : ''}
+        ${u.sources.has('watchlist') ? '<div>✓ On watchlist' + (u.watchVerdict ? ' — ' + u.watchVerdict : '') + '</div>' : ''}
+        ${u.sources.has('idea') ? '<div>✓ AI idea: ' + (u.ideaThesis || '') + '</div>' : ''}
+        ${Object.entries(u.feedSignals).map(([f, s]) => '<div style="margin-top:4px;">✓ <strong>' + f + '</strong>: ' + s.signal + ' — ' + (s.reason || '') + '</div>').join('')}
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📈 Technical</div>
+        <div>BX State: <strong style="color:${u.bxState === 'BULL' ? 'var(--green)' : u.bxState === 'BEAR' ? 'var(--red)' : 'var(--amber)'};">${u.bxState || 'no data'}</strong> ${u.bxValue !== null ? '(' + u.bxValue.toFixed(1) + ')' : ''}</div>
+        <div>Signal Return: ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(1) + '%' : 'no data'}</div>
+        <div>Buy & Hold: ${u.bhReturn !== null ? (u.bhReturn >= 0 ? '+' : '') + u.bhReturn.toFixed(1) + '%' : 'no data'}</div>
+        <div>From High: ${u.pctFromHigh ? u.pctFromHigh.toFixed(0) + '%' : '—'}</div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">🎯 Opportunity</div>
+        <div>Value: ${u.dislocation}/6 | Quality: ${u.quality}/3 | Bottom: ${u.bottom}/5</div>
+        <div>Total: <strong>${u.oppScore}/14</strong> ${u.oppStatus ? '— ' + u.oppStatus : ''}</div>
+        ${u.aiAction ? '<div style="margin-top:4px;">AI: ' + u.aiAction + '</div>' : ''}
+        ${u.aiSentiment ? '<div>Sentiment: ' + u.aiSentiment + '</div>' : ''}
+      </div>
+    </div>
+  </td>`;
+  row.after(detailRow);
+}
+
+function addToTarget(ticker) {
+  // Add ticker to ideas if not already there, then navigate to target
+  const ideas = state.analysisData?.newIdeas || [];
+  if (!ideas.find(i => i.ticker.toUpperCase() === ticker.toUpperCase())) {
+    const u = _universeData.find(d => d.ticker === ticker);
+    if (u) {
+      if (!state.analysisData) state.analysisData = {};
+      if (!state.analysisData.newIdeas) state.analysisData.newIdeas = [];
+      state.analysisData.newIdeas.push({
+        ticker, sector: u.sector, tag: u.tag, suggestedWeight: u.suggestedWeight || 1.5,
+        thesis: u.ideaThesis || u.watchThesis || 'Added from Universe',
+        leadAnalyst: u.ideaLead || 'dual', riskLevel: 'Medium', _forceInclude: true, _source: 'universe'
+      });
+      saveState();
+    }
+  }
+  toast(`${ticker} added to ideas — go to Target to rebuild`);
+  navigateTo('target');
+}
+
+// ═══ RESEARCH HUB ENGINE ═══
+function showResearchFeed(name) {
+  document.querySelectorAll('.research-feed').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#researchTabs button').forEach(b => { b.className = 'btn btn-sm'; });
+  const feed = document.getElementById('feed-' + name);
+  if (feed) feed.style.display = 'block';
+  const tab = document.querySelector(`#researchTabs [data-feed="${name}"]`);
+  if (tab) tab.className = 'btn btn-sm btn-primary';
+  // Show last results if available
+  renderFeedResults(name);
+}
+
+function refreshResearch() {
+  const feeds = ['analysis', 'earnings', 'institutional', 'political', 'rotation', 'insider'];
+  feeds.forEach(f => {
+    const data = state.research?.[f];
+    const dateEl = document.getElementById('feedDate-' + f);
+    if (dateEl && data?.runDate) {
+      dateEl.textContent = 'Last run: ' + new Date(data.runDate).toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    }
+  });
+  // Load saved custom instructions
+  const cfg = state.research?.config || {};
+  if (cfg.earnings?.instructions) document.getElementById('earnings-instructions').value = cfg.earnings.instructions;
+  if (cfg.institutional?.instructions) document.getElementById('inst-instructions').value = cfg.institutional.instructions;
+  if (cfg.political?.instructions) document.getElementById('pol-instructions').value = cfg.political.instructions;
+  if (cfg.rotation?.instructions) document.getElementById('rot-instructions').value = cfg.rotation.instructions;
+  if (cfg.insider?.instructions) document.getElementById('ins-instructions').value = cfg.insider.instructions;
+  // Render existing results for current tab
+  const activeTab = document.querySelector('#researchTabs .btn-primary');
+  if (activeTab) renderFeedResults(activeTab.dataset.feed);
+}
+
+async function runResearchFeed(feedName) {
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings first', 'error'); return; }
+  
+  if (!state.research) state.research = { config: {} };
+  
+  // Build the prompt based on feed type
+  const prompt = buildFeedPrompt(feedName);
+  if (!prompt) { toast('Failed to build prompt for ' + feedName, 'error'); return; }
+  
+  // Save config (custom instructions + parameters)
+  saveFeedConfig(feedName);
+  
+  const estCost = feedName === 'rotation' && !document.getElementById('rot-enhance')?.checked ? 0 : 0.12;
+  if (!confirm(`Run ${feedName} scan?\nEstimated cost: ~$${estCost.toFixed(2)}`)) return;
+  
+  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳ Running...'; }
+  apexLog('INFO', `Research feed: ${feedName} starting`);
+  
+  try {
+    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 2000);
+    const usage = result.data?.usage || {};
+    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
+    apexLog('API', `Research ${feedName} — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    
+    let parsed = parseHaikuJSON(result.text);
+    if (!parsed) {
+      const objMatch = result.text.match(/\{[\s\S]*\}/);
+      if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
+    }
+    
+    if (parsed) {
+      parsed.runDate = new Date().toISOString();
+      parsed.feedName = feedName;
+      state.research[feedName] = parsed;
+      saveState();
+      renderFeedResults(feedName);
+      const dateEl = document.getElementById('feedDate-' + feedName);
+      if (dateEl) dateEl.textContent = 'Last run: just now | $' + cost;
+      toast(`${feedName}: ${(parsed.topPicks||[]).length} picks, ${(parsed.portfolioOverlap||[]).length} overlaps`);
+    } else {
+      state._lastResearchRaw = result.text;
+      toast('Research scan completed but JSON parse failed — raw saved', 'error');
+    }
+  } catch(e) {
+    toast(`Research ${feedName} failed: ${e.message}`, 'error');
+    apexLog('ERROR', `Research ${feedName}: ${e.message}`);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
+}
+
+function saveFeedConfig(feedName) {
+  if (!state.research) state.research = { config: {} };
+  if (!state.research.config) state.research.config = {};
+  const cfg = {};
+  if (feedName === 'earnings') {
+    cfg.lookahead = document.getElementById('earnings-lookahead')?.value || '14';
+    cfg.focus = document.getElementById('earnings-focus')?.value || 'both';
+    cfg.instructions = document.getElementById('earnings-instructions')?.value || '';
+  } else if (feedName === 'institutional') {
+    cfg.lookback = document.getElementById('inst-lookback')?.value || '90';
+    cfg.minSize = document.getElementById('inst-minsize')?.value || '5M';
+    cfg.institutions = [...document.querySelectorAll('#inst-checkboxes input:checked')].map(c => c.dataset.inst);
+    cfg.instructions = document.getElementById('inst-instructions')?.value || '';
+  } else if (feedName === 'political') {
+    cfg.lookback = document.getElementById('pol-lookback')?.value || '60';
+    cfg.minSize = document.getElementById('pol-minsize')?.value || '100K';
+    cfg.members = [...document.querySelectorAll('#pol-checkboxes input:checked')].map(c => c.dataset.pol);
+    cfg.instructions = document.getElementById('pol-instructions')?.value || '';
+  } else if (feedName === 'rotation') {
+    cfg.cycle = document.getElementById('rot-cycle')?.value || 'auto';
+    cfg.enhance = document.getElementById('rot-enhance')?.checked ?? true;
+    cfg.instructions = document.getElementById('rot-instructions')?.value || '';
+  } else if (feedName === 'insider') {
+    cfg.lookback = document.getElementById('ins-lookback')?.value || '30';
+    cfg.minSize = document.getElementById('ins-minsize')?.value || '500K';
+    cfg.role = document.getElementById('ins-role')?.value || 'directors';
+    cfg.instructions = document.getElementById('ins-instructions')?.value || '';
+  }
+  state.research.config[feedName] = cfg;
+}
+
+function buildFeedPrompt(feedName) {
+  const prof = state.profile || getDefaultProfile();
+  const tickers = state.positions.map(p => p.symbol).join(', ');
+  const watchTickers = state.watchlist.map(w => w.ticker).join(', ');
+  const sectors = prof.focusSectors.join(', ');
+  const allTickers = tickers + (watchTickers ? ', ' + watchTickers : '');
+  
+  const schema = `Return ONLY JSON. No markdown, no preamble. Start with { end with }.
+Schema: {"feedName":"${feedName}","topPicks":[{"ticker":"XYZ","signal":"BUY|WATCH","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Technology","suggestedTag":"Core|Tactical"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"feedSpecific":{...},"summary":"1 sentence"}`;
+  
+  if (feedName === 'earnings') {
+    const cfg = state.research?.config?.earnings || {};
+    const days = cfg.lookahead || '14';
+    const focus = cfg.focus || 'both';
+    const custom = cfg.instructions || document.getElementById('earnings-instructions')?.value || '';
+    return `Search for stocks reporting earnings in the next ${days} days.
+
+${focus !== 'opps' ? `PART 1 — MY POSITIONS AT RISK:
+Cross-reference with my portfolio: ${tickers}
+For each with upcoming earnings: earnings date, consensus EPS, historical beat/miss rate (last 4 quarters), implied move, risk level (HIGH/MEDIUM/LOW), recommended action.` : ''}
+
+${focus !== 'mine' ? `PART 2 — TOP 5 EARNINGS OPPORTUNITIES:
+Identify 5 stocks NOT in my portfolio where upcoming earnings could create entry opportunities. Prioritize: high historical beat rates + currently undervalued, positive surprise would confirm trend change, stocks in my focus sectors: ${sectors}.` : ''}
+
+My portfolio: ${tickers}
+My watchlist: ${watchTickers || 'none'}
+${custom ? '\nUSER INSTRUCTIONS (address first): ' + custom : ''}
+
+${schema}
+Add to feedSpecific: {"positionsAtRisk":[{"ticker":"X","earningsDate":"YYYY-MM-DD","consensusEPS":"$X.XX","beatRate":"75%","impliedMove":"±8%","risk":"HIGH|MEDIUM|LOW","action":"hold through|trim before|add after"}],"earningsOpps":[{"ticker":"X","earningsDate":"YYYY-MM-DD","thesis":"1 sentence"}]}`;
+  }
+  
+  if (feedName === 'institutional') {
+    const cfg = state.research?.config?.institutional || {};
+    const days = cfg.lookback || '90';
+    const minSize = cfg.minSize || '5M';
+    const institutions = cfg.institutions?.join(', ') || 'Berkshire Hathaway, Bridgewater, Renaissance Technologies, Citadel, Two Sigma';
+    const custom = cfg.instructions || document.getElementById('inst-instructions')?.value || '';
+    return `Search for institutional stock accumulation patterns over the past ${days} days for: ${institutions}.
+
+For each institution identify stocks they have been CONSISTENTLY buying (not one-time trades — look for repeated accumulation). Minimum position change: $${minSize}.
+
+Then identify: Which institutional buys have LOW retail investor interest? (Low social media mentions, not trending on retail platforms). These "quiet accumulation" plays are the highest signal.
+
+REQUIRED:
+1. "Top 5 Institutional Picks" — 5 stock recommendations based on smart money consensus (2+ institutions buying, or one buying aggressively). Include rationale.
+2. "Portfolio Overlap" — flag any of my positions being bought/sold: ${tickers}
+3. "Low Retail + High Institutional" — tickers where smart money buys but retail hasn't noticed
+
+My portfolio: ${tickers}
+My watchlist: ${watchTickers || 'none'}
+Focus sectors: ${sectors}
+${custom ? '\nUSER INSTRUCTIONS (address first): ' + custom : ''}
+
+${schema}
+Add to feedSpecific: {"byInstitution":[{"name":"Berkshire","buys":[{"ticker":"X","change":"added 2M shares","period":"Q1 2026"}],"sells":[]}],"quietAccumulation":[{"ticker":"X","institutions":"Berkshire+Citadel","retailInterest":"Low"}]}`;
+  }
+  
+  if (feedName === 'political') {
+    const cfg = state.research?.config?.political || {};
+    const days = cfg.lookback || '60';
+    const minSize = cfg.minSize || '100K';
+    const members = cfg.members?.join(', ') || 'Nancy Pelosi, Ted Cruz, Tim Moore, Marjorie Taylor Greene';
+    const custom = cfg.instructions || document.getElementById('pol-instructions')?.value || '';
+    return `Search for recent Congressional stock trade disclosures (past ${days} days) by: ${members}. Minimum trade size: $${minSize}.
+
+For each trade: ticker, buy/sell, estimated amount, disclosure date, days between trade and disclosure.
+
+REQUIRED:
+1. "Top 5 Congressional Picks" — 5 stock recommendations based on trading patterns. Prioritize tickers bought by 2+ members or large positions by proven performers.
+2. "Portfolio Overlap" — flag trades matching: ${tickers}
+3. "Sector Trend" — which sectors Congress is collectively moving into/out of
+
+My portfolio: ${tickers}
+My watchlist: ${watchTickers || 'none'}
+Focus sectors: ${sectors}
+${custom ? '\nUSER INSTRUCTIONS (address first): ' + custom : ''}
+
+${schema}
+Add to feedSpecific: {"trades":[{"member":"Pelosi","ticker":"X","action":"BUY","amount":"$500K","date":"2026-04-15","daysToDisclose":30}],"sectorTrend":{"rotating_into":["Tech"],"rotating_out":["Energy"]}}`;
+  }
+  
+  if (feedName === 'insider') {
+    const cfg = state.research?.config?.insider || {};
+    const days = cfg.lookback || '30';
+    const minSize = cfg.minSize || '500K';
+    const role = cfg.role || 'directors';
+    const roleDesc = role === 'cxo' ? 'CEO and CFO only' : role === 'directors' ? 'all directors and officers' : 'all insiders';
+    const custom = cfg.instructions || document.getElementById('ins-instructions')?.value || '';
+    return `Search for significant insider purchases (SEC Form 4 filings) in the past ${days} days. FILTER: transactions above $${minSize} by ${roleDesc}. Focus on large conviction buys, not routine grants.
+
+Also search for unusual options activity (large call buying, significant put selling, unusual volume) on the same tickers or my portfolio.
+
+REQUIRED:
+1. "Top 5 Insider Conviction Picks" — 5 stocks with largest insider purchases. Include buyer name, title, amount, why it matters.
+2. "Confluence Signals" — tickers where BOTH insider buying AND bullish options flow align (strongest signal).
+3. "Portfolio Watch" — insider activity in my positions: ${tickers}
+
+My portfolio: ${tickers}
+My watchlist: ${watchTickers || 'none'}
+Focus sectors: ${sectors}
+${custom ? '\nUSER INSTRUCTIONS (address first): ' + custom : ''}
+
+${schema}
+Add to feedSpecific: {"insiderBuys":[{"ticker":"X","insider":"John Smith, CEO","amount":"$1.2M","date":"2026-05-01"}],"optionsFlow":[{"ticker":"X","activity":"Large call sweep $2M May expiry","sentiment":"Bullish"}],"confluence":[{"ticker":"X","insiderSignal":"CEO bought $1.2M","optionsSignal":"Call sweep $2M"}]}`;
+  }
+  
+  if (feedName === 'rotation') {
+    const cfg = state.research?.config?.rotation || {};
+    const enhance = cfg.enhance ?? document.getElementById('rot-enhance')?.checked ?? true;
+    const cycle = cfg.cycle || 'auto';
+    const custom = cfg.instructions || document.getElementById('rot-instructions')?.value || '';
+    
+    // Compute base rotation from BX data (free)
+    const sectorMomentum = {};
+    state.positions.forEach(p => {
+      if (!sectorMomentum[p.sector]) sectorMomentum[p.sector] = { bull: 0, bear: 0, total: 0 };
+      const badge = getBXSignalBadge(p.symbol);
+      sectorMomentum[p.sector].total++;
+      if (badge.state === 'BULL' || badge.state === 'BUY' || badge.state === 'FADE') sectorMomentum[p.sector].bull++;
+      else if (badge.state === 'BEAR' || badge.state === 'SELL' || badge.state === 'TURN') sectorMomentum[p.sector].bear++;
+    });
+    const sectorSummary = Object.entries(sectorMomentum).map(([s, d]) => `${s}: ${d.bull}↑ ${d.bear}↓ of ${d.total}`).join(', ');
+    
+    if (!enhance) {
+      // Free computation only
+      const data = { feedName: 'rotation', runDate: new Date().toISOString(), topPicks: [], portfolioOverlap: [],
+        feedSpecific: { sectorMomentum, computed: true }, summary: 'BX-based rotation: ' + sectorSummary };
+      state.research.rotation = data;
+      saveState(); renderFeedResults('rotation');
+      toast('Sector rotation computed from BX data (free)');
+      return null; // No API call needed
+    }
+    
+    return `Analyze current sector rotation and economic cycle position.
+
+My portfolio BX momentum by sector: ${sectorSummary}
+My sector allocation: ${state.positions.reduce((acc, p) => { acc[p.sector] = (acc[p.sector] || 0) + p.value; return acc; }, {})}
+${cycle !== 'auto' ? 'USER BELIEVES CYCLE IS: ' + cycle : 'Detect the current cycle phase from market data.'}
+
+Map sectors to cycle phases:
+Early cycle (recovery): Consumer Discretionary, Financials, Real Estate
+Mid cycle (expansion): Technology, Industrials, Materials
+Late cycle (slowdown): Energy, Healthcare, Consumer Staples
+Recession: Utilities, Gold/Metals, Bonds
+
+REQUIRED:
+1. "Top 5 Rotation Picks" — 5 stocks positioned for the NEXT cycle phase
+2. Current cycle phase and evidence
+3. My portfolio alignment score (am I in the right sectors?)
+4. Recommended sector tilts
+
+Focus sectors: ${sectors}
+${custom ? '\nUSER INSTRUCTIONS (address first): ' + custom : ''}
+
+${schema}
+Add to feedSpecific: {"cyclePhase":"mid","evidence":"brief","alignment":75,"overweight":["Tech","Defence"],"underweight":["Energy","Materials"]}`;
+  }
+  return null;
+}
+
+function renderFeedResults(feedName) {
+  const el = document.getElementById('feedResults-' + feedName);
+  if (!el) return;
+  
+  // For weekly analysis, show summary from analysisData
+  if (feedName === 'analysis') {
+    const ad = state.analysisData;
+    if (!ad) { el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">No analysis data yet. Run weekly analysis.</div>'; return; }
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+      <div style="margin-bottom:8px;"><strong>${(ad.verdicts||[]).length}</strong> position verdicts | <strong>${(ad.newIdeas||[]).length}</strong> new ideas | Mood: <strong>${ad.macro?.mood || '—'}</strong></div>
+      ${(ad.newIdeas||[]).slice(0,5).map(i => `<div style="padding:4px 0;border-bottom:1px solid var(--border-subtle);"><strong>${i.ticker}</strong> (${i.sector}) — ${i.thesis || ''}</div>`).join('')}
+    </div>`;
+    return;
+  }
+  
+  const data = state.research?.[feedName];
+  if (!data) { el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">No data yet. Run the scan above.</div>'; return; }
+  
+  let html = '';
+  
+  // Top Picks table
+  if (data.topPicks?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">TOP ${data.topPicks.length} PICKS</div>
+    <table style="width:100%;"><thead><tr><th>Ticker</th><th>Signal</th><th>Confidence</th><th>Sector</th><th>Reason</th></tr></thead><tbody>` +
+    data.topPicks.map(p => `<tr>
+      <td style="font-weight:700;">${p.ticker}</td>
+      <td style="color:${p.signal === 'BUY' ? 'var(--green)' : 'var(--amber)'};">${p.signal}</td>
+      <td>${p.confidence}</td>
+      <td style="font-size:11px;">${p.sector || ''}</td>
+      <td style="font-size:11px;color:var(--text-secondary);">${p.reason || ''}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+  }
+  
+  // Portfolio Overlap
+  if (data.portfolioOverlap?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">PORTFOLIO OVERLAP</div>
+    <table style="width:100%;"><thead><tr><th>Ticker</th><th>Signal</th><th>Note</th></tr></thead><tbody>` +
+    data.portfolioOverlap.map(p => `<tr>
+      <td style="font-weight:700;">${p.ticker}</td>
+      <td style="color:${p.signal === 'BUY' ? 'var(--green)' : p.signal === 'SELL' ? 'var(--red)' : 'var(--text-secondary)'};">${p.signal}</td>
+      <td style="font-size:11px;color:var(--text-secondary);">${p.note || ''}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+  }
+  
+  // Summary
+  if (data.summary) {
+    html += `<div style="font-size:12px;color:var(--text-tertiary);font-style:italic;margin-top:8px;">${data.summary}</div>`;
+  }
+  
+  el.innerHTML = html || '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">Scan returned no results.</div>';
 }
 
 // ═══ REGIME DETECTION ENGINE ═══
