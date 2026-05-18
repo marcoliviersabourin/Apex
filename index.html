@@ -2253,6 +2253,7 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="refreshUniverse()">🔄 Refresh</button>
+      <button class="btn btn-sm" onclick="enrichUniverse()" title="Fetch P/E, PEG, FCF for tickers missing fundamentals (~$0.10)">📊 Enrich</button>
     </div>
   </div>
   <div class="page-content">
@@ -2282,18 +2283,21 @@ input[type="range"]::-webkit-slider-thumb {
     
     <!-- Universe table -->
     <div class="card fade-in stagger-1" style="margin-top:4px;overflow-x:auto;">
-      <table style="width:100%;min-width:900px;" id="universeTable">
+      <table style="width:100%;min-width:1100px;" id="universeTable">
         <thead><tr>
           <th style="cursor:pointer;" onclick="sortUniverse('ticker')">Ticker</th>
-          <th>Source</th>
+          <th>Src</th>
           <th>Sector</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('signals')">Signals</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('signals')">Sig#</th>
           <th>BX</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('fwdPE')">P/E</th>
+          <th>Rev</th>
           <th style="cursor:pointer;" onclick="sortUniverse('oppScore')">Opp</th>
           <th>Verdict</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('sigReturn')">Sig Ret</th>
+          <th>Conf</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('sigReturn')">SigR</th>
           <th style="cursor:pointer;" onclick="sortUniverse('bhReturn')">B&H</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('weight')">Weight</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('weight')">Wt%</th>
           <th></th>
         </tr></thead>
         <tbody id="universeBody"></tbody>
@@ -2515,7 +2519,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.6.0';
+const APEX_VERSION = '3.6.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -7497,12 +7501,43 @@ function buildUniverseData() {
       u.bxValue = bx[bx.length - 1].value;
     }
     
-    // Analysis verdict
+    // Analysis verdict + parsed metrics
     const v = (state.analysisData?.verdicts || []).find(v => v.ticker?.toUpperCase() === u.ticker);
     if (v) {
       u.aiVerdict = v.verdict;
       u.aiSentiment = v.sentiment;
+      u.aiConfidence = v.confidence;
+      u.aiMomentum = v.momentum;
       u.aiAction = v.actionNote;
+      // Parse structured numbers from free text
+      const valMetrics = parseVerdictMetrics((v.valueSummary || '') + ' ' + (v.technicalSummary || '') + ' ' + (v.actionNote || ''));
+      if (valMetrics.fwdPE && !u.fwdPE) u.fwdPE = valMetrics.fwdPE;
+      if (valMetrics.peg && !u.peg) u.peg = valMetrics.peg;
+      if (valMetrics.fcfYield && !u.fcfYield) u.fcfYield = valMetrics.fcfYield;
+      if (valMetrics.rsi) u.rsi = valMetrics.rsi;
+    }
+    
+    // Idea metrics
+    const idea = (state.analysisData?.newIdeas || []).find(i => i.ticker?.toUpperCase() === u.ticker);
+    if (idea) {
+      u.revTrend = idea.revenueTrend || u.revTrend;
+      u.riskLevel = idea.riskLevel || u.riskLevel;
+      u.marketCap = idea.marketCap || u.marketCap;
+      u.catalysts = idea.catalysts || u.catalysts;
+      u.moat = idea.moat || u.moat;
+      const ideaMetrics = parseVerdictMetrics((idea.valueSummary || '') + ' ' + (idea.technicalSummary || ''));
+      if (ideaMetrics.fwdPE && !u.fwdPE) u.fwdPE = ideaMetrics.fwdPE;
+      if (ideaMetrics.peg && !u.peg) u.peg = ideaMetrics.peg;
+      if (ideaMetrics.fcfYield && !u.fcfYield) u.fcfYield = ideaMetrics.fcfYield;
+    }
+    
+    // Enrichment data (from regime fundamentals or universe enrichment)
+    const fund = state.regime?.fundamentals?.[u.ticker] || state.research?.universeFundamentals?.[u.ticker];
+    if (fund) {
+      if (fund.forwardPE > 0) u.fwdPE = fund.forwardPE;
+      if (fund.peg) u.peg = fund.peg;
+      if (fund.fcfYield) u.fcfYield = fund.fcfYield;
+      if (fund.revenueGrowing !== undefined) u.revTrend = fund.revenueGrowing ? '↑' : '↓';
     }
     
     // Opportunity score (from regime computation)
@@ -7554,11 +7589,35 @@ function createUniverseEntry(ticker) {
     ticker, sources: new Set(), feedSignals: {},
     sector: '', tag: 'core', weight: 0, price: 0, value: 0,
     suggestedWeight: 0, bxState: '', bxValue: null,
-    aiVerdict: '', aiSentiment: '', aiAction: '',
+    aiVerdict: '', aiSentiment: '', aiConfidence: '', aiMomentum: '', aiAction: '',
+    fwdPE: null, peg: null, fcfYield: null, revTrend: '', riskLevel: '',
+    marketCap: '', catalysts: '', moat: '',
     oppScore: 0, oppStatus: '', dislocation: 0, quality: 0, bottom: 0, pctFromHigh: 0,
     bhReturn: null, sigReturn: null, signalCount: 0,
     watchVerdict: '', watchThesis: '', ideaThesis: '', ideaLead: ''
   };
+}
+
+// Parse structured numbers from free-text verdict summaries
+function parseVerdictMetrics(text) {
+  if (!text) return {};
+  const m = {};
+  // Forward P/E: "15.4x fwd P/E", "Fwd P/E 15.4x", "forward P/E of 25"
+  const peMatch = text.match(/(?:fwd|forward)\s*P\/?E[:\s]*(\d+\.?\d*)|(\d+\.?\d*)\s*x?\s*(?:fwd|forward)\s*P\/?E/i);
+  if (peMatch) m.fwdPE = parseFloat(peMatch[1] || peMatch[2]);
+  // PEG: "PEG 0.8x", "PEG <1.0", "PEG ratio 1.2"
+  const pegMatch = text.match(/PEG\s*(?:ratio\s*)?[<>≈~]?\s*(\d+\.?\d*)/i);
+  if (pegMatch) m.peg = parseFloat(pegMatch[1]);
+  // FCF yield: "FCF yield 4.2%", "free cash flow yield 5.5%"
+  const fcfMatch = text.match(/(?:FCF|free cash flow)\s*yield[:\s]*(\d+\.?\d*)%/i);
+  if (fcfMatch) m.fcfYield = parseFloat(fcfMatch[1]);
+  // RSI: "RSI 77.5", "RSI ~58", "RSI neutral ~48"
+  const rsiMatch = text.match(/RSI\s*[~≈]?\s*(\d+\.?\d*)/i);
+  if (rsiMatch) m.rsi = parseFloat(rsiMatch[1]);
+  // Revenue growth: "+35% TTM", "revenue growth +8%", "growing +12%"
+  const revMatch = text.match(/(?:revenue|growth|growing)\s*[+]?\s*(\d+\.?\d*)%/i);
+  if (revMatch) m.revGrowth = parseFloat(revMatch[1]);
+  return m;
 }
 
 function filterUniverse(filter) {
@@ -7596,6 +7655,7 @@ function renderUniverseTable() {
       case 'ticker': return dir * a.ticker.localeCompare(b.ticker);
       case 'signals': return dir * (a.signalCount - b.signalCount);
       case 'oppScore': return dir * (a.oppScore - b.oppScore);
+      case 'fwdPE': return dir * ((a.fwdPE||999) - (b.fwdPE||999));
       case 'sigReturn': return dir * ((a.sigReturn||0) - (b.sigReturn||0));
       case 'bhReturn': return dir * ((a.bhReturn||0) - (b.bhReturn||0));
       case 'weight': return dir * (a.weight - b.weight);
@@ -7672,19 +7732,22 @@ function renderUniverseTable() {
     
     return `<tr style="cursor:pointer;" onclick="toggleUniverseDetail(this,'${u.ticker}')">
       <td style="font-weight:700;">${u.ticker}</td>
-      <td>${srcBadges.join(' ')}</td>
+      <td style="font-size:9px;">${srcBadges.join(' ')}</td>
       <td style="font-size:10px;">${u.sector || ''}</td>
       <td style="text-align:center;">
         <span style="font-weight:800;font-size:14px;color:${sigColor};">${u.signalCount}</span>
-        <span style="font-size:9px;">${feedIcons.join('')}</span>
+        <span style="font-size:8px;">${feedIcons.join('')}</span>
       </td>
       <td>${bxBadge}</td>
-      <td class="num">${u.oppScore > 0 ? u.oppScore + '/14' : '—'} ${oppBadge}</td>
-      <td style="color:${verdictColor};font-weight:600;font-size:11px;">${u.aiVerdict || u.watchVerdict || '—'}</td>
-      <td class="num">${sigRetStr}</td>
-      <td class="num">${bhRetStr}</td>
-      <td class="num" style="font-size:11px;">${weightStr}</td>
-      <td><button class="btn btn-sm" style="font-size:8px;padding:2px 6px;" onclick="event.stopPropagation();addToTarget('${u.ticker}')">→ Target</button></td>
+      <td class="num" style="font-size:10px;${u.fwdPE && u.fwdPE < 20 ? 'color:var(--green);' : u.fwdPE && u.fwdPE > 40 ? 'color:var(--red);' : ''}">${u.fwdPE ? u.fwdPE.toFixed(0) + 'x' : '—'}</td>
+      <td style="text-align:center;font-size:12px;">${u.revTrend || '—'}</td>
+      <td class="num" style="font-size:10px;">${u.oppScore > 0 ? u.oppScore + '/14' : '—'} ${oppBadge}</td>
+      <td style="color:${verdictColor};font-weight:600;font-size:10px;">${u.aiVerdict || u.watchVerdict || '—'}</td>
+      <td style="font-size:9px;color:${u.aiConfidence === 'High' ? 'var(--green)' : u.aiConfidence === 'Low' ? 'var(--red)' : 'var(--text-tertiary)'};">${u.aiConfidence || '—'}</td>
+      <td class="num" style="font-size:10px;">${sigRetStr}</td>
+      <td class="num" style="font-size:10px;">${bhRetStr}</td>
+      <td class="num" style="font-size:10px;">${weightStr}</td>
+      <td><button class="btn btn-sm" style="font-size:8px;padding:2px 6px;" onclick="event.stopPropagation();addToTarget('${u.ticker}')">→</button></td>
     </tr>`;
   }).join('');
   
@@ -7700,28 +7763,38 @@ function toggleUniverseDetail(row, ticker) {
   
   const detailRow = document.createElement('tr');
   detailRow.className = 'universe-detail';
-  detailRow.innerHTML = `<td colspan="11" style="padding:12px;background:var(--bg-tertiary);border-left:3px solid var(--purple);">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:11px;">
+  detailRow.innerHTML = `<td colspan="14" style="padding:12px;background:var(--bg-tertiary);border-left:3px solid var(--purple);">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;font-size:11px;">
       <div>
-        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Sources & Signals</div>
-        ${u.sources.has('held') ? '<div>✓ Held in portfolio (' + u.weight.toFixed(1) + '%)</div>' : ''}
-        ${u.sources.has('watchlist') ? '<div>✓ On watchlist' + (u.watchVerdict ? ' — ' + u.watchVerdict : '') + '</div>' : ''}
-        ${u.sources.has('idea') ? '<div>✓ AI idea: ' + (u.ideaThesis || '') + '</div>' : ''}
-        ${Object.entries(u.feedSignals).map(([f, s]) => '<div style="margin-top:4px;">✓ <strong>' + f + '</strong>: ' + s.signal + ' — ' + (s.reason || '') + '</div>').join('')}
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Sources (${u.signalCount})</div>
+        ${u.sources.has('held') ? '<div>✓ Held (' + u.weight.toFixed(1) + '%)</div>' : ''}
+        ${u.sources.has('watchlist') ? '<div>✓ Watchlist' + (u.watchVerdict ? ' — ' + u.watchVerdict : '') + '</div>' : ''}
+        ${u.sources.has('idea') ? '<div>✓ AI idea: ' + (u.ideaThesis || '').substring(0, 60) + '</div>' : ''}
+        ${Object.entries(u.feedSignals).map(([f, s]) => '<div>✓ ' + f + ': ' + s.signal + ' — ' + (s.reason || '').substring(0, 50) + '</div>').join('')}
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">💰 Valuation</div>
+        <div>Fwd P/E: <strong style="color:${u.fwdPE && u.fwdPE < 20 ? 'var(--green)' : u.fwdPE > 40 ? 'var(--red)' : 'var(--text-primary)'};">${u.fwdPE ? u.fwdPE.toFixed(1) + 'x' : 'unknown'}</strong></div>
+        <div>PEG: ${u.peg ? u.peg.toFixed(1) + 'x' : '—'} ${u.peg && u.peg < 1 ? '<span style="color:var(--green);">✓ cheap</span>' : ''}</div>
+        <div>FCF Yield: ${u.fcfYield ? u.fcfYield.toFixed(1) + '%' : '—'} ${u.fcfYield > 5 ? '<span style="color:var(--green);">✓ strong</span>' : ''}</div>
+        <div>Revenue: ${u.revTrend || '—'} ${u.riskLevel ? '| Risk: ' + u.riskLevel : ''}</div>
+        <div>From High: ${u.pctFromHigh ? u.pctFromHigh.toFixed(0) + '%' : '—'}</div>
       </div>
       <div>
         <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📈 Technical</div>
-        <div>BX State: <strong style="color:${u.bxState === 'BULL' ? 'var(--green)' : u.bxState === 'BEAR' ? 'var(--red)' : 'var(--amber)'};">${u.bxState || 'no data'}</strong> ${u.bxValue !== null ? '(' + u.bxValue.toFixed(1) + ')' : ''}</div>
-        <div>Signal Return: ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(1) + '%' : 'no data'}</div>
-        <div>Buy & Hold: ${u.bhReturn !== null ? (u.bhReturn >= 0 ? '+' : '') + u.bhReturn.toFixed(1) + '%' : 'no data'}</div>
-        <div>From High: ${u.pctFromHigh ? u.pctFromHigh.toFixed(0) + '%' : '—'}</div>
+        <div>BX: <strong style="color:${u.bxState === 'BULL' ? 'var(--green)' : u.bxState === 'BEAR' ? 'var(--red)' : 'var(--amber)'};">${u.bxState || 'no data'}</strong> ${u.bxValue !== null ? '(' + u.bxValue?.toFixed(1) + ')' : ''}</div>
+        ${u.rsi ? '<div>RSI(14): ' + u.rsi.toFixed(0) + (u.rsi > 70 ? ' <span style="color:var(--red);">overbought</span>' : u.rsi < 30 ? ' <span style="color:var(--green);">oversold</span>' : '') + '</div>' : ''}
+        <div>Signal Return: ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(1) + '%' : '—'}</div>
+        <div>Buy & Hold: ${u.bhReturn !== null ? (u.bhReturn >= 0 ? '+' : '') + u.bhReturn.toFixed(1) + '%' : '—'}</div>
+        <div>Sentiment: ${u.aiSentiment || '—'} | Mom: ${u.aiMomentum || '—'}</div>
       </div>
       <div>
         <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">🎯 Opportunity</div>
         <div>Value: ${u.dislocation}/6 | Quality: ${u.quality}/3 | Bottom: ${u.bottom}/5</div>
         <div>Total: <strong>${u.oppScore}/14</strong> ${u.oppStatus ? '— ' + u.oppStatus : ''}</div>
-        ${u.aiAction ? '<div style="margin-top:4px;">AI: ' + u.aiAction + '</div>' : ''}
-        ${u.aiSentiment ? '<div>Sentiment: ' + u.aiSentiment + '</div>' : ''}
+        ${u.moat ? '<div style="margin-top:4px;">Moat: ' + u.moat.substring(0, 80) + '</div>' : ''}
+        ${u.catalysts ? '<div>Catalysts: ' + u.catalysts.substring(0, 80) + '</div>' : ''}
+        ${u.aiAction ? '<div style="margin-top:4px;color:var(--amber);">AI: ' + u.aiAction + '</div>' : ''}
       </div>
     </div>
   </td>`;
@@ -7729,7 +7802,6 @@ function toggleUniverseDetail(row, ticker) {
 }
 
 function addToTarget(ticker) {
-  // Add ticker to ideas if not already there, then navigate to target
   const ideas = state.analysisData?.newIdeas || [];
   if (!ideas.find(i => i.ticker.toUpperCase() === ticker.toUpperCase())) {
     const u = _universeData.find(d => d.ticker === ticker);
@@ -7739,13 +7811,73 @@ function addToTarget(ticker) {
       state.analysisData.newIdeas.push({
         ticker, sector: u.sector, tag: u.tag, suggestedWeight: u.suggestedWeight || 1.5,
         thesis: u.ideaThesis || u.watchThesis || 'Added from Universe',
-        leadAnalyst: u.ideaLead || 'dual', riskLevel: 'Medium', _forceInclude: true, _source: 'universe'
+        leadAnalyst: u.ideaLead || 'dual', riskLevel: u.riskLevel || 'Medium', _forceInclude: true, _source: 'universe'
       });
       saveState();
     }
   }
   toast(`${ticker} added to ideas — go to Target to rebuild`);
   navigateTo('target');
+}
+
+async function enrichUniverse() {
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings first', 'error'); return; }
+  
+  // Find tickers missing fundamental data
+  const needsEnrich = _universeData.filter(u => !u.fwdPE).map(u => u.ticker);
+  if (needsEnrich.length === 0) { toast('All tickers already have P/E data'); return; }
+  
+  const batch = needsEnrich.slice(0, 15); // Max 15 per call
+  const est = (0.08).toFixed(2);
+  if (!confirm(`Enrich ${batch.length} tickers with fundamentals?\nMissing P/E data for: ${batch.join(', ')}\nEstimated cost: ~$${est}`)) return;
+  
+  toast(`Enriching ${batch.length} tickers...`);
+  apexLog('INFO', `Universe enrich: ${batch.length} tickers`);
+  
+  // Include analysis context to reduce web search needs
+  const analysisContext = (state.analysisData?.verdicts || [])
+    .filter(v => batch.includes(v.ticker?.toUpperCase()))
+    .map(v => `${v.ticker}: ${v.valueSummary || ''}`)
+    .join('\n');
+  
+  try {
+    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
+      `Look up current fundamental data for these stocks: ${batch.join(', ')}
+
+${analysisContext ? 'EXISTING ANALYSIS DATA (use if available, verify with web search if needed):\n' + analysisContext + '\n' : ''}
+
+For each stock provide: forward P/E, PEG ratio, sector average P/E, FCF yield %, and whether revenue is growing YoY.
+
+Return ONLY JSON array. No markdown:
+[{"ticker":"XYZ","forwardPE":25,"peg":1.2,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]
+If earnings are negative, set forwardPE to null. Include ALL tickers.`
+    }], true, 2000);
+    
+    const usage = result.data?.usage || {};
+    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
+    apexLog('API', `Universe enrich — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    
+    let parsed = parseHaikuJSON(result.text);
+    if (!parsed || !Array.isArray(parsed)) {
+      const arrMatch = result.text.match(/\[[\s\S]*?\]/);
+      if (arrMatch) try { parsed = JSON.parse(arrMatch[0]); } catch(e) {}
+    }
+    
+    if (parsed && Array.isArray(parsed)) {
+      if (!state.research) state.research = {};
+      if (!state.research.universeFundamentals) state.research.universeFundamentals = {};
+      parsed.forEach(f => { if (f.ticker) state.research.universeFundamentals[f.ticker.toUpperCase()] = f; });
+      saveState();
+      refreshUniverse();
+      toast(`Enriched ${parsed.length} tickers — P/E data now in table`);
+    } else {
+      toast('Enrichment parse failed — raw saved', 'error');
+      state._lastEnrichRaw = result.text;
+    }
+  } catch(e) {
+    toast('Enrichment failed: ' + e.message, 'error');
+  }
 }
 
 // ═══ RESEARCH HUB ENGINE ═══
