@@ -2253,7 +2253,8 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="refreshUniverse()">🔄 Refresh</button>
-      <button class="btn btn-sm" onclick="enrichUniverse()" title="Fetch P/E, PEG, FCF for tickers missing fundamentals (~$0.10)">📊 Enrich</button>
+      <button class="btn btn-sm" onclick="refreshUniverseTechData()" id="univBXBtn">📈 BX Data</button>
+      <button class="btn btn-sm" onclick="enrichUniverse()">📊 Enrich</button>
     </div>
   </div>
   <div class="page-content">
@@ -2519,7 +2520,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.7.0';
+const APEX_VERSION = '3.7.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -7458,6 +7459,35 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
 let _universeData = [];
 let _universeSort = { col: 'signals', dir: 'desc' };
 let _universeFilter = 'all';
+
+async function refreshUniverseTechData() {
+  if (!state.settings.avKey) { toast('Set Alpha Vantage API key in Settings first', 'error'); return; }
+  
+  // Collect ALL unique tickers across all sources
+  const allTickers = new Set();
+  state.positions.forEach(p => allTickers.add(p.symbol.toUpperCase()));
+  state.watchlist.forEach(w => allTickers.add(w.ticker.toUpperCase()));
+  (state.analysisData?.newIdeas || []).forEach(i => allTickers.add(i.ticker.toUpperCase()));
+  // Research feed picks
+  ['earnings','institutional','political','rotation','insider'].forEach(feed => {
+    (state.research?.[feed]?.topPicks || []).forEach(p => allTickers.add(p.ticker.toUpperCase()));
+  });
+  
+  const tickers = [...allTickers];
+  const btn = document.getElementById('univBXBtn');
+  btn.disabled = true; btn.textContent = '⏳ Fetching...';
+  
+  toast(`Fetching BX data for ${tickers.length} universe tickers (limit: ${state.settings.avDailyLimit || 25}/day)...`);
+  apexLog('INFO', `Universe BX refresh: ${tickers.length} tickers`);
+  
+  await fetchAllTechnicals(tickers, state.profile?.bxTimeframe || 'monthly');
+  
+  btn.disabled = false; btn.textContent = '📈 BX Data';
+  refreshUniverse();
+  
+  const withData = tickers.filter(t => state.technicalData[t]?.computed?.short?.length > 0).length;
+  toast(`BX data: ${withData}/${tickers.length} tickers have signals. ${tickers.length - withData} deferred to tomorrow.`);
+}
 
 function refreshUniverse() {
   _universeData = buildUniverseData();
