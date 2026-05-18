@@ -2519,7 +2519,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.6.1';
+const APEX_VERSION = '3.7.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -4966,15 +4966,46 @@ async function runAnalysis(resumeFrom) {
         ? 'You have WEB SEARCH — USE IT to get current index levels, oil prices, breaking news BEFORE writing Part 1. Search for recent news on key positions in Part 2.'
         : 'Use your most current knowledge. No web search available.';
 
+      // ═══ CHUNK A: HYBRID — Haiku gathers data, Sonnet analyzes ═══
+      const positionList = state.positions.map(p => `${p.symbol} (${p.sector}, ${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}%)`).join(', ');
+      
+      const gatherAPrompt = `Search the web for current market data needed for a weekly portfolio analysis. Report ALL findings as detailed raw text with specific numbers.
+
+PORTFOLIO POSITIONS TO RESEARCH: ${positionList}
+
+GATHER THE FOLLOWING:
+1. MACRO: Current US Fed Funds rate, Bank of Canada rate, ECB deposit rate, USD/CAD, EUR/CAD, 10Y Treasury yield, WTI oil price, VIX level. Include direction vs last week.
+2. FOR EACH POSITION: Latest price, recent news/earnings, forward P/E if available, RSI if mentioned, analyst sentiment, any significant developments this week.
+3. SECTOR TRENDS: Which sectors have tailwinds/headwinds this week and why.
+4. NEW IDEAS: 5-10 compelling stocks NOT in the portfolio that are in these focus sectors: ${(state.profile?.focusSectors || []).join(', ')}. Look for undervalued stocks with catalysts, including forward P/E, PEG, and recent technical setup.
+${document.getElementById('specificInstructions')?.value ? '\nSPECIFIC FOCUS (HIGH PRIORITY): ' + document.getElementById('specificInstructions').value : ''}
+${document.getElementById('weeklyNotes')?.value ? '\nMARKET NOTES: ' + document.getElementById('weeklyNotes').value : ''}
+
+Search thoroughly — the quality of the analysis depends on the data you gather here.`;
+
+      hb = startHeartbeat(btn, 'Step 1: Gathering data');
+      apexLog('INFO', 'Chunk A Step 1: Haiku gathering market data...');
+      const gatherResult = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: gatherAPrompt}], useWebSearch, 4000);
+      hb.stop();
+      
+      const gU = gatherResult.data?.usage || {};
+      const gCost = (gU.input_tokens || 0) * 0.25 / 1000000 + (gU.output_tokens || 0) * 1.25 / 1000000;
+      apexLog('API', `Chunk A Step 1 (Haiku gather) — $${gCost.toFixed(3)}`, `in=${gU.input_tokens} out=${gU.output_tokens}`);
+      
+      // Trim gathered data to ~8K chars to keep Sonnet context manageable
+      const gatheredData = gatherResult.text.length > 8000 ? gatherResult.text.substring(0, 8000) + '\n[...data truncated]' : gatherResult.text;
+      
       const chunkAPrompt = fullCtx + `
-${searchInstr}
+
+MARKET DATA (gathered via web search — use this as your primary data source):
+${gatheredData}
 
 You are a 7-role analyst panel: Macro Strategist, 📊 Value Investor, 📈 Technical Analyst, Commodities Specialist, Risk Officer, Geopolitical Analyst, Portfolio Broker.
 
 ═══ ANALYST DISCIPLINE — MANDATORY RULES ═══
 
 📊 VALUE INVESTOR DISCIPLINE:
-Every Value Pick recommendation MUST cite at least 3 of these 5 valuation metrics with actual numbers from web search:
+Every Value Pick recommendation MUST cite at least 3 of these 5 valuation metrics with actual numbers from the gathered data:
 - Forward P/E ratio (and how it compares to 5-year average and sector median)
 - PEG ratio (forward P/E ÷ expected growth rate)
 - FCF yield or P/FCF
@@ -4995,7 +5026,7 @@ Whenever you present structured data with 2+ dimensions — scenario risk matric
 Write Parts 1-4 of the weekly analysis:
 
 ## PART 1 — MACRO SNAPSHOT
-(🌍 Macro Strategist) Provide current levels for ALL 8 indicators below, WITH exact numbers and direction arrows. Use web search if uncertain. Render as a markdown table:
+(🌍 Macro Strategist) Provide current levels for ALL 8 indicators below, WITH exact numbers and direction arrows from the gathered data. Render as a markdown table:
 
 | Indicator | Level | Direction | Note |
 |---|---|---|---|
@@ -5036,8 +5067,9 @@ If a stock is "down a lot recently" but its forward P/E is still >40, you must l
 
 Be decisive with verdicts.`;
 
-      hb = startHeartbeat(btn, 'Parts 1-4');
-      const resultA = await callClaude(key, state.settings.model, [{role:'user', content: chunkAPrompt}], useWebSearch, 8000);
+      hb = startHeartbeat(btn, 'Step 2: Analyzing');
+      apexLog('INFO', 'Chunk A Step 2: Sonnet analyzing gathered data...');
+      const resultA = await callClaude(key, state.settings.model, [{role:'user', content: chunkAPrompt}], false, 8000);
       hb.stop();
       prog.chunkA = resultA.text;
       prog.phase = 'chunkB';
@@ -5720,10 +5752,9 @@ async function evaluateSingleWatchlistItem(idx) {
   if (!w) return;
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key first', 'error'); return; }
-  if (!confirm(`Evaluate ${w.ticker}? Estimated cost: ~$0.05-0.10`)) return;
+  if (!confirm(`Evaluate ${w.ticker}?\nStep 1: Haiku search (~$0.01-0.02)\nStep 2: Sonnet judge (~$0.01-0.02)\nTotal: ~$0.03-0.05`)) return;
   
-  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
-  toast('Evaluating ' + w.ticker + '...');
+  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳ 1/2'; }
   
   const prof = state.profile || getDefaultProfile();
   const guessSector = w.sector || SECTOR_MAP[w.ticker.toUpperCase()] || 'Unknown';
@@ -5732,35 +5763,46 @@ async function evaluateSingleWatchlistItem(idx) {
     ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}%)`).join(', ')
     : 'none currently held';
   
-  const prompt = `Evaluate this single stock for portfolio addition:
-
-TICKER: ${w.ticker} (${w.exchange || 'unknown'}, suggested tag: ${w.tag}${w.notes ? ', user note: ' + w.notes : ''})
-Likely sector: ${guessSector}
-Existing portfolio peers: ${sectorPeers}
-
-INVESTOR: ${prof.risk} risk, focus sectors: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
-
-Use web search to get current data. Return ONLY JSON (no markdown):
-{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer ticker or none"}
-
-For PASS/WATCH set suggestedWeight to 0.`;
-
   try {
-    apexLog('INFO', `Single eval: ${w.ticker}, model=claude-sonnet-4-6`);
-    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 1000);
+    // Step 1: Haiku gathers current data
+    apexLog('INFO', `Single eval ${w.ticker}: Step 1 Haiku search`);
+    const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+      `Search for current data on ${w.ticker}. Report: current price, forward P/E, PEG ratio, revenue growth rate, FCF yield, recent earnings, analyst sentiment, key risks, upcoming catalysts, RSI if available, market cap. Report all facts found.${w.notes ? ' User note: ' + w.notes : ''}`
+    }], true, 1500);
     
-    const usage = result.data?.usage || {};
-    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
-    apexLog('API', `Single eval ${w.ticker} — cost ~$${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    const u1 = step1.data?.usage || {};
+    apexLog('API', `${w.ticker} Step 1 — $${((u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6).toFixed(3)}`, `in=${u1.input_tokens} out=${u1.output_tokens}`);
     
-    let parsed = parseHaikuJSON(result.text);
+    // Step 2: Sonnet judges
+    if (btn) btn.textContent = '⏳ 2/2';
+    const rawData = step1.text.length > 3000 ? step1.text.substring(0, 3000) : step1.text;
+    
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
+      `Evaluate ${w.ticker} for portfolio addition based on this research data:
+
+RESEARCH DATA:
+${rawData}
+
+CONTEXT: Sector: ${guessSector} | Existing peers: ${sectorPeers}
+INVESTOR: ${prof.risk} risk, focus: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
+
+Return ONLY JSON:
+{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer or none"}
+For PASS/WATCH set suggestedWeight to 0.`
+    }], false, 1000);
+    
+    const u2 = step2.data?.usage || {};
+    const totalCost = (u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6 + (u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6;
+    apexLog('API', `${w.ticker} Step 2 — $${((u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6).toFixed(3)}. Total: $${totalCost.toFixed(3)}`);
+    
+    let parsed = parseHaikuJSON(step2.text);
     if (!parsed) {
-      const objMatch = result.text.match(/\{[\s\S]*\}/);
+      const objMatch = step2.text.match(/\{[\s\S]*\}/);
       if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
     }
     
     if (!parsed || !parsed.ticker) {
-      state._lastWatchlistEvalRaw = result.text;
+      state._lastWatchlistEvalRaw = step2.text;
       toast('Parse failed for ' + w.ticker + ' — raw saved', 'error');
       if (btn) { btn.disabled = false; btn.textContent = '🤖 Evaluate'; }
       return;
@@ -5777,7 +5819,7 @@ For PASS/WATCH set suggestedWeight to 0.`;
       sector: parsed.sector, revenueTrend: parsed.revenueTrend, catalysts: parsed.catalysts
     };
     saveState(); refreshWatchlist();
-    toast(`${w.ticker}: ${parsed.verdict} — ${parsed.verdictReason || parsed.thesis || ''}`);
+    toast(`${w.ticker}: ${parsed.verdict} — ${parsed.verdictReason || parsed.thesis || ''} | $${totalCost.toFixed(2)}`);
   } catch(e) {
     toast('Evaluation failed: ' + e.message, 'error');
     apexLog('ERROR', `Single eval ${w.ticker} failed: ${e.message}`);
@@ -5888,27 +5930,29 @@ async function evaluateWatchlist() {
       ? sameSector.map(p => `${p.symbol} (${p.tag}, ${(p.value/getTotalValue()*100).toFixed(1)}%)`).join(', ')
       : 'none currently held';
     
-    const prompt = `Evaluate this stock for portfolio addition:
-
-TICKER: ${w.ticker} (${w.exchange || 'unknown'}, suggested tag: ${w.tag}${w.notes ? ', note: ' + w.notes : ''})
-Sector: ${guessSector} | Existing peers: ${sectorPeers}
-INVESTOR: ${prof.risk} risk, focus: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M
-
-Use web search for current data. Return ONLY JSON (no markdown):
-{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences with metrics","risks":"key risks","catalysts":"upcoming events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer or none"}
-For PASS/WATCH set suggestedWeight to 0.`;
 
     try {
       apexLog('INFO', `Batch eval ${completed + 1}/${pending.length}: ${w.ticker}`);
-      const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 1000);
       
-      const usage = result.data?.usage || {};
-      const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
-      apexLog('API', `Eval ${w.ticker} — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+      // Step 1: Haiku gathers data
+      const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+        `Search for current data on ${w.ticker}. Report: current price, forward P/E, PEG ratio, revenue growth, FCF yield, recent earnings, analyst consensus, key risks, catalysts, market cap. Sector: ${guessSector}.${w.notes ? ' Note: ' + w.notes : ''}`
+      }], true, 1500);
       
-      let parsed = parseHaikuJSON(result.text);
+      // Step 2: Sonnet judges
+      const rawData = step1.text.length > 3000 ? step1.text.substring(0, 3000) : step1.text;
+      const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
+        `Evaluate ${w.ticker} for portfolio addition:\n\nRESEARCH:\n${rawData}\n\nPeers: ${sectorPeers}\nINVESTOR: ${prof.risk} risk, focus: ${prof.focusSectors.join(', ')}, min cap $${prof.minCap}M\n\nReturn ONLY JSON:\n{"ticker":"${w.ticker}","verdict":"STRONG_BUY|BUY|WATCH|PASS","verdictReason":"1 sentence","sector":"${guessSector}","tag":"Core|Tactical","thesis":"1 sentence","fundamentals":"2-3 sentences","risks":"key risks","catalysts":"events","revenueTrend":"↑|→|↓","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"comparedAgainst":"peer or none"}\nFor PASS/WATCH set suggestedWeight to 0.`
+      }], false, 1000);
+      
+      const u1 = step1.data?.usage || {};
+      const u2 = step2.data?.usage || {};
+      const tickerCost = (u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6 + (u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6;
+      apexLog('API', `Eval ${w.ticker} hybrid — $${tickerCost.toFixed(3)}`, `H:${u1.input_tokens}→${u1.output_tokens} S:${u2.input_tokens}→${u2.output_tokens}`);
+      
+      let parsed = parseHaikuJSON(step2.text);
       if (!parsed) {
-        const objMatch = result.text.match(/\{[\s\S]*\}/);
+        const objMatch = step2.text.match(/\{[\s\S]*\}/);
         if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
       }
       
@@ -7842,25 +7886,38 @@ async function enrichUniverse() {
     .join('\n');
   
   try {
-    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
-      `Look up current fundamental data for these stocks: ${batch.join(', ')}
-
-${analysisContext ? 'EXISTING ANALYSIS DATA (use if available, verify with web search if needed):\n' + analysisContext + '\n' : ''}
-
-For each stock provide: forward P/E, PEG ratio, sector average P/E, FCF yield %, and whether revenue is growing YoY.
-
-Return ONLY JSON array. No markdown:
-[{"ticker":"XYZ","forwardPE":25,"peg":1.2,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]
-If earnings are negative, set forwardPE to null. Include ALL tickers.`
+    // Step 1: Haiku gathers raw fundamental data
+    apexLog('INFO', `Enrich Step 1: Haiku searching for ${batch.length} tickers`);
+    const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+      `Search for current fundamental data for these stocks: ${batch.join(', ')}
+${analysisContext ? '\nEXISTING DATA (verify/supplement):\n' + analysisContext : ''}
+For each stock report: forward P/E ratio, PEG ratio, sector average P/E, FCF yield %, whether revenue is growing YoY. Report all numbers found.`
     }], true, 2000);
     
-    const usage = result.data?.usage || {};
-    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
-    apexLog('API', `Universe enrich — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    const u1 = step1.data?.usage || {};
+    const cost1 = (u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6;
+    apexLog('API', `Enrich Step 1 — $${cost1.toFixed(3)}`, `in=${u1.input_tokens} out=${u1.output_tokens}`);
     
-    let parsed = parseHaikuJSON(result.text);
+    // Step 2: Sonnet structures into JSON
+    const rawData = step1.text.length > 4000 ? step1.text.substring(0, 4000) : step1.text;
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
+      `Extract structured fundamental data from these research findings:
+
+${rawData}
+
+Return ONLY a JSON array. No markdown:
+[{"ticker":"XYZ","forwardPE":25,"peg":1.2,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]
+If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.join(', ')}`
+    }], false, 1500);
+    
+    const u2 = step2.data?.usage || {};
+    const cost2 = (u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6;
+    const totalCost = cost1 + cost2;
+    apexLog('API', `Enrich Step 2 — $${cost2.toFixed(3)}. Total: $${totalCost.toFixed(3)}`);
+    
+    let parsed = parseHaikuJSON(step2.text);
     if (!parsed || !Array.isArray(parsed)) {
-      const arrMatch = result.text.match(/\[[\s\S]*?\]/);
+      const arrMatch = step2.text.match(/\[[\s\S]*?\]/);
       if (arrMatch) try { parsed = JSON.parse(arrMatch[0]); } catch(e) {}
     }
     
@@ -7870,10 +7927,10 @@ If earnings are negative, set forwardPE to null. Include ALL tickers.`
       parsed.forEach(f => { if (f.ticker) state.research.universeFundamentals[f.ticker.toUpperCase()] = f; });
       saveState();
       refreshUniverse();
-      toast(`Enriched ${parsed.length} tickers — P/E data now in table`);
+      toast(`Enriched ${parsed.length} tickers — $${totalCost.toFixed(2)}`);
     } else {
       toast('Enrichment parse failed — raw saved', 'error');
-      state._lastEnrichRaw = result.text;
+      state._lastEnrichRaw = step2.text;
     }
   } catch(e) {
     toast('Enrichment failed: ' + e.message, 'error');
@@ -7918,29 +7975,54 @@ async function runResearchFeed(feedName) {
   if (!key) { toast('Set API key in Settings first', 'error'); return; }
   
   if (!state.research) state.research = { config: {} };
-  
-  // Build the prompt based on feed type
-  const prompt = buildFeedPrompt(feedName);
-  if (!prompt) { toast('Failed to build prompt for ' + feedName, 'error'); return; }
-  
-  // Save config (custom instructions + parameters)
   saveFeedConfig(feedName);
   
-  const estCost = feedName === 'rotation' && !document.getElementById('rot-enhance')?.checked ? 0 : 0.12;
-  if (!confirm(`Run ${feedName} scan?\nEstimated cost: ~$${estCost.toFixed(2)}`)) return;
+  // Rotation without enhancement is free (computed from BX data)
+  const rotFree = feedName === 'rotation' && !document.getElementById('rot-enhance')?.checked;
+  if (rotFree) {
+    const prompt = buildFeedPrompt(feedName);
+    if (!prompt) return; // Already handled in buildFeedPrompt for free rotation
+    return;
+  }
   
-  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳ Running...'; }
-  apexLog('INFO', `Research feed: ${feedName} starting`);
+  if (!confirm(`Run ${feedName} scan?\nStep 1: Haiku + web search (~$0.05-0.10)\nStep 2: Sonnet analysis (~$0.03-0.05)\nTotal: ~$0.08-0.15`)) return;
+  
+  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳ Step 1: Searching...'; }
+  apexLog('INFO', `Research feed: ${feedName} starting (hybrid)`);
+  
+  let totalCost = 0;
   
   try {
-    const result = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: prompt}], true, 2000);
-    const usage = result.data?.usage || {};
-    const cost = ((usage.input_tokens || 0) * 3 / 1000000 + (usage.output_tokens || 0) * 15 / 1000000).toFixed(3);
-    apexLog('API', `Research ${feedName} — $${cost}`, `in=${usage.input_tokens} out=${usage.output_tokens}`);
+    // ═══ STEP 1: Haiku + web search — gather raw data (cheap) ═══
+    const gatherPrompt = buildGatherPrompt(feedName);
+    const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: gatherPrompt}], true, 3000);
     
-    let parsed = parseHaikuJSON(result.text);
+    const u1 = step1.data?.usage || {};
+    const cost1 = (u1.input_tokens || 0) * 0.25 / 1000000 + (u1.output_tokens || 0) * 1.25 / 1000000;
+    totalCost += cost1;
+    apexLog('API', `${feedName} Step 1 (Haiku search) — $${cost1.toFixed(3)}`, `in=${u1.input_tokens} out=${u1.output_tokens}`);
+    
+    if (!step1.text || step1.text.length < 50) {
+      toast(`${feedName}: search returned no data`, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
+      return;
+    }
+    
+    // ═══ STEP 2: Sonnet WITHOUT web search — analyze and judge (smart) ═══
+    if (btn) btn.textContent = '⏳ Step 2: Analyzing...';
+    
+    const analyzePrompt = buildAnalyzePrompt(feedName, step1.text);
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, 2000);
+    
+    const u2 = step2.data?.usage || {};
+    const cost2 = (u2.input_tokens || 0) * 3 / 1000000 + (u2.output_tokens || 0) * 15 / 1000000;
+    totalCost += cost2;
+    apexLog('API', `${feedName} Step 2 (Sonnet analyze) — $${cost2.toFixed(3)}`, `in=${u2.input_tokens} out=${u2.output_tokens}`);
+    
+    // Parse JSON from Sonnet response
+    let parsed = parseHaikuJSON(step2.text);
     if (!parsed) {
-      const objMatch = result.text.match(/\{[\s\S]*\}/);
+      const objMatch = step2.text.match(/\{[\s\S]*\}/);
       if (objMatch) try { parsed = JSON.parse(objMatch[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
     }
     
@@ -7951,17 +8033,131 @@ async function runResearchFeed(feedName) {
       saveState();
       renderFeedResults(feedName);
       const dateEl = document.getElementById('feedDate-' + feedName);
-      if (dateEl) dateEl.textContent = 'Last run: just now | $' + cost;
-      toast(`${feedName}: ${(parsed.topPicks||[]).length} picks, ${(parsed.portfolioOverlap||[]).length} overlaps`);
+      if (dateEl) dateEl.textContent = `Last run: just now | $${totalCost.toFixed(2)}`;
+      toast(`${feedName}: ${(parsed.topPicks||[]).length} picks, ${(parsed.portfolioOverlap||[]).length} overlaps | cost: $${totalCost.toFixed(2)}`);
     } else {
-      state._lastResearchRaw = result.text;
-      toast('Research scan completed but JSON parse failed — raw saved', 'error');
+      state._lastResearchRaw = step2.text;
+      toast('Analysis completed but JSON parse failed — raw saved', 'error');
     }
   } catch(e) {
     toast(`Research ${feedName} failed: ${e.message}`, 'error');
     apexLog('ERROR', `Research ${feedName}: ${e.message}`);
   }
   if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
+}
+
+function buildGatherPrompt(feedName) {
+  const prof = state.profile || getDefaultProfile();
+  const tickers = state.positions.map(p => p.symbol).join(', ');
+  const watchTickers = state.watchlist.map(w => w.ticker).join(', ');
+  const sectors = prof.focusSectors.join(', ');
+  const cfg = state.research?.config?.[feedName] || {};
+  const custom = cfg.instructions || '';
+  
+  const preamble = `Search the web thoroughly for current data. Report ALL findings as detailed raw text — do NOT filter or judge, just gather facts. Include specific numbers, dates, ticker symbols, and dollar amounts.
+${custom ? '\nFOCUS INSTRUCTIONS: ' + custom : ''}
+My portfolio: ${tickers}
+My watchlist: ${watchTickers || 'none'}
+Focus sectors: ${sectors}\n\n`;
+  
+  if (feedName === 'earnings') {
+    const days = cfg.lookahead || '14';
+    return preamble + `Search for all stocks reporting earnings in the next ${days} days.
+For each company found: report the earnings date, consensus EPS estimate, revenue estimate, historical beat/miss rate, and any analyst commentary on expected results.
+Cross-reference my portfolio tickers above and note which ones have upcoming earnings.
+Also search for stocks where analysts expect a major surprise (positive or negative).
+Report everything you find — I will analyze the results separately.`;
+  }
+  
+  if (feedName === 'institutional') {
+    const days = cfg.lookback || '90';
+    const institutions = cfg.institutions?.join(', ') || 'Berkshire Hathaway, Bridgewater, Renaissance Technologies, Citadel, Two Sigma';
+    return preamble + `Search for the most recent 13F filings, whale wisdom reports, or financial news about stock trades by: ${institutions}.
+Lookback period: ${days} days. Report for each institution:
+- Stocks they bought or increased (with dollar amounts or share counts if available)
+- Stocks they sold or decreased
+- Any repeated/consistent buying over multiple quarters
+- Any positions that appear to have low retail awareness
+Report all raw findings with specific numbers and dates.`;
+  }
+  
+  if (feedName === 'political') {
+    const days = cfg.lookback || '60';
+    const members = cfg.members?.join(', ') || 'Nancy Pelosi, Ted Cruz, Tim Moore, Marjorie Taylor Greene';
+    const minSize = cfg.minSize || '100K';
+    return preamble + `Search Capitol Trades, Quiver Quantitative, or Congressional trade disclosure databases for stock trades by: ${members}.
+Lookback: ${days} days. Minimum trade size: $${minSize}.
+For each trade found: member name, ticker, buy/sell, dollar amount, disclosure date, days between trade and disclosure.
+Also look for patterns — multiple members buying the same stock, sector trends, trades preceding legislation.
+Report all raw findings.`;
+  }
+  
+  if (feedName === 'insider') {
+    const days = cfg.lookback || '30';
+    const minSize = cfg.minSize || '500K';
+    const role = cfg.role === 'cxo' ? 'CEO and CFO' : cfg.role === 'directors' ? 'directors and officers' : 'all insiders';
+    return preamble + `Search SEC Form 4 filings and financial news for significant insider stock purchases in the past ${days} days.
+Filter: transactions above $${minSize} by ${role}. Focus on PURCHASES (not routine option exercises or sales).
+For each finding: company, ticker, insider name and title, buy/sell, dollar amount, number of shares, date.
+Also search for unusual options activity (large call sweeps, significant put selling, unusual volume) on stocks with insider buying.
+Report all raw findings with specific numbers.`;
+  }
+  
+  if (feedName === 'rotation') {
+    const cycle = cfg.cycle || 'auto';
+    // Compute sector momentum from BX data
+    const sectorMomentum = {};
+    state.positions.forEach(p => {
+      if (!sectorMomentum[p.sector]) sectorMomentum[p.sector] = { bull: 0, bear: 0, total: 0 };
+      const badge = getBXSignalBadge(p.symbol);
+      sectorMomentum[p.sector].total++;
+      if (['BULL','BUY','FADE'].includes(badge.state)) sectorMomentum[p.sector].bull++;
+      else if (['BEAR','SELL','TURN'].includes(badge.state)) sectorMomentum[p.sector].bear++;
+    });
+    const sectorSummary = Object.entries(sectorMomentum).map(([s, d]) => `${s}: ${d.bull}↑ ${d.bear}↓ of ${d.total}`).join(', ');
+    
+    return preamble + `Search for current sector rotation trends, ETF flow data, and economic cycle analysis.
+My portfolio BX momentum by sector: ${sectorSummary}
+${cycle !== 'auto' ? 'User believes cycle is: ' + cycle : ''}
+Report: which sectors are seeing inflows/outflows, what cycle phase analysts believe we are in, and which sectors are expected to outperform in the next 3-6 months.
+Include specific ETF flow data and analyst commentary if found.`;
+  }
+  return null;
+}
+
+function buildAnalyzePrompt(feedName, rawFindings) {
+  const prof = state.profile || getDefaultProfile();
+  const tickers = state.positions.map(p => p.symbol).join(', ');
+  const watchTickers = state.watchlist.map(w => w.ticker).join(', ');
+  const sectors = prof.focusSectors.join(', ');
+  const cfg = state.research?.config?.[feedName] || {};
+  const custom = cfg.instructions || '';
+  
+  // Truncate raw findings to avoid excessive input
+  const trimmedRaw = rawFindings.length > 6000 ? rawFindings.substring(0, 6000) + '\n[...truncated]' : rawFindings;
+
+  const schema = `Return ONLY JSON. No markdown, no preamble. Start with { end with }.
+Schema: {"feedName":"${feedName}","topPicks":[{"ticker":"XYZ","signal":"BUY|WATCH","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Technology","suggestedTag":"Core|Tactical"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"feedSpecific":{...},"summary":"1 sentence"}`;
+
+  return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
+
+RESEARCH FINDINGS (gathered via web search):
+${trimmedRaw}
+
+MY PORTFOLIO: ${tickers}
+MY WATCHLIST: ${watchTickers || 'none'}
+FOCUS SECTORS: ${sectors}
+INVESTOR PROFILE: ${prof.risk} risk, min cap $${prof.minCap}M
+${custom ? '\nUSER INSTRUCTIONS: ' + custom : ''}
+
+REQUIRED ANALYSIS:
+1. Select the TOP 5 stock picks from the findings. Rank by conviction. Explain why each is compelling. Don't recommend stocks I already hold unless there's a specific action (add/trim).
+2. Flag any overlap with my portfolio — am I holding stocks that the data says to sell, or missing stocks it says to buy?
+3. Provide a 1-sentence summary of the overall finding.
+
+Be selective — only recommend stocks with genuine edge from this data. Generic recommendations (buy AAPL, buy MSFT) are not useful.
+
+${schema}`;
 }
 
 function saveFeedConfig(feedName) {
