@@ -1538,8 +1538,8 @@ input[type="range"]::-webkit-slider-thumb {
           <span class="form-label" style="margin:0;">Max Deployment %</span>
           <span class="slider-value" id="maxDeployVal">100%</span>
         </div>
-        <input type="range" min="70" max="120" step="5" value="100" id="maxDeploySlider" oninput="document.getElementById('maxDeployVal').textContent=this.value+'%'">
-        <div style="font-size:9px;color:var(--text-tertiary);">Below 100% = hold cash. Above 100% = leverage (negative cash position). Use BX consensus to guide this.</div>
+        <input type="range" min="70" max="150" step="5" value="100" id="maxDeploySlider" oninput="document.getElementById('maxDeployVal').textContent=this.value+'%'">
+        <div style="font-size:9px;color:var(--text-tertiary);">Below 100% = hold cash. Above 100% = leverage (negative cash). 120% = moderate margin. 150% = aggressive margin.</div>
       </div>
 
       <div class="slider-group" style="margin-top:8px;">
@@ -2551,7 +2551,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.0.1';
+const APEX_VERSION = '4.0.2';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -6282,8 +6282,8 @@ function refreshTarget() {
 
     // Compute conviction score for flexible entries
     const verdictScore = { 'BUY': 4, 'HOLD': 3, 'TRIM': 1, 'EXIT': 0 };
-    const confScore = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    const sentScore = { 'Bullish': 3, 'Neutral': 2, 'Bearish': 1 };
+    const confScore = { 'High': 3, 'Medium-High': 3, 'Medium': 2, 'Low-Medium': 1, 'Low': 1 };
+    const sentScore = { 'Bullish': 3, 'Extreme Bull': 3, 'Neutral': 2, 'Mixed': 2, 'Bearish': 1 };
     const conviction = (verdictScore[v.verdict] || 2) + (confScore[v.confidence] || 1) + (sentScore[v.sentiment] || 1);
 
     targetEntries.push({
@@ -6360,8 +6360,17 @@ function refreshTarget() {
   let activeCount = targetEntries.filter(e => e.status !== 'EXIT').length;
   
   if (rules.maxPos && activeCount > maxPos) {
-    // Score-based: trim weakest flexible entries (HOLD or weak NEW), protect locked entries and strong NEW
+    // Score-based: trim weakest flexible entries, protect locked entries, strong NEW, and ACTIONABLE positions
     const flexible = targetEntries.filter(e => e.status !== 'EXIT' && !e._locked);
+    // Boost conviction for positions with high opportunity scores (protects ACTIONABLE from force-exit)
+    flexible.forEach(e => {
+      const opp = (state.regime?.opportunities || []).find(o => o.ticker.toUpperCase() === e.ticker.toUpperCase());
+      if (opp && opp.totalScore >= 10) e._conviction += 4; // STRONG_BUY: heavily protected
+      else if (opp && opp.totalScore >= 7) e._conviction += 2; // ACTIONABLE: moderately protected
+      // Also boost for positions with multiple research feed signals
+      const univEntry = (_universeData || []).find(u => u.ticker === e.ticker.toUpperCase());
+      if (univEntry && univEntry.signalCount >= 3) e._conviction += 2;
+    });
     flexible.sort((a, b) => a._conviction - b._conviction);
     let toRemove = activeCount - maxPos;
     for (let i = 0; i < flexible.length && toRemove > 0; i++) {
@@ -7524,15 +7533,14 @@ function showSettingsTab(tab) {
   document.getElementById('setTabProfile').className = 'btn btn-sm' + (tab === 'profile' ? ' btn-primary' : '');
   document.getElementById('setTabHistory').className = 'btn btn-sm' + (tab === 'history' ? ' btn-primary' : '');
   if (tab === 'profile') {
-    const el = document.getElementById('settingsProfileView');
-    const src = document.getElementById('page-profile');
-    if (src && el.children.length <= 1) el.innerHTML += src.querySelector('.page-content')?.innerHTML || '';
+    // Navigate to full Profile page (sliders need unique element IDs)
+    navigateTo('profile');
+    return;
   }
   if (tab === 'history') {
-    const el = document.getElementById('settingsHistoryView');
-    const src = document.getElementById('page-history');
-    if (src && el.children.length <= 1) el.innerHTML += src.querySelector('.page-content')?.innerHTML || '';
-    refreshHistory();
+    // Navigate to full History page
+    navigateTo('history');
+    return;
   }
 }
 
