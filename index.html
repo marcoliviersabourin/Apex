@@ -894,32 +894,18 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
       <span class="nav-icon">📊</span> Dashboard
     </div>
-    <div class="nav-item" data-page="macro" onclick="navigateTo('macro')">
-      <span class="nav-icon">🌍</span> Macro Outlook
-    </div>
     <div class="nav-item" data-page="regime" onclick="navigateTo('regime')">
-      <span class="nav-icon">⚡</span> Regime
+      <span class="nav-icon">🌍</span> Market
     </div>
+    <div class="nav-separator"></div>
     <div class="nav-item" data-page="portfolio" onclick="navigateTo('portfolio')">
       <span class="nav-icon">📁</span> Portfolio
       <span class="nav-badge" id="posCountBadge">0</span>
     </div>
-    <div class="nav-item" data-page="technicals" onclick="navigateTo('technicals')">
-      <span class="nav-icon">📈</span> Technicals
-    </div>
-    <div class="nav-item" data-page="profile" onclick="navigateTo('profile')">
-      <span class="nav-icon">👤</span> Profile
-    </div>
-    <div class="nav-separator"></div>
-    <div class="nav-item" data-page="analysis" onclick="navigateTo('analysis')">
-      <span class="nav-icon">⚡</span> Analysis
-    </div>
-    <div class="nav-item" data-page="ideas" onclick="navigateTo('ideas')">
-      <span class="nav-icon">💡</span> New Ideas
-    </div>
     <div class="nav-item" data-page="watchlist" onclick="navigateTo('watchlist')">
       <span class="nav-icon">👁</span> Watchlist
     </div>
+    <div class="nav-separator"></div>
     <div class="nav-item" data-page="research" onclick="navigateTo('research')">
       <span class="nav-icon">🔬</span> Research
     </div>
@@ -927,13 +913,9 @@ input[type="range"]::-webkit-slider-thumb {
       <span class="nav-icon">🔍</span> Universe
     </div>
     <div class="nav-item" data-page="target" onclick="navigateTo('target')">
-      <span class="nav-icon">🎯</span> Target Portfolio
+      <span class="nav-icon">🎯</span> Target
     </div>
     <div class="nav-separator"></div>
-    <div class="nav-item" data-page="history" onclick="navigateTo('history')">
-      <span class="nav-icon">🗂</span> History
-      <span class="nav-badge" id="historyCountBadge" style="display:none">0</span>
-    </div>
     <div class="nav-item" data-page="settings" onclick="navigateTo('settings')">
       <span class="nav-icon">⚙️</span> Settings
     </div>
@@ -1112,8 +1094,8 @@ input[type="range"]::-webkit-slider-thumb {
 <div class="page" id="page-regime">
   <div class="page-header">
     <div>
-      <div class="page-title">⚡ REGIME DETECTION</div>
-      <div class="page-subtitle" id="regimeSubtitle">Market regime analysis &amp; opportunity radar</div>
+      <div class="page-title">🌍 MARKET</div>
+      <div class="page-subtitle" id="regimeSubtitle">Macro outlook, regime detection &amp; opportunity radar</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="computeRegime()">🔄 Recompute</button>
@@ -1121,6 +1103,30 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
   </div>
   <div class="page-content">
+    <!-- Market sub-tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <button class="btn btn-sm btn-primary" onclick="showMarketTab('regime')" id="mktTabRegime">⚡ Regime</button>
+      <button class="btn btn-sm" onclick="showMarketTab('macro')" id="mktTabMacro">🌍 Macro</button>
+      <button class="btn btn-sm" onclick="showMarketTab('technicals')" id="mktTabTech">📈 Technicals</button>
+      <button class="btn btn-sm" onclick="navigateTo('analysis')" style="margin-left:auto;">⚡ Run Analysis</button>
+    </div>
+    
+    <!-- Macro sub-view (shown when tab selected) -->
+    <div id="marketMacroView" style="display:none;">
+      <div id="macroEmbedded"></div>
+    </div>
+    
+    <!-- Technicals sub-view -->
+    <div id="marketTechView" style="display:none;">
+      <div style="color:var(--text-tertiary);text-align:center;padding:16px;font-size:12px;">
+        Select a ticker below or go to <a href="#" onclick="event.preventDefault();navigateTo('technicals')" style="color:var(--blue);">full Technicals page</a>
+      </div>
+      <div id="techEmbeddedSelect" style="margin-bottom:12px;"></div>
+      <div id="techEmbeddedDetail"></div>
+    </div>
+    
+    <!-- Regime view (default) -->
+    <div id="marketRegimeView">
     <!-- Regime Banner -->
     <div class="card fade-in" id="regimeBanner" style="padding:16px 20px;border-left:4px solid var(--green);">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1225,6 +1231,7 @@ input[type="range"]::-webkit-slider-thumb {
       <div id="scenarioResult" style="margin-top:12px;display:none;"></div>
       <div id="scenarioHistory" style="margin-top:12px;"></div>
     </div>
+    </div><!-- close marketRegimeView -->
   </div>
 </div>
 
@@ -2407,12 +2414,35 @@ input[type="range"]::-webkit-slider-thumb {
 <div class="page" id="page-settings">
   <div class="page-header">
     <div>
-      <div class="page-title">SETTINGS</div>
-      <div class="page-subtitle">API & preferences</div>
+      <div class="page-title">⚙️ SETTINGS</div>
+      <div class="page-subtitle">Configuration, profile &amp; history</div>
     </div>
     <button class="btn btn-sm" onclick="showDebugLog()">📋 Debug Log</button>
   </div>
   <div class="page-content">
+    <!-- Settings sub-tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <button class="btn btn-sm btn-primary" onclick="showSettingsTab('api')" id="setTabAPI">⚙️ API & Config</button>
+      <button class="btn btn-sm" onclick="showSettingsTab('profile')" id="setTabProfile">👤 Profile</button>
+      <button class="btn btn-sm" onclick="showSettingsTab('history')" id="setTabHistory">🗂 History <span id="historyCountBadge" style="display:none;background:var(--blue);color:white;border-radius:8px;padding:0 5px;font-size:9px;margin-left:4px;">0</span></button>
+    </div>
+    
+    <!-- Profile sub-view -->
+    <div id="settingsProfileView" style="display:none;">
+      <div style="color:var(--text-tertiary);font-size:11px;margin-bottom:8px;">
+        <a href="#" onclick="event.preventDefault();navigateTo('profile')" style="color:var(--blue);">Open full Profile page →</a>
+      </div>
+    </div>
+    
+    <!-- History sub-view -->
+    <div id="settingsHistoryView" style="display:none;">
+      <div style="color:var(--text-tertiary);font-size:11px;margin-bottom:8px;">
+        <a href="#" onclick="event.preventDefault();navigateTo('history')" style="color:var(--blue);">Open full History page →</a>
+      </div>
+    </div>
+    
+    <!-- API/Config view (default) -->
+    <div id="settingsAPIView">
     <!-- API -->
     <div class="card fade-in">
       <div class="card-title" style="margin-bottom:14px;">API Configuration</div>
@@ -2500,6 +2530,7 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
       </div>
     </div>
+    </div><!-- close settingsAPIView -->
   </div>
 </div>
 
@@ -2520,7 +2551,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '3.7.1';
+const APEX_VERSION = '4.0.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -4453,7 +4484,15 @@ Format as a concise briefing (bullet points OK). End with a "RISK LEVEL" assessm
 
 Be specific with numbers, percentages, and sources. This is a real-time scan — use the most current data available.`;
 
-    const result = await callClaude(key, state.settings.model, [{ role: 'user', content: alertPrompt }], true, 4000);
+    const result_step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{ role: 'user', content: alertPrompt }], true, 2000);
+    const u1 = result_step1.data?.usage || {};
+    apexLog('API', `Alert Step 1 (Haiku) — $${((u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6).toFixed(3)}`);
+    
+    const rawData = result_step1.text.length > 4000 ? result_step1.text.substring(0, 4000) : result_step1.text;
+    const result = await callClaude(key, 'claude-sonnet-4-6', [{ role: 'user', content:
+      `Write a concise market briefing from this data:\n\n${rawData}\n\nEnd with RISK LEVEL: LOW/ELEVATED/HIGH/CRITICAL and a 1-sentence recommendation.`
+    }], false, 2000);
+    apexLog('API', `Alert Step 2 (Sonnet) — $${((result.data?.usage?.input_tokens||0)*3/1e6 + (result.data?.usage?.output_tokens||0)*15/1e6).toFixed(3)}`);
 
     // Display the alert
     const alertOutput = document.getElementById('marketAlertOutput');
@@ -7455,6 +7494,51 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
   ro.observe(container);
 }
 
+// ═══ MARKET TAB SWITCHING ═══
+function showMarketTab(tab) {
+  document.getElementById('marketRegimeView').style.display = tab === 'regime' ? 'block' : 'none';
+  document.getElementById('marketMacroView').style.display = tab === 'macro' ? 'block' : 'none';
+  document.getElementById('marketTechView').style.display = tab === 'technicals' ? 'block' : 'none';
+  document.getElementById('mktTabRegime').className = 'btn btn-sm' + (tab === 'regime' ? ' btn-primary' : '');
+  document.getElementById('mktTabMacro').className = 'btn btn-sm' + (tab === 'macro' ? ' btn-primary' : '');
+  document.getElementById('mktTabTech').className = 'btn btn-sm' + (tab === 'technicals' ? ' btn-primary' : '');
+  if (tab === 'macro') {
+    // Render macro content into embedded view
+    const el = document.getElementById('macroEmbedded');
+    const src = document.getElementById('page-macro');
+    if (src && el) el.innerHTML = src.querySelector('.page-content')?.innerHTML || '<div style="padding:16px;color:var(--text-tertiary);">Run weekly analysis to populate macro data.</div>';
+  }
+  if (tab === 'technicals') {
+    // Build ticker selector
+    const el = document.getElementById('techEmbeddedSelect');
+    const tickers = state.positions.map(p => p.symbol).sort();
+    el.innerHTML = '<select class="form-select" style="font-size:12px;width:150px;" onchange="renderTechDetail(this.value)">' +
+      tickers.map(t => `<option value="${t}">${t}</option>`).join('') + '</select>';
+    if (tickers.length > 0) renderTechDetail(tickers[0]);
+  }
+}
+
+// ═══ SETTINGS TAB SWITCHING ═══
+function showSettingsTab(tab) {
+  document.getElementById('settingsAPIView').style.display = tab === 'api' ? 'block' : 'none';
+  document.getElementById('settingsProfileView').style.display = tab === 'profile' ? 'block' : 'none';
+  document.getElementById('settingsHistoryView').style.display = tab === 'history' ? 'block' : 'none';
+  document.getElementById('setTabAPI').className = 'btn btn-sm' + (tab === 'api' ? ' btn-primary' : '');
+  document.getElementById('setTabProfile').className = 'btn btn-sm' + (tab === 'profile' ? ' btn-primary' : '');
+  document.getElementById('setTabHistory').className = 'btn btn-sm' + (tab === 'history' ? ' btn-primary' : '');
+  if (tab === 'profile') {
+    const el = document.getElementById('settingsProfileView');
+    const src = document.getElementById('page-profile');
+    if (src && el.children.length <= 1) el.innerHTML += src.querySelector('.page-content')?.innerHTML || '';
+  }
+  if (tab === 'history') {
+    const el = document.getElementById('settingsHistoryView');
+    const src = document.getElementById('page-history');
+    if (src && el.children.length <= 1) el.innerHTML += src.querySelector('.page-content')?.innerHTML || '';
+    refreshHistory();
+  }
+}
+
 // ═══ UNIVERSE ENGINE ═══
 let _universeData = [];
 let _universeSort = { col: 'signals', dir: 'desc' };
@@ -7472,6 +7556,8 @@ async function refreshUniverseTechData() {
   ['earnings','institutional','political','rotation','insider'].forEach(feed => {
     (state.research?.[feed]?.topPicks || []).forEach(p => allTickers.add(p.ticker.toUpperCase()));
   });
+  // Always include VIXY for VIX proxy (regime detection)
+  allTickers.add('VIXY');
   
   const tickers = [...allTickers];
   const btn = document.getElementById('univBXBtn');
@@ -7954,9 +8040,18 @@ If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.jo
     if (parsed && Array.isArray(parsed)) {
       if (!state.research) state.research = {};
       if (!state.research.universeFundamentals) state.research.universeFundamentals = {};
-      parsed.forEach(f => { if (f.ticker) state.research.universeFundamentals[f.ticker.toUpperCase()] = f; });
+      if (!state.regime) state.regime = {};
+      if (!state.regime.fundamentals) state.regime.fundamentals = {};
+      parsed.forEach(f => {
+        if (f.ticker) {
+          const key = f.ticker.toUpperCase();
+          state.research.universeFundamentals[key] = f;
+          state.regime.fundamentals[key] = f; // Shared with regime page
+        }
+      });
       saveState();
       refreshUniverse();
+      if (typeof computeRegime === 'function' && state.regime?.lastComputed) computeRegime();
       toast(`Enriched ${parsed.length} tickers — $${totalCost.toFixed(2)}`);
     } else {
       toast('Enrichment parse failed — raw saved', 'error');
@@ -8442,39 +8537,28 @@ async function computeRegime() {
   
   if (!state.regime) state.regime = { override: 'auto', overrideReason: '', sectorStances: {}, scenarios: [], lastComputed: null };
   
-  // Auto-fetch VIX proxy if missing (AV doesn't support ^VIX directly)
+  // VIX: Use cached VIXY data from BX refresh (or fetch if missing)
   const avKey = state.settings.avKey;
-  const vixCached = state.technicalData['^VIX'];
-  const vixStale = !vixCached?.bars?.length || ((Date.now() - new Date(vixCached?.lastFetched || 0).getTime()) / 86400000 > 7);
-  if (avKey && vixStale) {
-    toast('Fetching VIX proxy...');
+  const vixData = state.technicalData['^VIX'] || state.technicalData['VIXY'];
+  if (!vixData?.bars?.length && avKey) {
+    // Quick single fetch if not yet in cache
     try {
       const vixBars = await fetchOHLC('VIXY', 'monthly');
       if (vixBars && vixBars !== 'RATE_LIMITED' && vixBars.length > 0) {
-        state.technicalData['^VIX'] = { lastFetched: new Date().toISOString(), timeframe: 'monthly', bars: vixBars, computed: { short:[], long:[], signals:[] } };
+        state.technicalData['VIXY'] = { lastFetched: new Date().toISOString(), timeframe: 'monthly', bars: vixBars, computed: { short:[], long:[], signals:[] } };
       }
-    } catch(e) { console.warn('APEX: VIX proxy fetch failed:', e); }
-    // Fallback: compute realized volatility from VOO
-    if (!state.technicalData['^VIX']?.bars?.length) {
-      const vooData = state.technicalData['VOO'];
-      if (vooData?.bars?.length >= 3) {
-        const rets = vooData.bars.slice(-12).map((b,i,a) => i > 0 ? Math.abs((b.close - a[i-1].close)/a[i-1].close*100) : 0).filter((_,i) => i > 0);
-        const synthVix = (rets.reduce((s,r) => s+r, 0) / rets.length) * 5;
-        state.technicalData['^VIX'] = { lastFetched: new Date().toISOString(), timeframe: 'monthly', bars: [{ date: new Date().toISOString().substring(0,10), close: synthVix, open: synthVix, high: synthVix, low: synthVix }], computed: { short:[], long:[], signals:[] }, synthetic: true };
-        console.log('APEX: Synthetic VIX from VOO:', synthVix.toFixed(1));
-      }
-    }
+    } catch(e) { console.warn('APEX: VIX fetch failed:', e); }
   }
   
   // ═══ SCORE FACTORS ═══
   const factors = [];
   
-  // 1. VIX level (from technicalData if fetched)
-  const vixData = state.technicalData['^VIX'] || state.technicalData['VIX'] || null;
+  // 1. VIX level (from technicalData — fetched as VIXY proxy)
+  const vixLookup = state.technicalData['^VIX'] || state.technicalData['VIXY'] || state.technicalData['VIX'] || null;
   let vixLevel = null, vixChange = null;
-  if (vixData?.bars?.length > 0) {
-    const lastVix = vixData.bars[vixData.bars.length - 1].close;
-    const prevVix = vixData.bars.length > 1 ? vixData.bars[vixData.bars.length - 2].close : lastVix;
+  if (vixLookup?.bars?.length > 0) {
+    const lastVix = vixLookup.bars[vixLookup.bars.length - 1].close;
+    const prevVix = vixLookup.bars.length > 1 ? vixLookup.bars[vixLookup.bars.length - 2].close : lastVix;
     vixLevel = lastVix;
     vixChange = prevVix > 0 ? ((lastVix - prevVix) / prevVix * 100) : 0;
     factors.push({ label: 'VIX Level', current: lastVix.toFixed(1), threshold: '> 25', triggered: lastVix > 25, points: lastVix > 30 ? 2 : lastVix > 25 ? 1 : 0 });
@@ -8961,59 +9045,8 @@ function renderScenarioHistory() {
 }
 
 async function enrichOpportunities() {
-  const key = state.settings.apiKey;
-  if (!key) { toast('Set API key in Settings', 'error'); return; }
-  const opps = (state.regime?.opportunities || []).filter(o => o.dislocationScore >= 1);
-  if (opps.length === 0) { toast('No dislocated tickers to enrich', 'error'); return; }
-  
-  const tickers = opps.slice(0, 10).map(o => o.ticker).join(', ');
-  toast('Fetching fundamentals for ' + opps.slice(0, 10).length + ' tickers...');
-  
-  try {
-    const result = await callClaude(key, state.settings.model, [{role:'user', content:
-      `Look up current fundamental data for these stocks using web search: ${tickers}
-
-For each stock, find: forward P/E ratio, the sector average P/E, FCF yield %, and whether revenue is growing year-over-year.
-
-Respond with ONLY a raw JSON array. No markdown, no explanation, no preamble. Start with [ and end with ].
-
-Example format:
-[{"ticker":"AAPL","forwardPE":28,"sectorPE":32,"fcfYield":3.8,"revenueGrowing":true},{"ticker":"JPM","forwardPE":12,"sectorPE":14,"fcfYield":6.2,"revenueGrowing":true}]
-
-If you cannot find exact data for a ticker, use your best estimate. Include ALL tickers listed above.`
-    }], true, 3000);
-    
-    console.log('APEX: Enrichment raw response:', result.text.substring(0, 500));
-    
-    let parsed = parseHaikuJSON(result.text);
-    if (!parsed) {
-      // Try extracting array specifically
-      const arrMatch = result.text.match(/\[[\s\S]*\]/);
-      if (arrMatch) {
-        try { parsed = JSON.parse(arrMatch[0].replace(/,(\s*[\]}])/g, '$1')); } catch(e) {}
-      }
-    }
-    // If parsed is an object with a key containing the array, extract it
-    if (parsed && !Array.isArray(parsed)) {
-      const vals = Object.values(parsed);
-      const arr = vals.find(v => Array.isArray(v));
-      if (arr) parsed = arr;
-    }
-    
-    if (!parsed || !Array.isArray(parsed)) {
-      toast('Enrichment: could not parse response — check debug', 'error');
-      state._lastEnrichRaw = result.text;
-      return;
-    }
-    
-    if (!state.regime.fundamentals) state.regime.fundamentals = {};
-    parsed.forEach(f => { if (f.ticker) state.regime.fundamentals[f.ticker.toUpperCase()] = f; });
-    saveState();
-    computeRegime();
-    toast(`Enriched ${parsed.length} tickers with fundamental data`);
-  } catch(e) {
-    toast('Enrichment failed: ' + e.message, 'error');
-  }
+  // Redirect to unified enrichment
+  await enrichUniverse();
 }
 
 // Add regime to refreshAll
