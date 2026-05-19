@@ -2551,7 +2551,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.0.0';
+const APEX_VERSION = '4.0.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2722,7 +2722,7 @@ function getDefaultProfile() {
     maxIdeasPerSector:3, concentrationThreshold:15,
     minRebalanceThreshold:1, maxDeployment:100,
     bxSensitivity:0, bxTimeframe:'monthly',
-    inclusionMargin:2,
+    inclusionMargin:1,
     focusSectors:['Technology','Materials','Defence','Healthcare','Finance'],
     avoidSectors:[],
     sectorMax: Object.fromEntries(SECTORS.map(s => [s, 25])),
@@ -6314,16 +6314,16 @@ function refreshTarget() {
       return;
     }
     
-    // Score the idea
+    // Score the idea (normalized 0-10 scale)
     const leadScore = { 'dual': 4, 'value': 3, 'technical': 3, 'speculative': 1 };
     const riskAdj = { 'Low': 1, 'Medium': 0, 'High': -1 };
-    const sourceScore = { 'weekly': 3, 'research': 2, 'watchlist': 2 };
-    const ideaScore = (leadScore[idea.leadAnalyst] || 1) + (riskAdj[idea.riskLevel] || 0) +
-      (sourceScore[idea._source] || 2) + (idea.suggestedWeight >= 3 ? 1 : 0);
+    const ideaScore = (leadScore[idea.leadAnalyst] || 2) + (riskAdj[idea.riskLevel] || 0) +
+      (idea.suggestedWeight >= 3 ? 2 : idea.suggestedWeight >= 2 ? 1 : 0) +
+      (idea.priority ? 2 : 0); // Priority ideas from Part 7 get a bonus
     
-    // Find weakest same-sector competitor, or overall weakest if no same-sector
+    // Find weakest same-sector competitor (using same 0-10 scale via _conviction)
     const sameSector = targetEntries.filter(e => e.sector === (idea.sector || '') && e.status !== 'EXIT');
-    const competitors = sameSector.length > 0 ? sameSector : targetEntries.filter(e => e.status !== 'EXIT');
+    const competitors = sameSector.length > 0 ? sameSector : targetEntries.filter(e => e.status !== 'EXIT' && e.status !== 'NEW');
     
     let weakestScore = Infinity, weakestTicker = '—';
     competitors.forEach(e => {
@@ -7509,12 +7509,9 @@ function showMarketTab(tab) {
     if (src && el) el.innerHTML = src.querySelector('.page-content')?.innerHTML || '<div style="padding:16px;color:var(--text-tertiary);">Run weekly analysis to populate macro data.</div>';
   }
   if (tab === 'technicals') {
-    // Build ticker selector
-    const el = document.getElementById('techEmbeddedSelect');
-    const tickers = state.positions.map(p => p.symbol).sort();
-    el.innerHTML = '<select class="form-select" style="font-size:12px;width:150px;" onchange="renderTechDetail(this.value)">' +
-      tickers.map(t => `<option value="${t}">${t}</option>`).join('') + '</select>';
-    if (tickers.length > 0) renderTechDetail(tickers[0]);
+    // Navigate to full Technicals page (charts need specific element IDs)
+    navigateTo('technicals');
+    return;
   }
 }
 
@@ -7632,6 +7629,7 @@ function buildUniverseData() {
       if (!universe[key]) universe[key] = createUniverseEntry(key);
       const u = universe[key];
       u.sources.add(feed);
+      u.sources.add('research'); // For badge display
       u.feedSignals[feed] = { signal: pick.signal, confidence: pick.confidence, reason: pick.reason };
       u.sector = pick.sector || u.sector;
       u.tag = pick.suggestedTag?.toLowerCase() || u.tag;
@@ -7860,6 +7858,7 @@ function renderUniverseTable() {
     if (u.sources.has('held')) srcBadges.push('<span class="badge badge-core" style="font-size:8px;">HELD</span>');
     if (u.sources.has('watchlist')) srcBadges.push('<span class="badge badge-hold" style="font-size:8px;">WATCH</span>');
     if (u.sources.has('idea')) srcBadges.push('<span class="badge badge-tactical" style="font-size:8px;">IDEA</span>');
+    if (u.sources.has('research') && !u.sources.has('held') && !u.sources.has('watchlist') && !u.sources.has('idea')) srcBadges.push('<span class="badge" style="font-size:8px;background:rgba(168,85,247,0.2);color:var(--purple);">RSRCH</span>');
     
     // Feed signal icons
     const feedIcons = [];
