@@ -2560,7 +2560,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.1.0';
+const APEX_VERSION = '4.1.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8202,16 +8202,31 @@ async function enrichUniverse() {
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key in Settings first', 'error'); return; }
   
-  // Find tickers missing fundamental data
-  const needsEnrich = _universeData.filter(u => !u.fwdPE).map(u => u.ticker);
+  // Find tickers missing STRUCTURED enrichment data (text-parsed P/E from verdicts doesn't count)
+  const enriched = new Set([
+    ...Object.keys(state.research?.universeFundamentals || {}),
+    ...Object.keys(state.regime?.fundamentals || {})
+  ]);
+  const needsEnrich = _universeData
+    .filter(u => !enriched.has(u.ticker))
+    .map(u => u.ticker);
   if (needsEnrich.length === 0) { toast('All tickers already have P/E data'); return; }
   
-  const batch = needsEnrich.slice(0, 15); // Max 15 per call
-  const est = (0.08).toFixed(2);
-  if (!confirm(`Enrich ${batch.length} tickers with fundamentals?\nMissing P/E data for: ${batch.join(', ')}\nEstimated cost: ~$${est}`)) return;
+  const batch = needsEnrich.slice(0, 15);
+  const remaining = needsEnrich.length - batch.length;
+  const est = (0.05 * Math.ceil(needsEnrich.length / 15)).toFixed(2);
+  if (!confirm(`Enrich ${needsEnrich.length} tickers missing P/E data?\n${Math.ceil(needsEnrich.length / 15)} batch(es) of ≤15\nEstimated total cost: ~$${est}`)) return;
   
-  toast(`Enriching ${batch.length} tickers...`);
-  apexLog('INFO', `Universe enrich: ${batch.length} tickers`);
+  toast(`Enriching ${needsEnrich.length} tickers in ${Math.ceil(needsEnrich.length / 15)} batch(es)...`);
+  apexLog('INFO', `Universe enrich: ${needsEnrich.length} tickers in batches`);
+  
+  let totalEnriched = 0, totalCost = 0;
+  
+  for (let b = 0; b < needsEnrich.length; b += 15) {
+    const batch = needsEnrich.slice(b, b + 15);
+    const batchNum = Math.floor(b / 15) + 1;
+    const totalBatches = Math.ceil(needsEnrich.length / 15);
+    toast(`Enriching batch ${batchNum}/${totalBatches} (${batch.join(', ').substring(0, 40)}...)`);
   
   // Include analysis context to reduce web search needs
   const analysisContext = (state.analysisData?.verdicts || [])
@@ -8270,14 +8285,23 @@ If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.jo
       saveState();
       refreshUniverse();
       if (typeof computeRegime === 'function' && state.regime?.lastComputed) computeRegime();
-      toast(`Enriched ${parsed.length} tickers — $${totalCost.toFixed(2)}`);
+      toast(`Enriched ${parsed.length} tickers — batch $${totalCost.toFixed(2)}`);
+      totalEnriched += parsed.length;
     } else {
-      toast('Enrichment parse failed — raw saved', 'error');
+      toast('Batch parse failed — raw saved', 'error');
       state._lastEnrichRaw = step2.text;
     }
   } catch(e) {
     toast('Enrichment failed: ' + e.message, 'error');
+    break; // Stop batching on error
   }
+  
+  // Delay between batches
+  if (b + 15 < needsEnrich.length) await new Promise(r => setTimeout(r, 2000));
+  } // End batch loop
+  
+  refreshUniverse();
+  if (totalEnriched > 0) toast(`✓ Enriched ${totalEnriched} tickers total — $${totalCost.toFixed(2)}`);
 }
 
 // ═══ RESEARCH HUB ENGINE ═══
