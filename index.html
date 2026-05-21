@@ -2268,6 +2268,15 @@ input[type="range"]::-webkit-slider-thumb {
     <!-- Regime context -->
     <div id="universeRegimeBanner" style="margin-bottom:12px;"></div>
     
+    <!-- Data Freshness Panel -->
+    <div class="card fade-in" style="padding:10px 16px;margin-bottom:12px;" id="freshnessPanelCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text-tertiary);">DATA SOURCES</span>
+        <button class="btn btn-sm" onclick="refreshAllStale()" id="refreshStaleBtn">🔄 Refresh All Stale</button>
+      </div>
+      <div id="freshnessTable" style="font-size:11px;"></div>
+    </div>
+
     <!-- Controls -->
     <div class="card fade-in" style="padding:10px 16px;">
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
@@ -2551,7 +2560,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.0.2';
+const APEX_VERSION = '4.1.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -3018,6 +3027,7 @@ function confirmImport() {
   classifySectors(state.positions);
   const cashTotal = Object.values(state.cashBalances).reduce((s,v) => s + v, 0);
   toast(`${state.positions.length} positions imported${cashTotal !== 0 ? ' + cash balances' : ''}`);
+  state._lastImportDate = new Date().toISOString();
 }
 
 // ═══ CASH MANAGEMENT ═══
@@ -6360,18 +6370,34 @@ function refreshTarget() {
   let activeCount = targetEntries.filter(e => e.status !== 'EXIT').length;
   
   if (rules.maxPos && activeCount > maxPos) {
-    // Score-based: trim weakest flexible entries, protect locked entries, strong NEW, and ACTIONABLE positions
+    // Score-based: trim weakest flexible entries, protect locked, strong NEW, large positions, and ACTIONABLE
     const flexible = targetEntries.filter(e => e.status !== 'EXIT' && !e._locked);
-    // Boost conviction for positions with high opportunity scores (protects ACTIONABLE from force-exit)
+    
+    // Boost conviction to protect valuable positions from force-exit
     flexible.forEach(e => {
+      // Large positions should be harder to force-exit (represent more capital commitment)
+      if (e.currentWeight >= 8) e._conviction += 3;
+      else if (e.currentWeight >= 4) e._conviction += 2;
+      else if (e.currentWeight >= 2) e._conviction += 1;
+      
+      // Opportunity score protection (compute inline if regime data unavailable)
       const opp = (state.regime?.opportunities || []).find(o => o.ticker.toUpperCase() === e.ticker.toUpperCase());
-      if (opp && opp.totalScore >= 10) e._conviction += 4; // STRONG_BUY: heavily protected
-      else if (opp && opp.totalScore >= 7) e._conviction += 2; // ACTIONABLE: moderately protected
-      // Also boost for positions with multiple research feed signals
-      const univEntry = (_universeData || []).find(u => u.ticker === e.ticker.toUpperCase());
-      if (univEntry && univEntry.signalCount >= 3) e._conviction += 2;
+      if (opp && opp.totalScore >= 10) e._conviction += 4;
+      else if (opp && opp.totalScore >= 7) e._conviction += 2;
+      
+      // Research signal convergence (check directly, don't rely on Universe page visit)
+      const feedCount = ['earnings','institutional','political','rotation','insider'].filter(feed => 
+        state.research?.[feed]?.topPicks?.some(p => p.ticker.toUpperCase() === e.ticker.toUpperCase()) ||
+        state.research?.[feed]?.portfolioOverlap?.some(p => p.ticker.toUpperCase() === e.ticker.toUpperCase())
+      ).length;
+      if (feedCount >= 2) e._conviction += 2;
+      
+      // NEW entries get slight penalty (unproven, easier to drop than established positions)
+      if (e.isNew) e._conviction -= 1;
     });
+    
     flexible.sort((a, b) => a._conviction - b._conviction);
+    apexLog('INFO', `Force-exit scoring: ${flexible.slice(0, 5).map(e => `${e.ticker}=${e._conviction}`).join(', ')} (weakest first)`);
     let toRemove = activeCount - maxPos;
     for (let i = 0; i < flexible.length && toRemove > 0; i++) {
       const entry = flexible[i];
@@ -7549,6 +7575,190 @@ let _universeData = [];
 let _universeSort = { col: 'signals', dir: 'desc' };
 let _universeFilter = 'all';
 
+function renderFreshnessPanel() {
+  const el = document.getElementById('freshnessTable');
+  if (!el) return;
+  
+  const now = Date.now();
+  const dayMs = 86400000;
+  
+  function ageStr(dateStr) {
+    if (!dateStr) return { text: 'Never', days: 999, color: 'var(--red)' };
+    const days = Math.floor((now - new Date(dateStr).getTime()) / dayMs);
+    if (days === 0) return { text: 'Today', days, color: 'var(--green)' };
+    if (days === 1) return { text: '1 day ago', days, color: 'var(--green)' };
+    if (days <= 7) return { text: days + ' days ago', days, color: 'var(--green)' };
+    if (days <= 14) return { text: days + ' days ago', days, color: 'var(--amber)' };
+    return { text: days + ' days ago', days, color: 'var(--red)' };
+  }
+  
+  function freshBadge(age) {
+    return `<span style="color:${age.color};font-weight:700;">${age.days <= 7 ? '🟢' : age.days <= 14 ? '🟡' : '🔴'} ${age.text}</span>`;
+  }
+  
+  // Compute each source's freshness
+  const csvDate = state.positions.length > 0 ? (state._lastImportDate || null) : null;
+  
+  // BX: oldest ticker cache date
+  const bxDates = Object.values(state.technicalData).map(t => t.lastFetched).filter(Boolean);
+  const bxOldest = bxDates.length > 0 ? bxDates.sort()[0] : null;
+  const bxCount = Object.values(state.technicalData).filter(t => t.computed?.short?.length > 0).length;
+  const bxTotal = _universeData.length;
+  
+  // Analysis
+  const analysisDate = state.analysisData?._reportDate || state.reports?.[0]?.date || null;
+  const verdictCount = (state.analysisData?.verdicts || []).length;
+  
+  // Enrichment
+  const enrichDates = [...Object.values(state.research?.universeFundamentals || {}), ...Object.values(state.regime?.fundamentals || {})];
+  const enrichDate = enrichDates.length > 0 ? new Date().toISOString() : null; // Approximate — no per-item date stored
+  const enrichCount = new Set([...Object.keys(state.research?.universeFundamentals || {}), ...Object.keys(state.regime?.fundamentals || {})]).size;
+  
+  // Research feeds
+  const feeds = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
+  const feedData = feeds.map(f => ({
+    name: f, date: state.research?.[f]?.runDate || null,
+    picks: (state.research?.[f]?.topPicks || []).length
+  }));
+  
+  // Regime
+  const regimeDate = state.regime?.lastComputed || null;
+  
+  const csvAge = ageStr(csvDate);
+  const bxAge = ageStr(bxOldest);
+  const analysisAge = ageStr(analysisDate);
+  const regimeAge = ageStr(regimeDate);
+  
+  // Count stale sources
+  const staleCount = [csvAge, bxAge, analysisAge, regimeAge, ...feedData.map(f => ageStr(f.date))].filter(a => a.days > 7).length;
+  
+  el.innerHTML = `
+    <table style="width:100%;"><thead><tr>
+      <th>Source</th><th>Feeds</th><th>Last Updated</th><th>Coverage</th><th>Cost</th>
+    </tr></thead><tbody>
+    <tr>
+      <td style="font-weight:600;">📁 Portfolio CSV</td>
+      <td style="font-size:10px;">Positions, weights, cash</td>
+      <td>${freshBadge(csvAge)}</td>
+      <td>${state.positions.length} positions</td>
+      <td style="color:var(--text-tertiary);">Free</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">📈 BX / OHLC Data</td>
+      <td style="font-size:10px;">BX state, signals, charts</td>
+      <td>${freshBadge(bxAge)}</td>
+      <td>${bxCount}/${bxTotal} tickers</td>
+      <td style="color:var(--text-tertiary);">Free (AV)</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">⚡ Weekly Analysis</td>
+      <td style="font-size:10px;">Verdicts, sentiment, ideas</td>
+      <td>${freshBadge(analysisAge)}</td>
+      <td>${verdictCount} verdicts</td>
+      <td style="color:var(--text-tertiary);">~$0.18</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">📊 Enrichment (P/E)</td>
+      <td style="font-size:10px;">Forward P/E, PEG, FCF</td>
+      <td>${enrichCount > 0 ? '<span style="color:var(--green);">🟢 ' + enrichCount + ' tickers</span>' : '<span style="color:var(--red);">🔴 Not run</span>'}</td>
+      <td>${enrichCount}/${bxTotal} tickers</td>
+      <td style="color:var(--text-tertiary);">~$0.05</td>
+    </tr>
+    <tr>
+      <td style="font-weight:600;">⚡ Regime Score</td>
+      <td style="font-size:10px;">Opportunity scores</td>
+      <td>${freshBadge(regimeAge)}</td>
+      <td>${(state.regime?.opportunities || []).length} scored</td>
+      <td style="color:var(--text-tertiary);">Free</td>
+    </tr>
+    ${feedData.map(f => {
+      const fAge = ageStr(f.date);
+      return `<tr>
+        <td style="font-weight:600;">${f.name === 'earnings' ? '📊' : f.name === 'institutional' ? '🏛' : f.name === 'political' ? '🏛' : f.name === 'rotation' ? '🔄' : '💎'} ${f.name}</td>
+        <td style="font-size:10px;">Research feed</td>
+        <td>${freshBadge(fAge)}</td>
+        <td>${f.picks} picks</td>
+        <td style="color:var(--text-tertiary);">~$0.10</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>
+    ${staleCount > 0 ? `<div style="margin-top:8px;font-size:10px;color:var(--amber);">⚠ ${staleCount} source(s) are stale (>7 days). Tap "Refresh All Stale" to update.</div>` : '<div style="margin-top:8px;font-size:10px;color:var(--green);">✓ All sources are current (< 7 days)</div>'}
+  `;
+  
+  document.getElementById('refreshStaleBtn').textContent = staleCount > 0 ? `🔄 Refresh ${staleCount} Stale` : '✓ All Fresh';
+}
+
+async function refreshAllStale() {
+  const now = Date.now();
+  const dayMs = 86400000;
+  const staleThreshold = 7;
+  
+  const tasks = [];
+  let estCost = 0;
+  
+  // Check each source
+  const bxDates = Object.values(state.technicalData).map(t => t.lastFetched).filter(Boolean);
+  const bxOldest = bxDates.length > 0 ? bxDates.sort()[0] : null;
+  const bxStale = !bxOldest || (now - new Date(bxOldest).getTime()) / dayMs > staleThreshold;
+  if (bxStale) tasks.push({ name: '📈 BX Data', fn: refreshUniverseTechData, cost: 0 });
+  
+  const analysisDate = state.analysisData?._reportDate || state.reports?.[0]?.date;
+  const analysisStale = !analysisDate || (now - new Date(analysisDate).getTime()) / dayMs > staleThreshold;
+  if (analysisStale) { tasks.push({ name: '⚡ Weekly Analysis', fn: () => navigateTo('analysis'), cost: 0.18, manual: true }); estCost += 0.18; }
+  
+  const regimeDate = state.regime?.lastComputed;
+  const regimeStale = !regimeDate || (now - new Date(regimeDate).getTime()) / dayMs > staleThreshold;
+  if (regimeStale) tasks.push({ name: '⚡ Regime', fn: computeRegime, cost: 0 });
+  
+  const enrichCount = new Set([...Object.keys(state.research?.universeFundamentals || {}), ...Object.keys(state.regime?.fundamentals || {})]).size;
+  if (enrichCount < _universeData.length * 0.5) { tasks.push({ name: '📊 Enrich', fn: enrichUniverse, cost: 0.05 }); estCost += 0.05; }
+  
+  const feeds = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
+  feeds.forEach(f => {
+    const fDate = state.research?.[f]?.runDate;
+    const fStale = !fDate || (now - new Date(fDate).getTime()) / dayMs > staleThreshold;
+    if (fStale) { tasks.push({ name: `🔬 ${f}`, fn: null, cost: 0.10, manual: true }); estCost += 0.10; }
+  });
+  
+  if (tasks.length === 0) { toast('All data sources are current'); return; }
+  
+  const autoTasks = tasks.filter(t => !t.manual);
+  const manualTasks = tasks.filter(t => t.manual);
+  
+  let msg = `Refresh ${tasks.length} stale sources?\n\nAuto-refresh (will run now):\n`;
+  msg += autoTasks.map(t => `  ${t.name} — ${t.cost > 0 ? '$' + t.cost.toFixed(2) : 'free'}`).join('\n');
+  if (manualTasks.length > 0) {
+    msg += `\n\nManual (need separate action):\n`;
+    msg += manualTasks.map(t => `  ${t.name} — ~$${t.cost.toFixed(2)}`).join('\n');
+  }
+  msg += `\n\nEstimated auto cost: $${autoTasks.reduce((s,t) => s+t.cost, 0).toFixed(2)}`;
+  
+  if (!confirm(msg)) return;
+  
+  const btn = document.getElementById('refreshStaleBtn');
+  btn.disabled = true;
+  
+  for (const task of autoTasks) {
+    btn.textContent = `⏳ ${task.name}...`;
+    apexLog('INFO', `Refresh stale: ${task.name}`);
+    try {
+      await task.fn();
+    } catch(e) {
+      apexLog('ERROR', `Refresh ${task.name} failed: ${e.message}`);
+      toast(`${task.name} failed: ${e.message}`, 'error');
+    }
+  }
+  
+  btn.disabled = false;
+  refreshUniverse();
+  
+  if (manualTasks.length > 0) {
+    toast(`Auto-refresh done. ${manualTasks.length} sources need manual action: ${manualTasks.map(t => t.name).join(', ')}`);
+  } else {
+    toast('All stale sources refreshed');
+  }
+}
+
 async function refreshUniverseTechData() {
   if (!state.settings.avKey) { toast('Set Alpha Vantage API key in Settings first', 'error'); return; }
   
@@ -7583,6 +7793,7 @@ async function refreshUniverseTechData() {
 function refreshUniverse() {
   _universeData = buildUniverseData();
   renderUniverseTable();
+  renderFreshnessPanel();
 }
 
 function buildUniverseData() {
