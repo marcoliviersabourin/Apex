@@ -4604,6 +4604,37 @@ TACTICAL:\n${posList(tactPos)}\n`;
     .join(', ');
   
   ctx += `\n═══ IDEA SOURCING RULES (HARD CONSTRAINTS) ═══\n`;
+
+  // Inject watchlist tickers for evaluation
+  if (state.watchlist.length > 0) {
+    const watchItems = state.watchlist.map(w => `${w.ticker}${w.evalData ? ' (' + w.evalData.verdict + ')' : ''}`).join(', ');
+    ctx += `\nWATCHLIST (user is tracking these — evaluate if any should be new ideas): ${watchItems}\n`;
+  }
+  
+  // Inject research feed highlights
+  const researchPicks = [];
+  ['earnings','institutional','political','rotation','insider'].forEach(feed => {
+    const data = state.research?.[feed];
+    if (data?.topPicks?.length > 0) {
+      researchPicks.push(...data.topPicks.slice(0, 3).map(p => `${p.ticker} (${feed}: ${p.signal} — ${p.reason || ''})`));
+    }
+  });
+  if (researchPicks.length > 0) {
+    ctx += `\nRESEARCH FEED HIGHLIGHTS (from institutional/political/insider/earnings scans — confirm or contradict):\n${researchPicks.join('\n')}\n`;
+  }
+  
+  // Inject BX Trender signals for held positions
+  const bxSignals = state.positions.map(p => {
+    const td = state.technicalData[p.symbol.toUpperCase()];
+    if (!td?.computed?.short?.length) return null;
+    const last = td.computed.short[td.computed.short.length - 1];
+    return `${p.symbol}: BX=${last.state} (${last.value.toFixed(1)})`;
+  }).filter(Boolean);
+  if (bxSignals.length > 0) {
+    ctx += `\nBX TRENDER SIGNALS (computed from OHLC — cite these in technical analysis):\n${bxSignals.join(', ')}\n`;
+  }
+
+  ctx += `\n═══ IDEA SOURCING RULES (continued) ═══\n`;
   ctx += `SECTOR DIVERSIFICATION: Maximum ${maxIdeasPerSector} new ideas per sector in Part 3. If you exceed this, pick the highest-conviction ones and drop the rest.\n`;
   if (concentratedSectors) {
     ctx += `CONCENTRATION GUARD: Current portfolio already has ≥${concentrationThreshold}% in: ${concentratedSectors}. New ideas in these sectors require HIGH conviction differentiation — the AI must explicitly state how the new idea is differentiated from existing positions (different sub-sector, different thesis driver, or hedging role). Otherwise, prefer underweight sectors.\n`;
