@@ -909,6 +909,9 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="nav-item" data-page="research" onclick="navigateTo('research')">
       <span class="nav-icon">🔬</span> Research
     </div>
+    <div class="nav-item" data-page="strategy" onclick="navigateTo('strategy')">
+      <span class="nav-icon">🧭</span> Strategy
+    </div>
     <div class="nav-item" data-page="universe" onclick="navigateTo('universe')">
       <span class="nav-icon">🔍</span> Universe
     </div>
@@ -1147,7 +1150,7 @@ input[type="range"]::-webkit-slider-thumb {
 
     <!-- Score Breakdown -->
     <div class="card fade-in stagger-1" style="margin-top:12px;">
-      <div class="card-title" style="margin-bottom:12px;">Regime Score Breakdown</div>
+      <div class="card-title" style="margin-bottom:12px;">Computed Indicators <span style="font-size:10px;color:var(--text-tertiary);font-weight:400;" id="computedLabel">(informational — AI drives regime when fresh)</span></div>
       <div id="regimeScoreTable"></div>
       <div style="margin-top:10px;font-size:13px;font-family:'IBM Plex Mono',monospace;" id="regimeTotalScore"></div>
     </div>
@@ -2255,6 +2258,51 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- ═══ PAGE: STRATEGY ═══ -->
+<div class="page" id="page-strategy">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🧭 STRATEGY</div>
+      <div class="page-subtitle">Strategic outlook &amp; tactical intelligence</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="runStrategicOutlook('quick')">⚡ Quick Outlook</button>
+      <button class="btn btn-sm btn-primary" onclick="runStrategicOutlook('deep')">🔬 Deep Research</button>
+    </div>
+  </div>
+  <div class="page-content">
+    <!-- Tactical Alerts -->
+    <div class="card fade-in" style="margin-bottom:12px;" id="tacticalAlertsCard">
+      <div class="card-header">
+        <span class="card-title">⚡ Tactical Alerts</span>
+        <span style="font-size:10px;color:var(--text-tertiary);" id="alertsTimestamp"></span>
+      </div>
+      <div id="tacticalAlerts" style="font-size:12px;color:var(--text-tertiary);">Run research feeds and strategic outlook to generate alerts.</div>
+    </div>
+
+    <!-- Latest Strategic Outlook -->
+    <div class="card fade-in stagger-1" id="strategyOutlookCard">
+      <div class="card-header">
+        <span class="card-title">📊 Strategic Outlook</span>
+        <span style="font-size:10px;color:var(--text-tertiary);" id="outlookTimestamp"></span>
+      </div>
+      <div id="strategyOutlookContent" style="font-size:12px;color:var(--text-tertiary);">No outlook yet. Tap ⚡ Quick Outlook (~$0.12) or 🔬 Deep Research (~$0.40) above.</div>
+    </div>
+
+    <!-- Outlook Timeline -->
+    <div class="card fade-in stagger-2" style="margin-top:12px;display:none;" id="strategyTimelineCard">
+      <div class="card-title" style="margin-bottom:8px;">📅 Strategic Timeline</div>
+      <div id="strategyTimeline"></div>
+    </div>
+
+    <!-- Deep Research Report (full text) -->
+    <div class="card fade-in stagger-3" style="margin-top:12px;display:none;" id="strategyDeepCard">
+      <div class="card-title" style="margin-bottom:8px;">🔬 Deep Research Report</div>
+      <div id="strategyDeepContent" style="font-size:12px;line-height:1.6;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ PAGE: UNIVERSE ═══ -->
 <div class="page" id="page-universe">
   <div class="page-header">
@@ -2564,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.3.0';
+const APEX_VERSION = '4.4.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2645,6 +2693,7 @@ function loadState() {
       state.technicalData = parsed.technicalData || {};
       state.regime = parsed.regime || null;
       state.research = parsed.research || { config: {} };
+      state.strategy = parsed.strategy || {};
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
@@ -2689,6 +2738,7 @@ function saveState() {
       technicalData: prunedTech,
       regime: state.regime,
       research: state.research,
+      strategy: state.strategy,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -2768,6 +2818,7 @@ function navigateTo(page) {
   if (page === 'portfolio') refreshHoldings();
   if (page === 'analysis') { refreshAnalysisConfig(); updateCostEstimate(); checkAnalysisProgress(); }
   if (page === 'research') { refreshResearch(); }
+  if (page === 'strategy') { refreshStrategy(); }
   if (page === 'universe') { refreshUniverse(); }
   if (page === 'history') refreshHistory();
   if (page === 'macro') refreshMacro();
@@ -7567,6 +7618,314 @@ function renderEquityCurve(equity, bars, startIdx, initialAmount) {
   ro.observe(container);
 }
 
+// ═══ STRATEGIC INVESTMENT ENGINE ═══
+function refreshStrategy() {
+  renderStrategyOutlook();
+  generateTacticalAlerts();
+}
+
+async function runStrategicOutlook(mode) {
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings first', 'error'); return; }
+  
+  const isDeep = mode === 'deep';
+  const est = isDeep ? '$0.30-0.50' : '$0.10-0.15';
+  if (!confirm(`Run ${isDeep ? 'Deep Research' : 'Quick Outlook'}?\nEstimated cost: ~${est}`)) return;
+  
+  const btn = event?.target; if (btn) { btn.disabled = true; btn.textContent = '⏳ Step 1...'; }
+  apexLog('INFO', `Strategy ${mode} starting`);
+  
+  const prof = state.profile || getDefaultProfile();
+  const tickers = state.positions.map(p => p.symbol).join(', ');
+  const sectors = prof.focusSectors.join(', ');
+  const sectorWeights = {};
+  const total = getTotalValue();
+  state.positions.forEach(p => { sectorWeights[p.sector] = (sectorWeights[p.sector] || 0) + (total > 0 ? p.value / total * 100 : 0); });
+  const sectorStr = Object.entries(sectorWeights).map(([s, w]) => `${s}: ${w.toFixed(0)}%`).join(', ');
+  const currentCash = ((state.cashBalances?.total || 0) / total * 100).toFixed(1);
+  
+  try {
+    // Step 1: Haiku gathers macro/cycle/valuation data
+    const gatherPrompt = isDeep ?
+      `Conduct thorough research on the current strategic market environment. Search for ALL of the following with specific numbers and dates:
+
+1. PRESIDENTIAL/ELECTION CYCLE: What year of the presidential cycle are we in? Historical pattern for this specific year (midterm, pre-election, etc). Average returns and drawdowns for this cycle position since 1950.
+2. INSTITUTIONAL POSITIONING: Aggregate 13F filing trends — are major institutions (Berkshire, Bridgewater, etc.) increasing or decreasing equity exposure? Cash levels at major funds.
+3. MARKET VALUATIONS: Buffett Indicator (market cap to GDP), CAPE/Shiller P/E, S&P 500 forward P/E vs historical average, earnings yield vs bond yields.
+4. SENTIMENT: AAII Bull/Bear survey latest reading, CNN Fear & Greed index, put/call ratio, VIX level.
+5. SEASONAL PATTERNS: Historical S&P 500 returns for the current month and next 6 months. Any statistically significant seasonal effects.
+6. FED POLICY: Current Fed funds rate, market expectations for next move, dot plot consensus.
+7. CREDIT CONDITIONS: High yield spreads, investment grade spreads, bank lending standards.
+8. GEOPOLITICAL RISKS: Major active risks (trade wars, conflicts, sanctions) and their market impact.
+9. FUND FLOWS: ETF inflows/outflows for equity vs bonds vs money market (recent weeks).
+10. HISTORICAL PARALLELS: What prior market environment most resembles current conditions?
+
+Be thorough. Report ALL numbers found.` :
+      `Search for current strategic market data. Report specific numbers:
+1. Where are we in the presidential/election cycle? Historical pattern for this position.
+2. Aggregate institutional positioning — are major funds increasing or reducing equity exposure?
+3. Current Buffett Indicator (market cap/GDP), S&P forward P/E, CAPE ratio.
+4. AAII sentiment survey, CNN Fear & Greed, VIX, put/call ratio.
+5. Seasonal pattern for current month and next 3 months.
+6. Fed policy direction and rate expectations.
+7. Major geopolitical/trade risks.
+Report all numbers and dates found.`;
+
+    const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: gatherPrompt}], true, isDeep ? 5000 : 3000);
+    const u1 = step1.data?.usage || {};
+    apexLog('API', `Strategy Step 1 — $${((u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6).toFixed(3)}`);
+    
+    if (btn) btn.textContent = '⏳ Step 2...';
+    
+    // Step 2: Sonnet synthesizes into strategic brief
+    const rawData = step1.text.length > (isDeep ? 8000 : 5000) ? step1.text.substring(0, isDeep ? 8000 : 5000) : step1.text;
+    
+    const analyzePrompt = `You are a hedge fund chief strategist. Based on this research data, produce a strategic investment outlook.
+
+RESEARCH DATA:
+${rawData}
+
+MY PORTFOLIO CONTEXT:
+- Positions: ${tickers}
+- Sector allocation: ${sectorStr}
+- Cash position: ${currentCash}%
+- Focus sectors: ${sectors}
+- Risk profile: ${prof.risk}
+
+${isDeep ? 'Produce a COMPREHENSIVE strategic brief with historical parallels, timeline, and specific portfolio recommendations.' : 'Produce a CONCISE strategic outlook with key signals and directives.'}
+
+Return ONLY JSON:
+{
+  "outlook":"Bullish|Cautious|Defensive|Crisis",
+  "confidence":"High|Medium|Low",
+  "timeHorizon":"description of relevant period",
+  "thesis":"2-3 sentence executive summary",
+  "signals":[{"name":"Signal Name","direction":"Bullish|Bearish|Neutral","strength":"High|Medium|Low","detail":"specific data point"}],
+  "directives":[{"action":"Reduce|Increase|Hold|Prepare|Avoid","target":"what to act on","urgency":"High|Medium|Low","detail":"specific recommendation"}],
+  "deploymentSuggestion":{"current":${100 - Math.abs(parseFloat(currentCash))},"suggested":85,"reason":"brief"},
+  "sectorTilts":[{"sector":"Technology","tilt":"Overweight|Neutral|Underweight","reason":"brief"}],
+  "timeline":[{"phase":"Phase Name","period":"Month-Month Year","action":"what to do"}],
+  "risksToThesis":["risk 1","risk 2"],
+  "moodScore":55${isDeep ? ',\n  "historicalParallel":"description of most similar historical period",\n  "deepAnalysis":"3-5 paragraph detailed analysis with specific numbers and historical context"' : ''}
+}`;
+
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, isDeep ? 4000 : 2000);
+    const u2 = step2.data?.usage || {};
+    const totalCost = (u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6 + (u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6;
+    apexLog('API', `Strategy Step 2 — $${((u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6).toFixed(3)}. Total: $${totalCost.toFixed(3)}`);
+    
+    let parsed = parseHaikuJSON(step2.text);
+    if (!parsed) { const m = step2.text.match(/\{[\s\S]*\}/); if (m) try { parsed = JSON.parse(m[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {} }
+    
+    if (parsed) {
+      if (!state.strategy) state.strategy = {};
+      parsed.runDate = new Date().toISOString();
+      parsed.mode = mode;
+      parsed.cost = totalCost;
+      state.strategy.latest = parsed;
+      if (isDeep) state.strategy.deepReport = parsed;
+      saveState();
+      renderStrategyOutlook();
+      generateTacticalAlerts();
+      toast(`🧭 ${parsed.outlook} (${parsed.confidence}) — ${parsed.thesis?.substring(0, 60)}... | $${totalCost.toFixed(2)}`);
+    } else {
+      state._lastStrategyRaw = step2.text;
+      toast('Strategy analysis completed but parse failed', 'error');
+    }
+  } catch(e) {
+    toast('Strategy failed: ' + e.message, 'error');
+    apexLog('ERROR', `Strategy: ${e.message}`);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = isDeep ? '🔬 Deep Research' : '⚡ Quick Outlook'; }
+}
+
+function renderStrategyOutlook() {
+  const s = state.strategy?.latest;
+  const el = document.getElementById('strategyOutlookContent');
+  const tsEl = document.getElementById('outlookTimestamp');
+  if (!s || !el) return;
+  
+  if (tsEl) tsEl.textContent = `${s.mode === 'deep' ? '🔬 Deep' : '⚡ Quick'} | ${new Date(s.runDate).toLocaleDateString('en-US', {month:'short', day:'numeric'})} | $${s.cost?.toFixed(2) || '?'}`;
+  
+  const oc = s.outlook === 'Crisis' ? 'var(--red)' : s.outlook === 'Defensive' ? 'var(--amber)' : s.outlook === 'Cautious' ? 'var(--amber)' : 'var(--green)';
+  
+  el.innerHTML = `
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <div style="font-size:28px;font-weight:800;color:${oc};">${s.outlook?.toUpperCase()}</div>
+        <div style="font-size:10px;color:var(--text-tertiary);">Confidence: ${s.confidence} | Horizon: ${s.timeHorizon || ''}</div>
+      </div>
+      <div style="flex:1;font-size:12px;color:var(--text-secondary);line-height:1.5;">${s.thesis || ''}</div>
+    </div>
+    
+    ${s.signals?.length ? `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin-bottom:6px;">CONVERGENCE SIGNALS</div>
+      <table style="width:100%;"><thead><tr><th>Signal</th><th>Direction</th><th>Strength</th><th>Detail</th></tr></thead><tbody>
+      ${s.signals.map(sig => `<tr>
+        <td style="font-weight:600;">${sig.name}</td>
+        <td style="color:${sig.direction === 'Bullish' ? 'var(--green)' : sig.direction === 'Bearish' ? 'var(--red)' : 'var(--amber)'};">${sig.direction}</td>
+        <td>${sig.strength}</td>
+        <td style="font-size:11px;color:var(--text-secondary);">${sig.detail}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div>` : ''}
+    
+    ${s.directives?.length ? `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin-bottom:6px;">DIRECTIVES</div>
+      ${s.directives.map(d => `<div style="padding:6px 10px;margin-bottom:4px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${d.urgency === 'High' ? 'var(--red)' : d.urgency === 'Medium' ? 'var(--amber)' : 'var(--green)'};">
+        <strong>${d.action}</strong> ${d.target} <span style="font-size:10px;color:var(--text-tertiary);">(${d.urgency})</span>
+        ${d.detail ? '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">' + d.detail + '</div>' : ''}
+      </div>`).join('')}
+    </div>` : ''}
+    
+    ${s.sectorTilts?.length ? `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin-bottom:6px;">SECTOR TILTS</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${s.sectorTilts.map(t => `<div style="padding:4px 10px;background:var(--bg-secondary);border-radius:var(--radius-sm);font-size:11px;">
+        <span style="color:${t.tilt === 'Overweight' ? 'var(--green)' : t.tilt === 'Underweight' ? 'var(--red)' : 'var(--text-tertiary)'};">●</span>
+        ${t.sector}: <strong>${t.tilt}</strong>
+      </div>`).join('')}
+      </div>
+    </div>` : ''}
+    
+    ${s.risksToThesis?.length ? `<div style="font-size:11px;color:var(--text-tertiary);"><strong>Risks to thesis:</strong> ${s.risksToThesis.join(' | ')}</div>` : ''}
+  `;
+  
+  // Timeline
+  const tlCard = document.getElementById('strategyTimelineCard');
+  const tlEl = document.getElementById('strategyTimeline');
+  if (s.timeline?.length && tlCard && tlEl) {
+    tlCard.style.display = 'block';
+    tlEl.innerHTML = s.timeline.map((t, i) => `
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;">
+        <div style="min-width:24px;height:24px;border-radius:50%;background:var(--purple);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${i + 1}</div>
+        <div>
+          <div style="font-weight:700;font-size:12px;">${t.phase} <span style="font-weight:400;color:var(--text-tertiary);">— ${t.period}</span></div>
+          <div style="font-size:11px;color:var(--text-secondary);">${t.action}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Deep report
+  const deepCard = document.getElementById('strategyDeepCard');
+  const deepEl = document.getElementById('strategyDeepContent');
+  if (s.deepAnalysis && deepCard && deepEl) {
+    deepCard.style.display = 'block';
+    deepEl.innerHTML = `${s.historicalParallel ? '<div style="padding:8px 12px;background:var(--bg-secondary);border-radius:var(--radius-sm);margin-bottom:12px;"><strong>Historical Parallel:</strong> ' + s.historicalParallel + '</div>' : ''}
+    <div style="white-space:pre-wrap;color:var(--text-secondary);">${s.deepAnalysis}</div>`;
+  }
+}
+
+function generateTacticalAlerts() {
+  const el = document.getElementById('tacticalAlerts');
+  if (!el) return;
+  
+  const alerts = [];
+  const s = state.strategy?.latest;
+  const total = getTotalValue();
+  
+  // Compute sector weights
+  const sectorWeights = {};
+  state.positions.forEach(p => { sectorWeights[p.sector] = (sectorWeights[p.sector] || 0) + (total > 0 ? p.value / total * 100 : 0); });
+  
+  if (s?.directives?.length) {
+    // Check directives against portfolio
+    s.directives.forEach(d => {
+      if (d.action === 'Reduce' && d.target) {
+        // Check if we're overweight in what should be reduced
+        const matchSector = Object.keys(sectorWeights).find(sec => d.target.toLowerCase().includes(sec.toLowerCase()));
+        if (matchSector && sectorWeights[matchSector] > 20) {
+          alerts.push({ type: 'warning', icon: '🔴', text: `<strong>OVERWEIGHT:</strong> ${matchSector} is ${sectorWeights[matchSector].toFixed(0)}% of portfolio. Outlook says: "${d.action} ${d.target}".`, detail: d.detail || '' });
+        }
+      }
+      if (d.action === 'Increase' && d.target) {
+        const matchSector = Object.keys(sectorWeights).find(sec => d.target.toLowerCase().includes(sec.toLowerCase()));
+        if (matchSector && sectorWeights[matchSector] < 10) {
+          alerts.push({ type: 'opportunity', icon: '🟢', text: `<strong>UNDERWEIGHT:</strong> ${matchSector} is only ${sectorWeights[matchSector].toFixed(0)}%. Outlook says: "${d.action} ${d.target}".` });
+        }
+      }
+    });
+    
+    // Deployment gap
+    if (s.deploymentSuggestion?.suggested) {
+      const currentDeploy = 100 - Math.abs(parseFloat((state.cashBalances?.total || 0) / total * 100));
+      const gap = Math.abs(currentDeploy - s.deploymentSuggestion.suggested);
+      if (gap > 10) {
+        alerts.push({ type: 'warning', icon: '⚠', text: `<strong>DEPLOYMENT GAP:</strong> Currently ${currentDeploy.toFixed(0)}% deployed. Outlook suggests ${s.deploymentSuggestion.suggested}%. ${s.deploymentSuggestion.reason || ''}` });
+      }
+    }
+  }
+  
+  // Cross-reference research feeds with outlook
+  const feeds = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
+  feeds.forEach(feed => {
+    const data = state.research?.[feed];
+    if (!data?.topPicks?.length) return;
+    
+    // Check if institutional selling aligns with defensive outlook
+    if (feed === 'institutional' && s?.outlook && ['Defensive', 'Crisis', 'Cautious'].includes(s.outlook)) {
+      const sells = (data.portfolioOverlap || []).filter(o => o.signal === 'SELL');
+      if (sells.length > 0) {
+        alerts.push({ type: 'aligned', icon: '✅', text: `<strong>ALIGNED:</strong> Institutional tracker shows selling in ${sells.map(s => s.ticker).join(', ')}. Consistent with ${s.outlook} outlook.` });
+      }
+    }
+    
+    // Check earnings risk during defensive outlook
+    if (feed === 'earnings' && s?.outlook && ['Defensive', 'Crisis'].includes(s.outlook)) {
+      const atRisk = (data.feedSpecific?.positionsAtRisk || []).filter(p => p.risk === 'HIGH');
+      if (atRisk.length > 0) {
+        alerts.push({ type: 'warning', icon: '⚠', text: `<strong>EARNINGS RISK:</strong> ${atRisk.length} positions have HIGH-risk earnings upcoming while outlook is ${s.outlook}. Review: ${atRisk.map(p => p.ticker).join(', ')}` });
+      }
+    }
+  });
+  
+  // Sector tilts vs portfolio
+  if (s?.sectorTilts?.length) {
+    s.sectorTilts.forEach(t => {
+      const w = sectorWeights[t.sector] || 0;
+      if (t.tilt === 'Underweight' && w > 25) {
+        alerts.push({ type: 'warning', icon: '🔴', text: `<strong>SECTOR CONFLICT:</strong> ${t.sector} is ${w.toFixed(0)}% of portfolio but outlook says Underweight. ${t.reason || ''}` });
+      }
+      if (t.tilt === 'Overweight' && w < 5) {
+        alerts.push({ type: 'opportunity', icon: '🟢', text: `<strong>OPPORTUNITY:</strong> ${t.sector} is only ${w.toFixed(0)}% but outlook says Overweight. ${t.reason || ''}` });
+      }
+    });
+  }
+  
+  // Regime alignment
+  const regime = state.regime?.current || 'TRENDING';
+  if (s?.outlook && ((s.outlook === 'Defensive' && regime === 'TRENDING') || (s.outlook === 'Bullish' && regime === 'CRISIS'))) {
+    alerts.push({ type: 'conflict', icon: '⚠', text: `<strong>REGIME MISMATCH:</strong> Strategic outlook is ${s.outlook} but market regime is ${regime}. Consider running 🧠 AI Regime Check to verify.` });
+  }
+  
+  // Outlook age warning
+  if (s?.runDate) {
+    const age = Math.floor((Date.now() - new Date(s.runDate).getTime()) / 86400000);
+    if (age > 14) {
+      alerts.push({ type: 'info', icon: '📅', text: `<strong>STALE OUTLOOK:</strong> Strategic outlook is ${age} days old. Consider running a fresh scan.` });
+    }
+  }
+  
+  // No data state
+  if (alerts.length === 0 && !s) {
+    el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:8px;">Run a Strategic Outlook and Research feeds to generate tactical alerts.</div>';
+    return;
+  }
+  if (alerts.length === 0) {
+    el.innerHTML = '<div style="color:var(--green);padding:8px;">✓ No alerts — portfolio appears aligned with current outlook.</div>';
+    return;
+  }
+  
+  document.getElementById('alertsTimestamp').textContent = alerts.length + ' alert(s)';
+  el.innerHTML = alerts.map(a => `
+    <div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${a.type === 'warning' || a.type === 'conflict' ? 'var(--red)' : a.type === 'aligned' ? 'var(--green)' : a.type === 'opportunity' ? 'var(--blue)' : 'var(--amber)'};">
+      <span style="font-size:13px;">${a.icon}</span> ${a.text}
+      ${a.detail ? '<div style="font-size:10px;color:var(--text-tertiary);margin-top:2px;">' + a.detail + '</div>' : ''}
+    </div>
+  `).join('');
+}
+
 // ═══ MARKET TAB SWITCHING ═══
 function showMarketTab(tab) {
   document.getElementById('marketRegimeView').style.display = tab === 'regime' ? 'block' : 'none';
@@ -9256,50 +9615,59 @@ async function computeRegime() {
     factors.push({ label: 'Macro Mood Score', current: 'Run analysis first', threshold: '< 35', triggered: false, points: 0, noData: true });
   }
   
-  // 6. AI Regime Assessment (dominant — based on real daily market data)
+  // 6. AI Regime Assessment (informational — drives regime directly, not via points)
   const aiAssess = state.regime?.aiAssessment;
-  if (aiAssess?.regime && aiAssess?.date) {
-    const ageD = Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000);
-    const stale = ageD > 7;
-    const aiRegime = aiAssess.regime;
-    const aiPts = aiRegime === 'CRISIS' ? 5 : aiRegime === 'VOLATILE' ? 3 : 0;
+  const aiAge = aiAssess?.date ? Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000) : 999;
+  const aiFresh = aiAge <= 7;
+  if (aiAssess?.regime) {
     factors.push({
       label: '🧠 AI Regime Assessment',
-      current: `${aiRegime} (${aiAssess.confidence || '?'}) — VIX ${aiAssess.vix?.level || '?'}${stale ? ' ⚠ ' + ageD + 'd old' : ''}`,
-      threshold: 'AI-classified from daily VIX, breadth, credit, yield curve',
-      triggered: aiRegime !== 'TRENDING',
-      points: stale ? Math.floor(aiPts / 2) : aiPts,
+      current: `${aiAssess.regime} (${aiAssess.confidence || '?'}) — VIX ${aiAssess.vix?.level || '?'}${!aiFresh ? ' ⚠ ' + aiAge + 'd old' : ''}`,
+      threshold: aiFresh ? '✓ ACTIVE — driving regime classification' : '⚠ Stale — computed score used instead',
+      triggered: aiAssess.regime !== 'TRENDING',
+      points: 0, // No points — AI drives regime directly
       isAI: true
     });
   } else {
-    factors.push({ label: '🧠 AI Regime Assessment', current: 'Not run — tap 🧠 AI Regime Check', threshold: 'Dominant signal', triggered: false, points: 0, noData: true });
+    factors.push({ label: '🧠 AI Regime Assessment', current: 'Not run — tap 🧠 AI Regime Check', threshold: 'Run for accurate regime', triggered: false, points: 0, noData: true });
   }
 
   // 7. User Override
   const override = state.regime.override || 'auto';
   if (override !== 'auto') {
-    factors.push({ label: 'User Override', current: override.toUpperCase(), threshold: 'Manual', triggered: true, points: override === 'crisis' ? 99 : override === 'volatile' ? 50 : -99 });
+    factors.push({ label: 'User Override', current: override.toUpperCase(), threshold: 'Manual', triggered: true, points: 0 });
   } else {
     factors.push({ label: 'User Override', current: 'None (auto)', threshold: 'Manual', triggered: false, points: 0 });
   }
   
-  // Compute total score
+  // Compute total score (informational — only used when AI is stale/missing)
   const totalScore = factors.reduce((s, f) => s + f.points, 0);
   
-  // Determine regime
-  let regime, regimeColor, regimeDesc, regimeAdvice;
-  if (override === 'crisis' || totalScore >= 4) {
-    regime = 'CRISIS'; regimeColor = 'var(--red)';
+  // ═══ DETERMINE REGIME — PRIORITY: Override > AI (fresh) > Computed ═══
+  let regime, regimeColor, regimeDesc, regimeAdvice, regimeSource;
+  
+  if (override !== 'auto') {
+    // User override always wins
+    regime = override.toUpperCase();
+    regimeSource = 'User Override';
+  } else if (aiFresh && aiAssess?.regime) {
+    // Fresh AI assessment — use directly, ignore computed score
+    regime = aiAssess.regime;
+    regimeSource = 'AI Assessment (fresh)';
+  } else {
+    // Fallback to computed score
+    regime = totalScore >= 4 ? 'CRISIS' : totalScore >= 2 ? 'VOLATILE' : 'TRENDING';
+    regimeSource = 'Computed Indicators' + (aiAssess?.regime ? ' (AI stale)' : ' (no AI data)');
+  }
+  
+  if (regime === 'CRISIS') {
+    regimeColor = 'var(--red)';
     regimeDesc = 'Technicals are unreliable. Switch to fundamentals-first, quality-focused approach.';
-    regimeAdvice = 'Strategy: DCA into quality names showing value dislocation. Wider stop-losses. Hold cash reserve. Check Opportunity Radar for crisis buys.';
-  } else if (override === 'volatile' || totalScore >= 2) {
-    regime = 'VOLATILE'; regimeColor = 'var(--amber)';
+    regimeAdvice = 'Strategy: DCA into quality names showing value dislocation. Wider stop-losses. Hold cash reserve.';
+  } else if (regime === 'VOLATILE') {
+    regimeColor = 'var(--amber)';
     regimeDesc = 'Mixed signals. Require fundamental confirmation before acting on technicals.';
-    regimeAdvice = 'Strategy: Tighten stops. Reduce new position sizes. Sell signals are more trustworthy than buy signals. Consider raising cash.';
-  } else if (override === 'trending') {
-    regime = 'TRENDING'; regimeColor = 'var(--green)';
-    regimeDesc = 'Technical signals are reliable. Normal trading rules apply.';
-    regimeAdvice = 'Strategy: Follow BX Trender signals. Buy on momentum reversal, sell on trend breakdown. Full position sizing.';
+    regimeAdvice = 'Strategy: Tighten stops. Reduce new position sizes. Sell signals more trustworthy than buy signals.';
   } else {
     regime = 'TRENDING'; regimeColor = 'var(--green)';
     regimeDesc = 'Technical signals are reliable. Normal trading rules apply.';
@@ -9309,6 +9677,7 @@ async function computeRegime() {
   state.regime.current = regime;
   state.regime.score = totalScore;
   state.regime.factors = factors;
+  state.regime.regimeSource = regimeSource;
   state.regime.lastComputed = new Date().toISOString();
   
   // Render AI assessment card
@@ -9321,6 +9690,7 @@ async function computeRegime() {
         <div style="min-width:120px;">
           <div style="font-size:22px;font-weight:800;color:${rc};">${aiAssess.regime}</div>
           <div style="font-size:10px;color:var(--text-tertiary);">Confidence: ${aiAssess.confidence} | ${ageD === 0 ? 'Today' : ageD + 'd ago'}</div>
+          <div style="font-size:9px;margin-top:2px;color:${ageD <= 7 ? 'var(--green)' : 'var(--amber)'};">${ageD <= 7 ? '✓ ACTIVE — driving all scoring weights' : '⚠ Stale — computed indicators used instead'}</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;flex:1;min-width:300px;">
           <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">VIX</div><div class="metric-value" style="font-size:16px;">${aiAssess.vix?.level || '?'}</div><div style="font-size:9px;color:var(--text-tertiary);">${aiAssess.vix?.termStructure || ''}</div></div>
@@ -9454,7 +9824,10 @@ function renderRegimePage(regime, color, desc, advice, score, factors, opportuni
     </tr>`;
   }).join('') + '</tbody></table>';
   
-  document.getElementById('regimeTotalScore').innerHTML = `Total: <span style="color:${color};font-weight:800;">${score}</span> → <span style="color:${color};">${regime}</span> <span style="color:var(--text-tertiary);">(0-1: Trending, 2-3: Volatile, 4+: Crisis)</span>`;
+  const regimeSrc = state.regime.regimeSource || 'Computed';
+  const compLabel = document.getElementById('computedLabel');
+  if (compLabel) compLabel.textContent = aiFresh ? '(informational — AI assessment is driving regime)' : '(active — no fresh AI data, computed score used)';
+  document.getElementById('regimeTotalScore').innerHTML = `Computed Score: <span style="color:${color};font-weight:800;">${score}</span> <span style="color:var(--text-tertiary);">(0-1: Trending, 2-3: Volatile, 4+: Crisis)</span><br><span style="font-size:11px;">Active regime: <strong style="color:${color};">${regime}</strong> — source: ${regimeSrc}</span>`;
   
   // Override state
   const ovr = state.regime?.override || 'auto';
