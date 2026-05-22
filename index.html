@@ -2035,7 +2035,7 @@ input[type="range"]::-webkit-slider-thumb {
       <button class="btn btn-sm btn-primary" onclick="showResearchFeed('analysis')" data-feed="analysis">🤖 Weekly</button>
       <button class="btn btn-sm" onclick="showResearchFeed('earnings')" data-feed="earnings">📊 Earnings</button>
       <button class="btn btn-sm" onclick="showResearchFeed('institutional')" data-feed="institutional">🏛 Institutional</button>
-      <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">🏛 Political</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">🏛 Notable</button>
       <button class="btn btn-sm" onclick="showResearchFeed('rotation')" data-feed="rotation">🔄 Rotation</button>
       <button class="btn btn-sm" onclick="showResearchFeed('insider')" data-feed="insider">💎 Insider</button>
     </div>
@@ -2113,13 +2113,11 @@ input[type="range"]::-webkit-slider-thumb {
           </div>
         </div>
         <div class="form-group" style="margin:8px 0;">
-          <label class="form-label" style="font-size:9px;">Institutions to Track</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;" id="inst-checkboxes">
-            <label><input type="checkbox" checked data-inst="Berkshire Hathaway"> Berkshire</label>
-            <label><input type="checkbox" checked data-inst="Bridgewater"> Bridgewater</label>
-            <label><input type="checkbox" checked data-inst="Renaissance Technologies"> Renaissance</label>
-            <label><input type="checkbox" checked data-inst="Citadel"> Citadel</label>
-            <label><input type="checkbox" checked data-inst="Two Sigma"> Two Sigma</label>
+          <label class="form-label" style="font-size:9px;">Institutions & Funds to Track</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;" id="inst-checkboxes"></div>
+          <div style="display:flex;gap:4px;margin-top:6px;">
+            <input type="text" class="form-input" id="inst-add-input" placeholder="Add fund (e.g. Pershing Square)" style="font-size:11px;flex:1;padding:4px 8px;">
+            <button class="btn btn-sm" onclick="addTrackablePerson('inst')">+ Add</button>
           </div>
         </div>
         <div class="form-group" style="margin:8px 0;">
@@ -2138,10 +2136,10 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="research-feed" id="feed-political" style="display:none;">
       <div class="card fade-in">
         <div class="card-header">
-          <span class="card-title">🏛 Political Traders</span>
+          <span class="card-title">🏛 Notable Traders</span>
           <span id="feedDate-political" style="font-size:10px;color:var(--text-tertiary);"></span>
         </div>
-        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Congressional stock trade disclosures. Tracks members with notable trading track records.</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Tracks disclosed trades by Congressional members, prominent investors, and executives. Combines political disclosure data with public filings.</div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
           <div class="form-group" style="margin:0;min-width:120px;">
             <label class="form-label" style="font-size:9px;">Lookback</label>
@@ -2157,12 +2155,11 @@ input[type="range"]::-webkit-slider-thumb {
           </div>
         </div>
         <div class="form-group" style="margin:8px 0;">
-          <label class="form-label" style="font-size:9px;">Members to Track</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;" id="pol-checkboxes">
-            <label><input type="checkbox" checked data-pol="Nancy Pelosi"> Pelosi</label>
-            <label><input type="checkbox" checked data-pol="Ted Cruz"> Cruz</label>
-            <label><input type="checkbox" checked data-pol="Tim Moore"> Moore</label>
-            <label><input type="checkbox" checked data-pol="Marjorie Taylor Greene"> Greene</label>
+          <label class="form-label" style="font-size:9px;">People to Track <span style="color:var(--text-tertiary);">(politicians, investors, executives)</span></label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;" id="pol-checkboxes"></div>
+          <div style="display:flex;gap:4px;margin-top:6px;">
+            <input type="text" class="form-input" id="pol-add-input" placeholder="Add name (e.g. Bill Ackman)" style="font-size:11px;flex:1;padding:4px 8px;">
+            <button class="btn btn-sm" onclick="addTrackablePerson('pol')">+ Add</button>
           </div>
         </div>
         <div class="form-group" style="margin:8px 0;">
@@ -2560,7 +2557,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.2.0';
+const APEX_VERSION = '4.2.2';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2703,12 +2700,20 @@ function saveState() {
         const { _rawChunkA, _rawChunkB, _rawChunkC, ...lean } = r;
         return lean;
       });
+      // Prune research — keep only topPicks and config, drop raw text
+      const emergencyResearch = { config: state.research?.config || {} };
+      ['earnings','institutional','political','rotation','insider'].forEach(f => {
+        if (state.research?.[f]) {
+          emergencyResearch[f] = { feedName: f, runDate: state.research[f].runDate, topPicks: state.research[f].topPicks || [], portfolioOverlap: state.research[f].portfolioOverlap || [], summary: state.research[f].summary || '' };
+        }
+      });
+      if (state.research?.universeFundamentals) emergencyResearch.universeFundamentals = state.research.universeFundamentals;
       try {
         localStorage.setItem('apex_state', JSON.stringify({
           positions: state.positions, reports: emergencyReports,
           analysisData: state.analysisData, watchlist: state.watchlist,
           cashBalances: state.cashBalances, technicalData: emergencyTech,
-          regime: state.regime, settings: state.settings
+          regime: state.regime, research: emergencyResearch, settings: state.settings
         }));
         toast('Storage was full — pruned old data to fit', 'error');
       } catch(e2) {
@@ -8520,6 +8525,68 @@ If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.jo
 }
 
 // ═══ RESEARCH HUB ENGINE ═══
+// Default tracking lists
+const DEFAULT_POLITICAL = ['Nancy Pelosi', 'Ted Cruz', 'Tim Moore', 'Marjorie Taylor Greene', 'Warren Buffett', 'David Tepper', 'Bill Ackman', 'Bill Gates', 'Donald Trump'];
+const DEFAULT_INSTITUTIONAL = ['Berkshire Hathaway', 'Bridgewater', 'Renaissance Technologies', 'Citadel', 'Two Sigma'];
+
+function renderTrackableList(type) {
+  const el = document.getElementById(type + '-checkboxes');
+  if (!el) return;
+  const cfg = state.research?.config?.[type === 'pol' ? 'political' : 'institutional'] || {};
+  const dataAttr = type === 'pol' ? 'pol' : 'inst';
+  const defaults = type === 'pol' ? DEFAULT_POLITICAL : DEFAULT_INSTITUTIONAL;
+  const names = cfg.trackList || defaults;
+  const active = new Set(cfg[type === 'pol' ? 'members' : 'institutions'] || names);
+  
+  el.innerHTML = names.map(name => {
+    const shortName = name.split(' ').pop(); // Last name
+    const checked = active.has(name) ? 'checked' : '';
+    return `<label style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px;background:var(--bg-secondary);border-radius:4px;cursor:pointer;">
+      <input type="checkbox" ${checked} data-${dataAttr}="${name}"> ${shortName}
+      <span style="cursor:pointer;color:var(--text-tertiary);font-size:9px;margin-left:2px;" onclick="event.preventDefault();event.stopPropagation();removeTrackablePerson('${type}','${name.replace(/'/g, "\\'")}')">✕</span>
+    </label>`;
+  }).join('');
+}
+
+function addTrackablePerson(type) {
+  const input = document.getElementById(type + '-add-input');
+  const name = input?.value?.trim();
+  if (!name) return;
+  
+  const feedKey = type === 'pol' ? 'political' : 'institutional';
+  if (!state.research) state.research = { config: {} };
+  if (!state.research.config) state.research.config = {};
+  if (!state.research.config[feedKey]) state.research.config[feedKey] = {};
+  
+  const defaults = type === 'pol' ? DEFAULT_POLITICAL : DEFAULT_INSTITUTIONAL;
+  const cfg = state.research.config[feedKey];
+  if (!cfg.trackList) cfg.trackList = [...defaults];
+  
+  if (cfg.trackList.includes(name)) { toast(name + ' already in list'); return; }
+  cfg.trackList.push(name);
+  
+  // Also add to active members
+  if (type === 'pol') { if (!cfg.members) cfg.members = [...cfg.trackList]; cfg.members.push(name); }
+  else { if (!cfg.institutions) cfg.institutions = [...cfg.trackList]; cfg.institutions.push(name); }
+  
+  saveState();
+  renderTrackableList(type);
+  input.value = '';
+  toast('Added ' + name);
+}
+
+function removeTrackablePerson(type, name) {
+  const feedKey = type === 'pol' ? 'political' : 'institutional';
+  const cfg = state.research?.config?.[feedKey];
+  if (!cfg?.trackList) return;
+  cfg.trackList = cfg.trackList.filter(n => n !== name);
+  if (cfg.members) cfg.members = cfg.members.filter(n => n !== name);
+  if (cfg.institutions) cfg.institutions = cfg.institutions.filter(n => n !== name);
+  saveState();
+  renderTrackableList(type);
+  toast('Removed ' + name);
+}
+
 function showResearchFeed(name) {
   document.querySelectorAll('.research-feed').forEach(el => el.style.display = 'none');
   document.querySelectorAll('#researchTabs button').forEach(b => { b.className = 'btn btn-sm'; });
@@ -8547,6 +8614,9 @@ function refreshResearch() {
   if (cfg.political?.instructions) document.getElementById('pol-instructions').value = cfg.political.instructions;
   if (cfg.rotation?.instructions) document.getElementById('rot-instructions').value = cfg.rotation.instructions;
   if (cfg.insider?.instructions) document.getElementById('ins-instructions').value = cfg.insider.instructions;
+  // Render dynamic tracking lists
+  renderTrackableList('pol');
+  renderTrackableList('inst');
   // Render existing results for current tab
   const activeTab = document.querySelector('#researchTabs .btn-primary');
   if (activeTab) renderFeedResults(activeTab.dataset.feed);
@@ -8665,12 +8735,17 @@ Report all raw findings with specific numbers and dates.`;
   
   if (feedName === 'political') {
     const days = cfg.lookback || '60';
-    const members = cfg.members?.join(', ') || 'Nancy Pelosi, Ted Cruz, Tim Moore, Marjorie Taylor Greene';
+    const members = cfg.members?.join(', ') || DEFAULT_POLITICAL.join(', ');
     const minSize = cfg.minSize || '100K';
-    return preamble + `Search Capitol Trades, Quiver Quantitative, or Congressional trade disclosure databases for stock trades by: ${members}.
-Lookback: ${days} days. Minimum trade size: $${minSize}.
-For each trade found: member name, ticker, buy/sell, dollar amount, disclosure date, days between trade and disclosure.
-Also look for patterns — multiple members buying the same stock, sector trends, trades preceding legislation.
+    return preamble + `Search for recent stock trades and investment disclosures (past ${days} days) by these notable traders and political figures: ${members}.
+
+For POLITICIANS: search Capitol Trades, Quiver Quantitative, or Congressional disclosure databases. STOCK Act requires disclosure within 45 days.
+For INVESTORS: search SEC 13F filings, Form 4 insider filings, public statements, and financial news about their recent trades.
+For EXECUTIVES: search SEC Form 4 filings.
+
+Minimum trade size: $${minSize}.
+For each trade found: person name, ticker, buy/sell, dollar amount, disclosure date, source of disclosure.
+Also look for patterns — multiple people buying the same stock, sector trends.
 Report all raw findings.`;
   }
   
@@ -8754,11 +8829,13 @@ function saveFeedConfig(feedName) {
     cfg.lookback = document.getElementById('inst-lookback')?.value || '90';
     cfg.minSize = document.getElementById('inst-minsize')?.value || '5M';
     cfg.institutions = [...document.querySelectorAll('#inst-checkboxes input:checked')].map(c => c.dataset.inst);
+    cfg.trackList = cfg.trackList || [...(state.research?.config?.institutional?.trackList || DEFAULT_INSTITUTIONAL)];
     cfg.instructions = document.getElementById('inst-instructions')?.value || '';
   } else if (feedName === 'political') {
     cfg.lookback = document.getElementById('pol-lookback')?.value || '60';
     cfg.minSize = document.getElementById('pol-minsize')?.value || '100K';
     cfg.members = [...document.querySelectorAll('#pol-checkboxes input:checked')].map(c => c.dataset.pol);
+    cfg.trackList = cfg.trackList || [...(state.research?.config?.political?.trackList || DEFAULT_POLITICAL)];
     cfg.instructions = document.getElementById('pol-instructions')?.value || '';
   } else if (feedName === 'rotation') {
     cfg.cycle = document.getElementById('rot-cycle')?.value || 'auto';
