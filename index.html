@@ -1099,6 +1099,7 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="computeRegime()">🔄 Recompute</button>
+      <button class="btn btn-sm" onclick="runAIRegimeCheck()">🧠 AI Regime Check</button>
       <button class="btn btn-sm btn-primary" onclick="runScenario()">💭 What If...</button>
     </div>
   </div>
@@ -1136,6 +1137,12 @@ input[type="range"]::-webkit-slider-thumb {
         <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;" id="regimeTimestamp"></span>
       </div>
       <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;" id="regimeAdvice"></div>
+    </div>
+
+    <!-- AI Regime Assessment -->
+    <div class="card fade-in stagger-1" style="margin-top:12px;" id="aiRegimeCard">
+      <div class="card-title" style="margin-bottom:8px;">🧠 AI Regime Assessment</div>
+      <div id="aiRegimeDisplay" style="font-size:11px;color:var(--text-tertiary);">Not run yet — tap 🧠 AI Regime Check above</div>
     </div>
 
     <!-- Score Breakdown -->
@@ -2557,7 +2564,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.2.2';
+const APEX_VERSION = '4.3.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5063,7 +5070,8 @@ GATHER THE FOLLOWING:
 1. MACRO: Current US Fed Funds rate, Bank of Canada rate, ECB deposit rate, USD/CAD, EUR/CAD, 10Y Treasury yield, WTI oil price, VIX level. Include direction vs last week.
 2. FOR EACH POSITION: Latest price, recent news/earnings, forward P/E if available, RSI if mentioned, analyst sentiment, any significant developments this week.
 3. SECTOR TRENDS: Which sectors have tailwinds/headwinds this week and why.
-4. NEW IDEAS: 5-10 compelling stocks NOT in the portfolio that are in these focus sectors: ${(state.profile?.focusSectors || []).join(', ')}. Look for undervalued stocks with catalysts, including forward P/E, PEG, and recent technical setup.
+4. REGIME DATA: Current VIX index level, S&P 500 vs 200-day moving average (above/below, by how much %), market breadth (% of S&P stocks above 50-day MA), put/call ratio, credit spread direction, 2Y-10Y yield spread. Classify as TRENDING/VOLATILE/CRISIS.
+5. NEW IDEAS: 5-10 compelling stocks NOT in the portfolio that are in these focus sectors: ${(state.profile?.focusSectors || []).join(', ')}. Look for undervalued stocks with catalysts, including forward P/E, PEG, and recent technical setup.
 ${document.getElementById('specificInstructions')?.value ? '\nSPECIFIC FOCUS (HIGH PRIORITY): ' + document.getElementById('specificInstructions').value : ''}
 ${document.getElementById('weeklyNotes')?.value ? '\nMARKET NOTES: ' + document.getElementById('weeklyNotes').value : ''}
 
@@ -9064,6 +9072,103 @@ function renderFeedResults(feedName) {
 }
 
 // ═══ REGIME DETECTION ENGINE ═══
+async function runAIRegimeCheck() {
+  const key = state.settings.apiKey;
+  if (!key) { toast('Set API key in Settings first', 'error'); return; }
+  if (!confirm('Run AI Regime Assessment?\nStep 1: Haiku searches current market data (~$0.03)\nStep 2: Sonnet classifies regime (~$0.02)\nTotal: ~$0.05')) return;
+  
+  toast('🧠 Checking market regime...');
+  apexLog('INFO', 'AI Regime Check starting');
+  
+  try {
+    // Step 1: Haiku gathers current daily market data
+    const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
+      `Search for TODAY's current market data. Report exact numbers for ALL of these:
+
+1. VIX INDEX — current level (e.g. 14.2, 22.5, 35.0)
+2. VIX TERM STRUCTURE — is VIX futures in contango (normal) or backwardation (fear)?
+3. S&P 500 — current level vs its 200-day moving average (above or below, by how much %)
+4. MARKET BREADTH — % of S&P 500 stocks above their 50-day moving average
+5. CREDIT SPREADS — high yield (HY) spread vs investment grade, is it widening or tightening?
+6. PUT/CALL RATIO — current level (below 0.7 = complacent, above 1.0 = fearful)
+7. US 2Y-10Y YIELD SPREAD — inverted (recession signal) or normal?
+8. FUND FLOWS — are investors putting money into equity ETFs or pulling out? (recent week)
+
+Report all numbers found with their dates. Be specific with values.`
+    }], true, 2000);
+    
+    const u1 = step1.data?.usage || {};
+    apexLog('API', `Regime Step 1 (Haiku) — $${((u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6).toFixed(3)}`);
+    
+    // Step 2: Sonnet classifies regime
+    const rawData = step1.text.length > 4000 ? step1.text.substring(0, 4000) : step1.text;
+    
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content:
+      `You are a market regime classifier. Based on this current market data, classify the regime.
+
+MARKET DATA:
+${rawData}
+
+REGIME DEFINITIONS:
+- TRENDING: VIX < 20, S&P above 200-day MA, breadth > 60%, credit spreads tight, normal contango. Bull market conditions where momentum strategies work.
+- VOLATILE: VIX 20-30, mixed breadth (40-60%), credit spreads widening, sector rotation active. Choppy market where confirmation is needed before acting.
+- CRISIS: VIX > 30, S&P below 200-day MA, breadth < 40%, credit spreads blowing out, backwardation. Risk-off environment where value and quality matter most.
+
+Return ONLY JSON:
+{"regime":"TRENDING|VOLATILE|CRISIS","confidence":"High|Medium|Low","vix":{"level":22.5,"termStructure":"contango|backwardation"},"sp500":{"vs200dma":"+3.2%","above":true},"breadth":{"pctAbove50dma":65},"creditSpreads":{"direction":"tightening|stable|widening"},"putCallRatio":0.85,"yieldCurve":{"spread2y10y":0.45,"inverted":false},"fundFlows":"inflows|outflows|neutral","moodScore":65,"reasoning":"2-3 sentence explanation of regime classification"}`
+    }], false, 1000);
+    
+    const u2 = step2.data?.usage || {};
+    const totalCost = (u1.input_tokens||0)*0.25/1e6 + (u1.output_tokens||0)*1.25/1e6 + (u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6;
+    apexLog('API', `Regime Step 2 (Sonnet) — $${((u2.input_tokens||0)*3/1e6 + (u2.output_tokens||0)*15/1e6).toFixed(3)}. Total: $${totalCost.toFixed(3)}`);
+    
+    let parsed = parseHaikuJSON(step2.text);
+    if (!parsed) {
+      const m = step2.text.match(/\{[\s\S]*\}/);
+      if (m) try { parsed = JSON.parse(m[0].replace(/,(\s*[}])/g, '$1')); } catch(e) {}
+    }
+    
+    if (parsed?.regime) {
+      if (!state.regime) state.regime = {};
+      state.regime.aiAssessment = {
+        regime: parsed.regime,
+        confidence: parsed.confidence,
+        vix: parsed.vix,
+        sp500: parsed.sp500,
+        breadth: parsed.breadth,
+        creditSpreads: parsed.creditSpreads,
+        putCallRatio: parsed.putCallRatio,
+        yieldCurve: parsed.yieldCurve,
+        fundFlows: parsed.fundFlows,
+        moodScore: parsed.moodScore,
+        reasoning: parsed.reasoning,
+        date: new Date().toISOString(),
+        cost: totalCost
+      };
+      
+      // AI assessment overrides computed regime (it's more accurate)
+      if (state.regime.override === 'auto') {
+        state.regime.current = parsed.regime;
+      }
+      
+      // Update macro mood score for other systems
+      if (!state.analysisData) state.analysisData = {};
+      if (!state.analysisData.macro) state.analysisData.macro = {};
+      if (parsed.moodScore) state.analysisData.macro.moodScore = parsed.moodScore;
+      
+      saveState();
+      computeRegime(); // Re-run to integrate AI assessment
+      toast(`🧠 Regime: ${parsed.regime} (${parsed.confidence}) — VIX ${parsed.vix?.level || '?'}, S&P ${parsed.sp500?.vs200dma || '?'} | $${totalCost.toFixed(2)}`);
+    } else {
+      state._lastRegimeRaw = step2.text;
+      toast('Regime check completed but parse failed', 'error');
+    }
+  } catch(e) {
+    toast('Regime check failed: ' + e.message, 'error');
+    apexLog('ERROR', `AI Regime: ${e.message}`);
+  }
+}
+
 async function computeRegime() {
   const positions = state.positions;
   const prof = state.profile || getDefaultProfile();
@@ -9151,7 +9256,26 @@ async function computeRegime() {
     factors.push({ label: 'Macro Mood Score', current: 'Run analysis first', threshold: '< 35', triggered: false, points: 0, noData: true });
   }
   
-  // 6. User Override
+  // 6. AI Regime Assessment (dominant — based on real daily market data)
+  const aiAssess = state.regime?.aiAssessment;
+  if (aiAssess?.regime && aiAssess?.date) {
+    const ageD = Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000);
+    const stale = ageD > 7;
+    const aiRegime = aiAssess.regime;
+    const aiPts = aiRegime === 'CRISIS' ? 5 : aiRegime === 'VOLATILE' ? 3 : 0;
+    factors.push({
+      label: '🧠 AI Regime Assessment',
+      current: `${aiRegime} (${aiAssess.confidence || '?'}) — VIX ${aiAssess.vix?.level || '?'}${stale ? ' ⚠ ' + ageD + 'd old' : ''}`,
+      threshold: 'AI-classified from daily VIX, breadth, credit, yield curve',
+      triggered: aiRegime !== 'TRENDING',
+      points: stale ? Math.floor(aiPts / 2) : aiPts,
+      isAI: true
+    });
+  } else {
+    factors.push({ label: '🧠 AI Regime Assessment', current: 'Not run — tap 🧠 AI Regime Check', threshold: 'Dominant signal', triggered: false, points: 0, noData: true });
+  }
+
+  // 7. User Override
   const override = state.regime.override || 'auto';
   if (override !== 'auto') {
     factors.push({ label: 'User Override', current: override.toUpperCase(), threshold: 'Manual', triggered: true, points: override === 'crisis' ? 99 : override === 'volatile' ? 50 : -99 });
@@ -9186,6 +9310,34 @@ async function computeRegime() {
   state.regime.score = totalScore;
   state.regime.factors = factors;
   state.regime.lastComputed = new Date().toISOString();
+  
+  // Render AI assessment card
+  const aiEl = document.getElementById('aiRegimeDisplay');
+  if (aiEl && aiAssess?.regime) {
+    const ageD = Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000);
+    const rc = aiAssess.regime === 'CRISIS' ? 'var(--red)' : aiAssess.regime === 'VOLATILE' ? 'var(--amber)' : 'var(--green)';
+    aiEl.innerHTML = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="min-width:120px;">
+          <div style="font-size:22px;font-weight:800;color:${rc};">${aiAssess.regime}</div>
+          <div style="font-size:10px;color:var(--text-tertiary);">Confidence: ${aiAssess.confidence} | ${ageD === 0 ? 'Today' : ageD + 'd ago'}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;flex:1;min-width:300px;">
+          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">VIX</div><div class="metric-value" style="font-size:16px;">${aiAssess.vix?.level || '?'}</div><div style="font-size:9px;color:var(--text-tertiary);">${aiAssess.vix?.termStructure || ''}</div></div>
+          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">S&P vs 200d</div><div class="metric-value" style="font-size:16px;color:${aiAssess.sp500?.above ? 'var(--green)' : 'var(--red)'};">${aiAssess.sp500?.vs200dma || '?'}</div></div>
+          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">Breadth</div><div class="metric-value" style="font-size:16px;">${aiAssess.breadth?.pctAbove50dma || '?'}%</div></div>
+          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">Put/Call</div><div class="metric-value" style="font-size:16px;">${aiAssess.putCallRatio || '?'}</div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;">
+        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Credit Spreads</div><div style="font-size:12px;">${aiAssess.creditSpreads?.direction || '?'}</div></div>
+        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Yield Curve (2Y-10Y)</div><div style="font-size:12px;">${aiAssess.yieldCurve?.spread2y10y || '?'}% ${aiAssess.yieldCurve?.inverted ? '⚠ INVERTED' : ''}</div></div>
+        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Fund Flows</div><div style="font-size:12px;">${aiAssess.fundFlows || '?'}</div></div>
+        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Mood</div><div style="font-size:12px;font-weight:700;">${aiAssess.moodScore || '?'}/100</div></div>
+      </div>
+      ${aiAssess.reasoning ? '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);font-style:italic;">' + aiAssess.reasoning + '</div>' : ''}
+    `;
+  }
   
   // ═══ COMPUTE OPPORTUNITY SCORES ═══
   const opportunities = computeOpportunities();
