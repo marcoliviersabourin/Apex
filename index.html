@@ -2305,15 +2305,15 @@ input[type="range"]::-webkit-slider-thumb {
           <th style="cursor:pointer;" onclick="sortUniverse('ticker')">Ticker</th>
           <th>Src</th>
           <th>Sector</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('composite')" title="Composite score (geometric mean)">Score</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('value')" title="Value dimension">Val</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('quality')" title="Quality dimension">Qual</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('momentum')" title="Momentum dimension">Mom</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('conviction')" title="Conviction dimension">Conv</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('risk')" title="Risk dimension (100=safe)">Risk</th>
+          <th>Band</th>
           <th style="cursor:pointer;" onclick="sortUniverse('signals')">Sig#</th>
           <th>BX</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('fwdPE')">P/E</th>
-          <th>Rev</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('oppScore')">Opp</th>
-          <th>Verdict</th>
-          <th>Conf</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('sigReturn')">SigR</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('bhReturn')">B&H</th>
           <th style="cursor:pointer;" onclick="sortUniverse('weight')">Wt%</th>
           <th></th>
         </tr></thead>
@@ -2560,7 +2560,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.1.1';
+const APEX_VERSION = '4.2.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -6403,28 +6403,22 @@ function refreshTarget() {
   if (rules.maxPos && activeCount > maxPos) {
     // Score-based: trim weakest flexible entries, protect locked, strong NEW, large positions, and ACTIONABLE
     const flexible = targetEntries.filter(e => e.status !== 'EXIT' && !e._locked);
+    // Ensure universe data is populated for composite scores
+    if (!_universeData || _universeData.length === 0) { _universeData = buildUniverseData(); }
     
     // Boost conviction to protect valuable positions from force-exit
     flexible.forEach(e => {
-      // Large positions should be harder to force-exit (represent more capital commitment)
-      if (e.currentWeight >= 8) e._conviction += 3;
-      else if (e.currentWeight >= 4) e._conviction += 2;
+      // Use multi-dimensional composite if available from Universe
+      const univEntry = _universeData.find(u => u.ticker === e.ticker.toUpperCase());
+      if (univEntry?.composite) e._conviction = univEntry.composite; // Replace additive with composite
+      
+      // Large positions still get extra protection
+      if (e.currentWeight >= 8) e._conviction += 5;
+      else if (e.currentWeight >= 4) e._conviction += 3;
       else if (e.currentWeight >= 2) e._conviction += 1;
       
-      // Opportunity score protection (compute inline if regime data unavailable)
-      const opp = (state.regime?.opportunities || []).find(o => o.ticker.toUpperCase() === e.ticker.toUpperCase());
-      if (opp && opp.totalScore >= 10) e._conviction += 4;
-      else if (opp && opp.totalScore >= 7) e._conviction += 2;
-      
-      // Research signal convergence (check directly, don't rely on Universe page visit)
-      const feedCount = ['earnings','institutional','political','rotation','insider'].filter(feed => 
-        state.research?.[feed]?.topPicks?.some(p => p.ticker.toUpperCase() === e.ticker.toUpperCase()) ||
-        state.research?.[feed]?.portfolioOverlap?.some(p => p.ticker.toUpperCase() === e.ticker.toUpperCase())
-      ).length;
-      if (feedCount >= 2) e._conviction += 2;
-      
-      // NEW entries get slight penalty (unproven, easier to drop than established positions)
-      if (e.isNew) e._conviction -= 1;
+      // NEW entries get penalty (unproven)
+      if (e.isNew) e._conviction -= 5;
     });
     
     flexible.sort((a, b) => a._conviction - b._conviction);
@@ -7601,9 +7595,158 @@ function showSettingsTab(tab) {
   }
 }
 
+// ═══ MULTI-DIMENSIONAL SCORING ENGINE ═══
+function computeDimensionScores(u) {
+  // Each dimension: 0-100 raw score
+  const scores = { value: 0, quality: 0, momentum: 0, conviction: 0, risk: 50 };
+  
+  // ═══ VALUE (is it cheap?) 0-100 ═══
+  let vPts = 0, vMax = 0;
+  // Forward P/E vs sector (40 pts possible)
+  if (u.fwdPE && u.fwdPE > 0) {
+    const sectorPE = u.sectorPE || 22; // Default sector median
+    const peRatio = u.fwdPE / sectorPE;
+    vPts += peRatio < 0.6 ? 40 : peRatio < 0.8 ? 30 : peRatio < 1.0 ? 20 : peRatio < 1.2 ? 10 : 0;
+  }
+  vMax += 40;
+  // PEG ratio (25 pts)
+  if (u.peg && u.peg > 0) {
+    vPts += u.peg < 0.8 ? 25 : u.peg < 1.0 ? 20 : u.peg < 1.5 ? 12 : u.peg < 2.0 ? 5 : 0;
+  }
+  vMax += 25;
+  // FCF yield (15 pts)
+  if (u.fcfYield) {
+    vPts += u.fcfYield > 8 ? 15 : u.fcfYield > 5 ? 12 : u.fcfYield > 3 ? 8 : u.fcfYield > 0 ? 3 : 0;
+  }
+  vMax += 15;
+  // Price vs 52-week high (20 pts)
+  if (u.pctFromHigh) {
+    const drop = Math.abs(u.pctFromHigh);
+    vPts += drop > 40 ? 20 : drop > 25 ? 15 : drop > 15 ? 10 : drop > 5 ? 5 : 0;
+  }
+  vMax += 20;
+  scores.value = vMax > 0 ? Math.round(vPts / vMax * 100) : 0;
+  
+  // ═══ QUALITY (will it survive/grow?) 0-100 ═══
+  let qPts = 0, qMax = 0;
+  // Revenue trend (30 pts)
+  if (u.revTrend === '↑' || u.revTrend === '↑↑') qPts += 30;
+  else if (u.revTrend === '→') qPts += 15;
+  else if (u.revTrend === '↓') qPts += 0;
+  qMax += 30;
+  // AI verdict quality (25 pts)
+  const vScore = { 'BUY': 25, 'HOLD': 18, 'TRIM': 5, 'EXIT': 0 };
+  qPts += vScore[u.aiVerdict] || 10;
+  qMax += 25;
+  // Tag and vetting (20 pts)
+  if (u.sources.has('held')) qPts += 15; // Already vetted
+  if (u.tag === 'core') qPts += 5;
+  qMax += 20;
+  // Risk level from analysis (25 pts — low risk = high quality)
+  const rScore = { 'Low': 25, 'Low-Medium': 20, 'Medium': 15, 'Medium-High': 8, 'High': 3 };
+  qPts += rScore[u.riskLevel] || 12;
+  qMax += 25;
+  scores.quality = qMax > 0 ? Math.round(qPts / qMax * 100) : 0;
+  
+  // ═══ MOMENTUM (is it moving right?) 0-100 ═══
+  let mPts = 0, mMax = 0;
+  // BX state (40 pts)
+  const bxScore = { 'BULL': 40, 'BUY': 40, 'FADE': 25, 'TURN': 15, 'BEAR': 5, 'SELL': 0 };
+  mPts += bxScore[u.bxState] || 0;
+  mMax += 40;
+  // Signal return vs buy-and-hold (30 pts)
+  if (u.sigReturn !== null && u.bhReturn !== null) {
+    const outperf = u.sigReturn - u.bhReturn;
+    mPts += outperf > 20 ? 30 : outperf > 0 ? 20 : outperf > -10 ? 10 : 0;
+  }
+  mMax += 30;
+  // AI momentum arrow (15 pts)
+  if (u.aiMomentum === '↑' || u.aiMomentum === '↑↑') mPts += 15;
+  else if (u.aiMomentum === '→') mPts += 8;
+  mMax += 15;
+  // RSI positioning (15 pts — middle range is best)
+  if (u.rsi) {
+    if (u.rsi >= 30 && u.rsi <= 70) mPts += 15; // Healthy range
+    else if (u.rsi < 30) mPts += 10; // Oversold — potential reversal
+    else mPts += 3; // Overbought — risky
+  }
+  mMax += 15;
+  scores.momentum = mMax > 0 ? Math.round(mPts / mMax * 100) : 0;
+  
+  // ═══ CONVICTION (does smart money agree?) 0-100 ═══
+  let cPts = 0, cMax = 0;
+  // AI confidence (25 pts)
+  const confMap = { 'High': 25, 'Medium-High': 20, 'Medium': 15, 'Low-Medium': 8, 'Low': 3 };
+  cPts += confMap[u.aiConfidence] || 10;
+  cMax += 25;
+  // Signal count — research feed convergence (35 pts)
+  cPts += Math.min(u.signalCount * 7, 35);
+  cMax += 35;
+  // AI sentiment (20 pts)
+  const sentMap = { 'Bullish': 20, 'Extreme Bull': 20, 'Neutral': 10, 'Mixed': 8, 'Bearish': 3 };
+  cPts += sentMap[u.aiSentiment] || 8;
+  cMax += 20;
+  // Watchlist evaluation (20 pts)
+  if (u.watchVerdict === 'STRONG_BUY') cPts += 20;
+  else if (u.watchVerdict === 'BUY') cPts += 15;
+  else if (u.watchVerdict === 'WATCH') cPts += 5;
+  cMax += 20;
+  scores.conviction = cMax > 0 ? Math.round(cPts / cMax * 100) : 0;
+  
+  // ═══ RISK (what could go wrong?) 0-100 (100 = LOW risk = good) ═══
+  let rPts = 50, rMax = 100; // Start at 50, adjust
+  // Position concentration (penalize overweight)
+  if (u.weight > 10) rPts -= 20;
+  else if (u.weight > 7) rPts -= 10;
+  else if (u.weight > 5) rPts -= 5;
+  else rPts += 10; // Small position = lower risk
+  // Volatility from price drop
+  if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) rPts -= 15;
+  else if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 25) rPts -= 8;
+  else rPts += 10;
+  // Tag risk
+  if (u.tag === 'tactical') rPts -= 10;
+  else rPts += 5;
+  scores.risk = Math.max(0, Math.min(100, rPts));
+  
+  return scores;
+}
+
+function computeComposite(scores, regime) {
+  // Regime-dependent weights
+  const weights = {
+    'TRENDING':  { value: 0.20, quality: 0.15, momentum: 0.35, conviction: 0.20, risk: 0.10 },
+    'VOLATILE':  { value: 0.30, quality: 0.25, momentum: 0.15, conviction: 0.20, risk: 0.10 },
+    'CRISIS':    { value: 0.40, quality: 0.30, momentum: 0.05, conviction: 0.15, risk: 0.10 }
+  };
+  const w = weights[regime] || weights['TRENDING'];
+  
+  // Weighted geometric mean: product of (score^weight), then take nth root
+  // Add 1 to each score to avoid zero-multiplication (0 score → 1, 100 score → 101)
+  const v = Math.pow(scores.value + 1, w.value);
+  const q = Math.pow(scores.quality + 1, w.quality);
+  const m = Math.pow(scores.momentum + 1, w.momentum);
+  const c = Math.pow(scores.conviction + 1, w.conviction);
+  const r = Math.pow(scores.risk + 1, w.risk);
+  
+  const geoMean = v * q * m * c * r;
+  // Normalize to 0-100 scale (theoretical max ~101^1.0 = 101)
+  const composite = Math.min(100, Math.round(Math.pow(geoMean, 1) - 1));
+  
+  return composite;
+}
+
+function getSizingBand(composite) {
+  if (composite >= 75) return { band: 'Full', coreMax: 7, tactMax: 3, color: 'var(--green)' };
+  if (composite >= 55) return { band: 'High', coreMax: 5, tactMax: 2.5, color: 'var(--green)' };
+  if (composite >= 40) return { band: 'Standard', coreMax: 3, tactMax: 1.5, color: 'var(--amber)' };
+  if (composite >= 25) return { band: 'Starter', coreMax: 1.5, tactMax: 1, color: 'var(--amber)' };
+  return { band: 'Watch', coreMax: 0, tactMax: 0, color: 'var(--text-tertiary)' };
+}
+
 // ═══ UNIVERSE ENGINE ═══
 let _universeData = [];
-let _universeSort = { col: 'signals', dir: 'desc' };
+let _universeSort = { col: 'composite', dir: 'desc' };
 let _universeFilter = 'all';
 
 function renderFreshnessPanel() {
@@ -7987,6 +8130,15 @@ function buildUniverseData() {
     // Deduplicate: if a source is also a feed signal, don't double count
     const allSources = new Set([...u.sources, ...Object.keys(u.feedSignals)]);
     u.signalCount = allSources.size;
+    
+    // Sector P/E from enrichment (reuse existing fund lookup)
+    const fund2 = state.regime?.fundamentals?.[u.ticker] || state.research?.universeFundamentals?.[u.ticker];
+    if (fund2?.sectorPE) u.sectorPE = fund2.sectorPE;
+    
+    // Compute multi-dimensional scores
+    u.dimensions = computeDimensionScores(u);
+    u.composite = computeComposite(u.dimensions, state.regime?.current || 'TRENDING');
+    u.sizingBand = getSizingBand(u.composite);
   });
   
   return Object.values(universe);
@@ -7999,9 +8151,10 @@ function createUniverseEntry(ticker) {
     suggestedWeight: 0, bxState: '', bxValue: null,
     aiVerdict: '', aiSentiment: '', aiConfidence: '', aiMomentum: '', aiAction: '',
     fwdPE: null, peg: null, fcfYield: null, revTrend: '', riskLevel: '',
-    marketCap: '', catalysts: '', moat: '',
+    marketCap: '', catalysts: '', moat: '', sectorPE: null,
     oppScore: 0, oppStatus: '', dislocation: 0, quality: 0, bottom: 0, pctFromHigh: 0,
-    bhReturn: null, sigReturn: null, signalCount: 0,
+    bhReturn: null, sigReturn: null, signalCount: 0, rsi: null,
+    dimensions: null, composite: 0, sizingBand: null,
     watchVerdict: '', watchThesis: '', ideaThesis: '', ideaLead: ''
   };
 }
@@ -8061,13 +8214,15 @@ function renderUniverseTable() {
   data.sort((a, b) => {
     switch(_universeSort.col) {
       case 'ticker': return dir * a.ticker.localeCompare(b.ticker);
+      case 'composite': return dir * ((a.composite||0) - (b.composite||0));
+      case 'value': return dir * ((a.dimensions?.value||0) - (b.dimensions?.value||0));
+      case 'quality': return dir * ((a.dimensions?.quality||0) - (b.dimensions?.quality||0));
+      case 'momentum': return dir * ((a.dimensions?.momentum||0) - (b.dimensions?.momentum||0));
+      case 'conviction': return dir * ((a.dimensions?.conviction||0) - (b.dimensions?.conviction||0));
+      case 'risk': return dir * ((a.dimensions?.risk||0) - (b.dimensions?.risk||0));
       case 'signals': return dir * (a.signalCount - b.signalCount);
-      case 'oppScore': return dir * (a.oppScore - b.oppScore);
-      case 'fwdPE': return dir * ((a.fwdPE||999) - (b.fwdPE||999));
-      case 'sigReturn': return dir * ((a.sigReturn||0) - (b.sigReturn||0));
-      case 'bhReturn': return dir * ((a.bhReturn||0) - (b.bhReturn||0));
       case 'weight': return dir * (a.weight - b.weight);
-      default: return dir * (a.signalCount - b.signalCount);
+      default: return dir * ((a.composite||0) - (b.composite||0));
     }
   });
   
@@ -8143,18 +8298,18 @@ function renderUniverseTable() {
       <td style="font-weight:700;">${u.ticker}</td>
       <td style="font-size:9px;">${srcBadges.join(' ')}</td>
       <td style="font-size:10px;">${u.sector || ''}</td>
+      <td class="num" style="font-weight:800;font-size:14px;color:${u.composite >= 70 ? 'var(--green)' : u.composite >= 40 ? 'var(--amber)' : u.composite > 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${u.composite || 0}</td>
+      <td class="num" style="font-size:10px;color:${u.dimensions?.value >= 50 ? 'var(--green)' : u.dimensions?.value >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.value || 0}</td>
+      <td class="num" style="font-size:10px;color:${u.dimensions?.quality >= 50 ? 'var(--green)' : u.dimensions?.quality >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.quality || 0}</td>
+      <td class="num" style="font-size:10px;color:${u.dimensions?.momentum >= 50 ? 'var(--green)' : u.dimensions?.momentum >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.momentum || 0}</td>
+      <td class="num" style="font-size:10px;color:${u.dimensions?.conviction >= 50 ? 'var(--green)' : u.dimensions?.conviction >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.conviction || 0}</td>
+      <td class="num" style="font-size:10px;color:${u.dimensions?.risk >= 50 ? 'var(--green)' : u.dimensions?.risk >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.risk || 50}</td>
+      <td style="font-size:9px;color:${u.sizingBand?.color || 'var(--text-tertiary)'};font-weight:600;">${u.sizingBand?.band || '—'}</td>
       <td style="text-align:center;">
-        <span style="font-weight:800;font-size:14px;color:${sigColor};">${u.signalCount}</span>
+        <span style="font-weight:700;color:${sigColor};">${u.signalCount}</span>
         <span style="font-size:8px;">${feedIcons.join('')}</span>
       </td>
       <td>${bxBadge}</td>
-      <td class="num" style="font-size:10px;${u.fwdPE && u.fwdPE < 20 ? 'color:var(--green);' : u.fwdPE && u.fwdPE > 40 ? 'color:var(--red);' : ''}">${u.fwdPE ? u.fwdPE.toFixed(0) + 'x' : '—'}</td>
-      <td style="text-align:center;font-size:12px;">${u.revTrend || '—'}</td>
-      <td class="num" style="font-size:10px;">${u.oppScore > 0 ? u.oppScore + '/14' : '—'} ${oppBadge}</td>
-      <td style="color:${verdictColor};font-weight:600;font-size:10px;">${u.aiVerdict || u.watchVerdict || '—'}</td>
-      <td style="font-size:9px;color:${u.aiConfidence === 'High' ? 'var(--green)' : u.aiConfidence === 'Low' ? 'var(--red)' : 'var(--text-tertiary)'};">${u.aiConfidence || '—'}</td>
-      <td class="num" style="font-size:10px;">${sigRetStr}</td>
-      <td class="num" style="font-size:10px;">${bhRetStr}</td>
       <td class="num" style="font-size:10px;">${weightStr}</td>
       <td><button class="btn btn-sm" style="font-size:8px;padding:2px 6px;" onclick="event.stopPropagation();addToTarget('${u.ticker}')">→</button></td>
     </tr>`;
@@ -8172,38 +8327,67 @@ function toggleUniverseDetail(row, ticker) {
   
   const detailRow = document.createElement('tr');
   detailRow.className = 'universe-detail';
+  const d = u.dimensions || { value: 0, quality: 0, momentum: 0, conviction: 0, risk: 50 };
+  const comp = u.composite || 0;
+  const band = u.sizingBand || { band: '—' };
+  const regime = state.regime?.current || 'TRENDING';
+  const dc = (v) => v >= 70 ? 'var(--green)' : v >= 40 ? 'var(--amber)' : 'var(--red)';
+  
   detailRow.innerHTML = `<td colspan="14" style="padding:12px;background:var(--bg-tertiary);border-left:3px solid var(--purple);">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;font-size:11px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:11px;">
       <div>
         <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📊 Sources (${u.signalCount})</div>
         ${u.sources.has('held') ? '<div>✓ Held (' + u.weight.toFixed(1) + '%)</div>' : ''}
         ${u.sources.has('watchlist') ? '<div>✓ Watchlist' + (u.watchVerdict ? ' — ' + u.watchVerdict : '') + '</div>' : ''}
         ${u.sources.has('idea') ? '<div>✓ AI idea: ' + (u.ideaThesis || '').substring(0, 60) + '</div>' : ''}
         ${Object.entries(u.feedSignals).map(([f, s]) => '<div>✓ ' + f + ': ' + s.signal + ' — ' + (s.reason || '').substring(0, 50) + '</div>').join('')}
-      </div>
-      <div>
-        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">💰 Valuation</div>
-        <div>Fwd P/E: <strong style="color:${u.fwdPE && u.fwdPE < 20 ? 'var(--green)' : u.fwdPE > 40 ? 'var(--red)' : 'var(--text-primary)'};">${u.fwdPE ? u.fwdPE.toFixed(1) + 'x' : 'unknown'}</strong></div>
-        <div>PEG: ${u.peg ? u.peg.toFixed(1) + 'x' : '—'} ${u.peg && u.peg < 1 ? '<span style="color:var(--green);">✓ cheap</span>' : ''}</div>
-        <div>FCF Yield: ${u.fcfYield ? u.fcfYield.toFixed(1) + '%' : '—'} ${u.fcfYield > 5 ? '<span style="color:var(--green);">✓ strong</span>' : ''}</div>
-        <div>Revenue: ${u.revTrend || '—'} ${u.riskLevel ? '| Risk: ' + u.riskLevel : ''}</div>
-        <div>From High: ${u.pctFromHigh ? u.pctFromHigh.toFixed(0) + '%' : '—'}</div>
-      </div>
-      <div>
-        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📈 Technical</div>
-        <div>BX: <strong style="color:${u.bxState === 'BULL' ? 'var(--green)' : u.bxState === 'BEAR' ? 'var(--red)' : 'var(--amber)'};">${u.bxState || 'no data'}</strong> ${u.bxValue !== null ? '(' + u.bxValue?.toFixed(1) + ')' : ''}</div>
-        ${u.rsi ? '<div>RSI(14): ' + u.rsi.toFixed(0) + (u.rsi > 70 ? ' <span style="color:var(--red);">overbought</span>' : u.rsi < 30 ? ' <span style="color:var(--green);">oversold</span>' : '') + '</div>' : ''}
-        <div>Signal Return: ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(1) + '%' : '—'}</div>
-        <div>Buy & Hold: ${u.bhReturn !== null ? (u.bhReturn >= 0 ? '+' : '') + u.bhReturn.toFixed(1) + '%' : '—'}</div>
-        <div>Sentiment: ${u.aiSentiment || '—'} | Mom: ${u.aiMomentum || '—'}</div>
-      </div>
-      <div>
-        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">🎯 Opportunity</div>
-        <div>Value: ${u.dislocation}/6 | Quality: ${u.quality}/3 | Bottom: ${u.bottom}/5</div>
-        <div>Total: <strong>${u.oppScore}/14</strong> ${u.oppStatus ? '— ' + u.oppStatus : ''}</div>
-        ${u.moat ? '<div style="margin-top:4px;">Moat: ' + u.moat.substring(0, 80) + '</div>' : ''}
-        ${u.catalysts ? '<div>Catalysts: ' + u.catalysts.substring(0, 80) + '</div>' : ''}
         ${u.aiAction ? '<div style="margin-top:4px;color:var(--amber);">AI: ' + u.aiAction + '</div>' : ''}
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📐 Dimension Scores (${regime})</div>
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;width:60px;">Value:</span>
+          <span style="display:inline-block;width:120px;height:10px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;"><span style="display:block;height:100%;width:${d.value}%;background:${dc(d.value)};border-radius:3px;"></span></span>
+          <strong style="color:${dc(d.value)};margin-left:4px;">${d.value}</strong>
+          <span style="color:var(--text-tertiary);font-size:9px;"> P/E ${u.fwdPE ? u.fwdPE.toFixed(0) + 'x' : '?'} | PEG ${u.peg ? u.peg.toFixed(1) : '?'}</span>
+        </div>
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;width:60px;">Quality:</span>
+          <span style="display:inline-block;width:120px;height:10px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;"><span style="display:block;height:100%;width:${d.quality}%;background:${dc(d.quality)};border-radius:3px;"></span></span>
+          <strong style="color:${dc(d.quality)};margin-left:4px;">${d.quality}</strong>
+          <span style="color:var(--text-tertiary);font-size:9px;"> ${u.aiVerdict || '—'} | Rev ${u.revTrend || '?'}</span>
+        </div>
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;width:60px;">Momentum:</span>
+          <span style="display:inline-block;width:120px;height:10px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;"><span style="display:block;height:100%;width:${d.momentum}%;background:${dc(d.momentum)};border-radius:3px;"></span></span>
+          <strong style="color:${dc(d.momentum)};margin-left:4px;">${d.momentum}</strong>
+          <span style="color:var(--text-tertiary);font-size:9px;"> BX ${u.bxState || '?'} | SigR ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(0) + '%' : '?'}</span>
+        </div>
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;width:60px;">Conviction:</span>
+          <span style="display:inline-block;width:120px;height:10px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;"><span style="display:block;height:100%;width:${d.conviction}%;background:${dc(d.conviction)};border-radius:3px;"></span></span>
+          <strong style="color:${dc(d.conviction)};margin-left:4px;">${d.conviction}</strong>
+          <span style="color:var(--text-tertiary);font-size:9px;"> ${u.aiConfidence || '—'} | ${u.signalCount} sources</span>
+        </div>
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;width:60px;">Risk:</span>
+          <span style="display:inline-block;width:120px;height:10px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;"><span style="display:block;height:100%;width:${d.risk}%;background:${dc(d.risk)};border-radius:3px;"></span></span>
+          <strong style="color:${dc(d.risk)};margin-left:4px;">${d.risk}</strong>
+          <span style="color:var(--text-tertiary);font-size:9px;"> ${u.tag} | ${u.pctFromHigh ? 'High ' + u.pctFromHigh.toFixed(0) + '%' : ''}</span>
+        </div>
+        <div style="margin-top:6px;padding-top:4px;border-top:1px solid var(--border-subtle);">
+          <strong>Composite: <span style="color:${dc(comp)};font-size:14px;">${comp}</span></strong>
+          → <strong style="color:${u.sizingBand?.color || 'var(--text-tertiary)'};">${band.band}</strong> (max ${u.tag === 'tactical' ? band.tactMax : band.coreMax}%)
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">📈 Key Metrics</div>
+        <div>BX: <strong style="color:${u.bxState === 'BULL' ? 'var(--green)' : u.bxState === 'BEAR' ? 'var(--red)' : 'var(--amber)'};">${u.bxState || 'no data'}</strong> ${u.bxValue !== null ? '(' + u.bxValue?.toFixed(1) + ')' : ''}</div>
+        <div>Fwd P/E: ${u.fwdPE ? u.fwdPE.toFixed(1) + 'x' : '—'} | FCF: ${u.fcfYield ? u.fcfYield.toFixed(1) + '%' : '—'}</div>
+        <div>Sig Return: ${u.sigReturn !== null ? (u.sigReturn >= 0 ? '+' : '') + u.sigReturn.toFixed(1) + '%' : '—'} | B&H: ${u.bhReturn !== null ? (u.bhReturn >= 0 ? '+' : '') + u.bhReturn.toFixed(1) + '%' : '—'}</div>
+        <div>From High: ${u.pctFromHigh ? u.pctFromHigh.toFixed(0) + '%' : '—'} ${u.rsi ? '| RSI: ' + u.rsi.toFixed(0) : ''}</div>
+        <div>Sentiment: ${u.aiSentiment || '—'} | Mom: ${u.aiMomentum || '—'}</div>
+        ${u.catalysts ? '<div style="margin-top:4px;">Catalysts: ' + u.catalysts.substring(0, 80) + '</div>' : ''}
       </div>
     </div>
   </td>`;
