@@ -2612,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.5.0';
+const APEX_VERSION = '4.5.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -7905,6 +7905,21 @@ function generateTacticalAlerts() {
       }
     }
     
+    // Institutional aggregate flow warning
+    if (feed === 'institutional' && data.feedSpecific?.aggregateFlow === 'decreasing') {
+      alerts.push({ type: 'warning', icon: '⚠', text: `<strong>INSTITUTIONAL DERISKING:</strong> Tracked institutions are net DECREASING equity exposure. ${data.feedSpecific.netDirection || ''} ${data.feedSpecific.cashLevels || ''}` });
+    }
+    
+    // Insider negative confluence
+    if (feed === 'insider' && data.feedSpecific?.negativeConfluence?.length > 0) {
+      data.feedSpecific.negativeConfluence.forEach(n => {
+        const held = state.positions.find(p => p.symbol.toUpperCase() === n.ticker?.toUpperCase());
+        if (held) {
+          alerts.push({ type: 'warning', icon: '🔴', text: `<strong>DANGER — NEGATIVE CONFLUENCE:</strong> ${n.ticker} has both insider selling AND bearish options flow. You hold this position.`, detail: `Insider: ${n.insiderSignal} | Options: ${n.optionsSignal}` });
+        }
+      });
+    }
+    
     // Check earnings risk during defensive outlook
     if (feed === 'earnings' && s?.outlook && ['Defensive', 'Crisis'].includes(s.outlook)) {
       const atRisk = (data.feedSpecific?.positionsAtRisk || []).filter(p => p.risk === 'HIGH');
@@ -8936,10 +8951,15 @@ const DEFAULT_INSTITUTIONAL = ['Berkshire Hathaway', 'Bridgewater', 'Renaissance
 function renderTrackableList(type) {
   const el = document.getElementById(type + '-checkboxes');
   if (!el) return;
-  const cfg = state.research?.config?.[type === 'pol' ? 'political' : 'institutional'] || {};
+  const feedKey = type === 'pol' ? 'political' : 'institutional';
+  const cfg = state.research?.config?.[feedKey] || {};
   const dataAttr = type === 'pol' ? 'pol' : 'inst';
   const defaults = type === 'pol' ? DEFAULT_POLITICAL : DEFAULT_INSTITUTIONAL;
-  const names = cfg.trackList || defaults;
+  
+  // Merge defaults with saved list (add any new defaults the user hasn't seen)
+  let names = cfg.trackList || [...defaults];
+  defaults.forEach(d => { if (!names.includes(d)) names.push(d); });
+  
   const active = new Set(cfg[type === 'pol' ? 'members' : 'institutions'] || names);
   
   el.innerHTML = names.map(name => {
@@ -9121,6 +9141,12 @@ Focus sectors: ${sectors}\n\n`;
     return preamble + `Search for all stocks reporting earnings in the next ${days} days.
 For each company found: report the earnings date, consensus EPS estimate, revenue estimate, historical beat/miss rate, and any analyst commentary on expected results.
 Cross-reference my portfolio tickers above and note which ones have upcoming earnings.
+
+RISK SIGNALS (search for these on stocks with upcoming earnings):
+- Pre-earnings INSIDER SELLING: Have any executives sold shares in the 30 days before this earnings report? Large insider sales before earnings are a red flag.
+- Pre-earnings OPTIONS SKEW: Is put volume unusually high relative to calls? High put/call ratio before earnings suggests smart money expects a miss.
+- Analyst downgrades or estimate reductions in the past 2 weeks.
+
 Also search for stocks where analysts expect a major surprise (positive or negative).
 Report everything you find — I will analyze the results separately.`;
   }
@@ -9130,10 +9156,14 @@ Report everything you find — I will analyze the results separately.`;
     const institutions = cfg.institutions?.join(', ') || 'Berkshire Hathaway, Bridgewater, Renaissance Technologies, Citadel, Two Sigma';
     return preamble + `Search for the most recent 13F filings, whale wisdom reports, or financial news about stock trades by: ${institutions}.
 Lookback period: ${days} days. Report for each institution:
-- Stocks they bought or increased (with dollar amounts or share counts if available)
-- Stocks they sold or decreased
-- Any repeated/consistent buying over multiple quarters
+- Stocks they BOUGHT or INCREASED (with dollar amounts or share counts)
+- Stocks they SOLD, DECREASED, or fully EXITED (equally important — include all exits)
+- Any repeated/consistent buying OR selling over multiple quarters
+- Net direction: is the fund overall increasing or decreasing equity exposure?
+- Total cash/Treasury position if available (signals risk appetite)
 - Any positions that appear to have low retail awareness
+
+IMPORTANT: Exits and reductions are as important as buys. If a major fund exited 10+ positions in one quarter, that is a significant derisking signal.
 Report all raw findings with specific numbers and dates.`;
   }
   
@@ -9162,10 +9192,22 @@ Report all raw findings.`;
     const days = cfg.lookback || '30';
     const minSize = cfg.minSize || '500K';
     const role = cfg.role === 'cxo' ? 'CEO and CFO' : cfg.role === 'directors' ? 'directors and officers' : 'all insiders';
-    return preamble + `Search SEC Form 4 filings and financial news for significant insider stock purchases in the past ${days} days.
-Filter: transactions above $${minSize} by ${role}. Focus on PURCHASES (not routine option exercises or sales).
-For each finding: company, ticker, insider name and title, buy/sell, dollar amount, number of shares, date.
-Also search for unusual options activity (large call sweeps, significant put selling, unusual volume) on stocks with insider buying.
+    return preamble + `Search SEC Form 4 filings and financial news for significant insider stock transactions in the past ${days} days.
+Filter: transactions above $${minSize} by ${role}.
+
+SEARCH FOR BOTH:
+1. INSIDER PURCHASES — large conviction buys (not routine option exercises). These are bullish signals.
+2. INSIDER SALES — large sales by C-suite executives (not pre-planned 10b5-1 plans). Focus on DISCRETIONARY sales, especially clusters of multiple insiders selling the same stock. These are risk signals.
+
+For each finding: company, ticker, insider name and title, BUY or SELL, dollar amount, number of shares, date, whether it appears to be a 10b5-1 plan or discretionary.
+
+Also search for unusual options activity on the SAME stocks:
+- BULLISH: Large call sweeps, significant put selling, unusual call volume
+- BEARISH: Large put purchases, call selling, unusually high put/call ratio
+
+FLAG "NEGATIVE CONFLUENCE": Stocks where insider SELLING and BEARISH options flow align = strongest danger signal.
+FLAG "POSITIVE CONFLUENCE": Stocks where insider BUYING and BULLISH options flow align = strongest opportunity signal.
+
 Report all raw findings with specific numbers.`;
   }
   
@@ -9220,6 +9262,29 @@ REQUIRED ANALYSIS:
 6. 1-sentence summary.`;
     feedSchema = `Return ONLY JSON:
 {"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"1 sentence thesis","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"why this is a risk","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+  } else if (feedName === 'institutional') {
+    feedInstructions = `
+REQUIRED ANALYSIS:
+1. TOP 5 ACCUMULATION PICKS: Stocks being consistently bought or increased across institutions. Rank by conviction (multi-fund consensus > single fund).
+2. TOP 5 EXITS/REDUCTIONS: Stocks being most aggressively sold or exited. These are risk signals — smart money leaving a name is worth noting.
+3. RISK FLAGS: Check if ANY institution EXITED or significantly REDUCED a stock in MY PORTFOLIO. This is HIGH PRIORITY intelligence.
+4. AGGREGATE FLOW: Are tracked institutions overall INCREASING or DECREASING equity exposure? What is the net direction? Include cash levels if found.
+5. PORTFOLIO OVERLAP: Any activity on my positions (buys, sells, increases, decreases).
+6. 1-sentence summary.`;
+    feedSchema = `Return ONLY JSON:
+{"feedName":"institutional","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"sold $50M","reason":"1 sentence","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"$50M","reason":"risk to your position","riskLevel":"HIGH|MEDIUM"}],"feedSpecific":{"aggregateFlow":"increasing|decreasing|mixed","netDirection":"Institutions are net sellers this quarter","cashLevels":"Berkshire $397B record cash"},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+  } else if (feedName === 'insider') {
+    feedInstructions = `
+REQUIRED ANALYSIS:
+1. TOP 5 INSIDER CONVICTION BUYS: Largest discretionary insider purchases. Include buyer name, title, amount.
+2. TOP 5 INSIDER WARNING SELLS: Largest discretionary insider sales (NOT 10b5-1 plans). Focus on C-suite selling clusters.
+3. RISK FLAGS: Check if ANY insider is SELLING stocks in MY PORTFOLIO. Insider selling on a held position = HIGH PRIORITY risk.
+4. POSITIVE CONFLUENCE: Tickers where insider BUYING + bullish options flow align = strongest opportunity.
+5. NEGATIVE CONFLUENCE: Tickers where insider SELLING + bearish options flow align = strongest danger signal.
+6. PORTFOLIO OVERLAP: Any insider activity on my positions.
+7. 1-sentence summary.`;
+    feedSchema = `Return ONLY JSON:
+{"feedName":"insider","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"CEO Name","position":"SELL","size":"sold $5M","reason":"discretionary sale before catalyst","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"CFO Name","position":"SELL","size":"$2M","reason":"risk to your position","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"CEO","position":"BUY+CALLS","size":"$1.2M","reason":"positive confluence"}],"feedSpecific":{"negativeConfluence":[{"ticker":"XYZ","insiderSignal":"CFO sold $3M","optionsSignal":"Put sweep $5M","combined":"Strongest danger signal"}]},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
   } else {
     feedInstructions = `
 REQUIRED ANALYSIS:
@@ -9518,6 +9583,22 @@ function renderFeedResults(feedName) {
   // Summary
   if (data.summary) {
     html += `<div style="font-size:12px;color:var(--text-tertiary);font-style:italic;margin-top:8px;">${data.summary}</div>`;
+  }
+  
+  // Negative Confluence (insider feed)
+  if (data.feedSpecific?.negativeConfluence?.length > 0) {
+    html += `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm);"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;">⚠ NEGATIVE CONFLUENCE — DANGER SIGNALS</div>` +
+    data.feedSpecific.negativeConfluence.map(n => `<div style="font-size:11px;padding:3px 0;"><strong>${n.ticker}</strong> — Insider: ${n.insiderSignal} | Options: ${n.optionsSignal}</div>`).join('') + '</div>';
+  }
+  
+  // Aggregate Flow (institutional feed)
+  if (data.feedSpecific?.aggregateFlow) {
+    const flowColor = data.feedSpecific.aggregateFlow === 'increasing' ? 'var(--green)' : data.feedSpecific.aggregateFlow === 'decreasing' ? 'var(--red)' : 'var(--amber)';
+    html += `<div style="margin-top:8px;padding:8px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${flowColor};">
+      <div style="font-size:11px;"><strong>Aggregate Institutional Flow:</strong> <span style="color:${flowColor};font-weight:700;">${data.feedSpecific.aggregateFlow.toUpperCase()}</span></div>
+      ${data.feedSpecific.netDirection ? '<div style="font-size:11px;color:var(--text-secondary);">' + data.feedSpecific.netDirection + '</div>' : ''}
+      ${data.feedSpecific.cashLevels ? '<div style="font-size:11px;color:var(--text-secondary);">' + data.feedSpecific.cashLevels + '</div>' : ''}
+    </div>`;
   }
   
   el.innerHTML = html || '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">Scan returned no results.</div>';
