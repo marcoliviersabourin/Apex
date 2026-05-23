@@ -2612,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.4.0';
+const APEX_VERSION = '4.5.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -4310,26 +4310,38 @@ async function fetchAllTechnicals(tickers, timeframe) {
   toast(`BX: ${toFetch.length} to fetch (${totalSkipped} cached, ${deferred.length} deferred to tomorrow)...`);
   
   let fetched = 0, failed = 0, rateLimited = 0;
+  const invalidTickers = [];
   
   for (let i = 0; i < toFetch.length; i++) {
     const { ticker, reason } = toFetch[i];
+    
+    // Skip obviously invalid tickers
+    if (!ticker || /[^A-Z0-9.]/.test(ticker) || ticker.length > 10) {
+      invalidTickers.push(ticker);
+      failed++;
+      apexLog('INFO', `BX skip invalid ticker: "${ticker}"`);
+      toast(`Fetching: ${i + 1}/${toFetch.length} (${ticker} — invalid)${failed ? ' — ' + failed + ' failed' : ''}`);
+      continue;
+    }
+    
     const result = await fetchAndComputeBX(ticker, tf);
     
     if (result === 'RATE_LIMITED') {
-      rateLimited = toFetch.length - i; // remaining count
+      rateLimited = toFetch.length - i;
       toast(`Rate limited — ${fetched} fetched, ${rateLimited} remaining for tomorrow`, 'error');
       break;
     } else if (!result) {
       failed++;
+      apexLog('INFO', `BX fetch failed: ${ticker} (no data returned)`);
     } else {
       fetched++;
     }
     
     toast(`Fetching: ${i + 1}/${toFetch.length} (${ticker})${failed ? ' — ' + failed + ' failed' : ''}`);
     
-    // Rate limit delay
+    // ALWAYS wait 12s between API calls — failed calls still count against rate limit
     if (i < toFetch.length - 1) {
-      await new Promise(r => setTimeout(r, result ? 12000 : 2000));
+      await new Promise(r => setTimeout(r, 12000));
     }
   }
   
@@ -4342,6 +4354,10 @@ async function fetchAllTechnicals(tickers, timeframe) {
   if (failed > 0) summary += ` | ${failed} failed`;
   if (deferred.length > 0) summary += ` | ${deferred.length} deferred`;
   if (rateLimited > 0) summary += ` | hit daily limit`;
+  if (invalidTickers.length > 0) {
+    summary += ` | ${invalidTickers.length} invalid`;
+    apexLog('INFO', `Invalid tickers skipped: ${invalidTickers.join(', ')} — check watchlist/research for typos`);
+  }
   
   console.log('APEX BX:', summary);
   toast(summary);
@@ -5997,8 +6013,9 @@ function showAddWatchlistModal() {
 }
 
 function addWatchlistItem() {
-  const ticker = (document.getElementById('wlTicker').value || '').toUpperCase().trim();
+  let ticker = (document.getElementById('wlTicker').value || '').toUpperCase().trim().replace(/\s+/g, '');
   if (!ticker) { toast('Ticker required', 'error'); return; }
+  if (/[^A-Z0-9.]/.test(ticker)) { toast('Invalid ticker — letters, numbers, and dots only', 'error'); return; }
   if (state.watchlist.find(w => w.ticker.toUpperCase() === ticker)) { toast('Already in watchlist', 'error'); return; }
   state.watchlist.push({
     id: Date.now().toString(36) + Math.random().toString(36).substr(2,4),
@@ -7861,7 +7878,24 @@ function generateTacticalAlerts() {
   const feeds = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
   feeds.forEach(feed => {
     const data = state.research?.[feed];
-    if (!data?.topPicks?.length) return;
+    if (!data?.topPicks?.length && !data?.riskFlags?.length) return;
+    
+    // Smart Money Risk Flags (shorts/puts on held positions)
+    if (data.riskFlags?.length > 0) {
+      data.riskFlags.forEach(r => {
+        alerts.push({ type: 'warning', icon: '🔴', text: `<strong>SMART MONEY RISK:</strong> ${r.trader} holds ${r.position} on <strong>${r.ticker}</strong> (${r.size || '?'}). You hold this position.`, detail: r.reason || '' });
+      });
+    }
+    
+    // Bullish Conviction confirmation
+    if (data.bullishConviction?.length > 0) {
+      data.bullishConviction.forEach(b => {
+        const held = state.positions.find(p => p.symbol.toUpperCase() === b.ticker?.toUpperCase());
+        if (held) {
+          alerts.push({ type: 'aligned', icon: '🟢', text: `<strong>SMART MONEY ALIGNED:</strong> ${b.trader} buying calls on <strong>${b.ticker}</strong> (${b.size || '?'}). You hold this position.`, detail: b.reason || '' });
+        }
+      });
+    }
     
     // Check if institutional selling aligns with defensive outlook
     if (feed === 'institutional' && s?.outlook && ['Defensive', 'Crisis', 'Cautious'].includes(s.outlook)) {
@@ -8320,7 +8354,9 @@ async function refreshUniverseTechData() {
   // Always include VIXY for VIX proxy (regime detection)
   allTickers.add('VIXY');
   
-  const tickers = [...allTickers];
+  const tickers = [...allTickers].filter(t => t && /^[A-Z0-9.]{1,10}$/.test(t));
+  const skipped = [...allTickers].filter(t => !t || !/^[A-Z0-9.]{1,10}$/.test(t));
+  if (skipped.length > 0) apexLog('INFO', `Universe BX: skipped ${skipped.length} invalid tickers: ${skipped.join(', ')}`);
   const btn = document.getElementById('univBXBtn');
   btn.disabled = true; btn.textContent = '⏳ Fetching...';
   
@@ -8390,7 +8426,8 @@ function buildUniverseData() {
     const data = state.research?.[feed];
     if (!data?.topPicks) return;
     data.topPicks.forEach(pick => {
-      const key = pick.ticker.toUpperCase();
+      const key = pick.ticker?.toUpperCase()?.trim()?.replace(/\s+/g, '');
+      if (!key || !/^[A-Z0-9.]{1,10}$/.test(key)) return; // Skip invalid tickers
       if (!universe[key]) universe[key] = createUniverseEntry(key);
       const u = universe[key];
       u.sources.add(feed);
@@ -8893,7 +8930,7 @@ If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.jo
 
 // ═══ RESEARCH HUB ENGINE ═══
 // Default tracking lists
-const DEFAULT_POLITICAL = ['Nancy Pelosi', 'Ted Cruz', 'Tim Moore', 'Marjorie Taylor Greene', 'Warren Buffett', 'David Tepper', 'Bill Ackman', 'Bill Gates', 'Donald Trump'];
+const DEFAULT_POLITICAL = ['Nancy Pelosi', 'Ted Cruz', 'Tim Moore', 'Marjorie Taylor Greene', 'Warren Buffett', 'David Tepper', 'Bill Ackman', 'Bill Gates', 'Donald Trump', 'Michael Burry', 'Hindenburg Research', 'Citron Research'];
 const DEFAULT_INSTITUTIONAL = ['Berkshire Hathaway', 'Bridgewater', 'Renaissance Technologies', 'Citadel', 'Two Sigma'];
 
 function renderTrackableList(type) {
@@ -9104,15 +9141,20 @@ Report all raw findings with specific numbers and dates.`;
     const days = cfg.lookback || '60';
     const members = cfg.members?.join(', ') || DEFAULT_POLITICAL.join(', ');
     const minSize = cfg.minSize || '100K';
-    return preamble + `Search for recent stock trades and investment disclosures (past ${days} days) by these notable traders and political figures: ${members}.
+    return preamble + `Search for recent stock trades, options positions, and investment disclosures (past ${days} days) by these notable traders and political figures: ${members}.
 
 For POLITICIANS: search Capitol Trades, Quiver Quantitative, or Congressional disclosure databases. STOCK Act requires disclosure within 45 days.
 For INVESTORS: search SEC 13F filings, Form 4 insider filings, public statements, and financial news about their recent trades.
-For EXECUTIVES: search SEC Form 4 filings.
+For SHORT SELLERS/ACTIVISTS: search for disclosed short positions, put purchases, and public short reports (Hindenburg, Citron, etc.).
+
+IMPORTANT: Search for ALL position types equally:
+- LONG positions (stock purchases, call options)
+- SHORT positions (short selling, put options)  
+- EXITS (selling existing long positions)
 
 Minimum trade size: $${minSize}.
-For each trade found: person name, ticker, buy/sell, dollar amount, disclosure date, source of disclosure.
-Also look for patterns — multiple people buying the same stock, sector trends.
+For each trade found: person name, ticker, position type (LONG/SHORT/CALL/PUT/EXIT), dollar amount, disclosure date, source.
+Also look for patterns — multiple people on the same side of a trade.
 Report all raw findings.`;
   }
   
@@ -9163,6 +9205,32 @@ function buildAnalyzePrompt(feedName, rawFindings) {
   const schema = `Return ONLY JSON. No markdown, no preamble. Start with { end with }.
 Schema: {"feedName":"${feedName}","topPicks":[{"ticker":"XYZ","signal":"BUY|WATCH","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Technology","suggestedTag":"Core|Tactical"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"feedSpecific":{...},"summary":"1 sentence"}`;
 
+  // Feed-specific analysis instructions
+  let feedInstructions = '';
+  let feedSchema = '';
+  
+  if (feedName === 'political') {
+    feedInstructions = `
+REQUIRED ANALYSIS:
+1. TOP 5 LONG PICKS: Best long convictions — stock purchases + large call positions. Rank by conviction.
+2. TOP 5 SHORT PICKS: Most notable short positions and put purchases. These are investment ideas for users who may want to short or avoid these stocks. Include the trader's thesis for the short.
+3. RISK FLAGS: Check if ANY short position, put purchase, or exit targets a stock in MY PORTFOLIO. This is the MOST IMPORTANT section — even a single short against a held position is high-priority intelligence.
+4. BULLISH CONVICTION: Any trader making large call option bets — these signal high-conviction directional bets beyond just buying shares.
+5. PORTFOLIO OVERLAP: Any other activity (buys/sells) matching my positions.
+6. 1-sentence summary.`;
+    feedSchema = `Return ONLY JSON:
+{"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"1 sentence thesis","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"why this is a risk","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+  } else {
+    feedInstructions = `
+REQUIRED ANALYSIS:
+1. Select the TOP 5 stock picks from the findings. Rank by conviction. Explain why each is compelling. Don't recommend stocks I already hold unless there's a specific action (add/trim).
+2. Flag any overlap with my portfolio — am I holding stocks that the data says to sell, or missing stocks it says to buy?
+3. Provide a 1-sentence summary of the overall finding.
+
+Be selective — only recommend stocks with genuine edge from this data. Generic recommendations (buy AAPL, buy MSFT) are not useful.`;
+    feedSchema = schema;
+  }
+
   return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
 
 RESEARCH FINDINGS (gathered via web search):
@@ -9173,15 +9241,9 @@ MY WATCHLIST: ${watchTickers || 'none'}
 FOCUS SECTORS: ${sectors}
 INVESTOR PROFILE: ${prof.risk} risk, min cap $${prof.minCap}M
 ${custom ? '\nUSER INSTRUCTIONS: ' + custom : ''}
+${feedInstructions}
 
-REQUIRED ANALYSIS:
-1. Select the TOP 5 stock picks from the findings. Rank by conviction. Explain why each is compelling. Don't recommend stocks I already hold unless there's a specific action (add/trim).
-2. Flag any overlap with my portfolio — am I holding stocks that the data says to sell, or missing stocks it says to buy?
-3. Provide a 1-sentence summary of the overall finding.
-
-Be selective — only recommend stocks with genuine edge from this data. Generic recommendations (buy AAPL, buy MSFT) are not useful.
-
-${schema}`;
+${feedSchema}`;
 }
 
 function saveFeedConfig(feedName) {
@@ -9409,6 +9471,37 @@ function renderFeedResults(feedName) {
       <td style="font-size:11px;">${p.sector || ''}</td>
       <td style="font-size:11px;color:var(--text-secondary);">${p.reason || ''}</td>
     </tr>`).join('') + '</tbody></table></div>';
+  }
+  
+  // Top Shorts table
+  if (data.topShorts?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;">TOP ${data.topShorts.length} SHORT POSITIONS</div>
+    <table style="width:100%;"><thead><tr><th>Ticker</th><th>Trader</th><th>Position</th><th>Size</th><th>Thesis</th></tr></thead><tbody>` +
+    data.topShorts.map(s => `<tr>
+      <td style="font-weight:700;">${s.ticker}</td>
+      <td style="font-size:11px;">${s.trader || ''}</td>
+      <td style="color:var(--red);">${s.position || 'SHORT'}</td>
+      <td style="font-size:11px;">${s.size || ''}</td>
+      <td style="font-size:11px;color:var(--text-secondary);">${s.reason || ''}${s.heldByUser ? ' <span style="color:var(--red);font-weight:700;">⚠ YOU HOLD THIS</span>' : ''}</td>
+    </tr>`).join('') + '</tbody></table></div>';
+  }
+  
+  // Risk Flags (shorts/puts on held positions)
+  if (data.riskFlags?.length > 0) {
+    html += `<div style="margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.1);border:1px solid var(--red);border-radius:var(--radius-sm);">
+    <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;">🔴 SMART MONEY RISK — AFFECTS YOUR POSITIONS</div>` +
+    data.riskFlags.map(r => `<div style="padding:4px 0;border-bottom:1px solid rgba(239,68,68,0.2);">
+      <strong>${r.ticker}</strong> — ${r.trader} holds ${r.position} (${r.size || '?'}) <span style="color:var(--red);">[${r.riskLevel}]</span>
+      <div style="font-size:11px;color:var(--text-secondary);">${r.reason || ''}</div>
+    </div>`).join('') + '</div>';
+  }
+  
+  // Bullish Conviction (large call bets)
+  if (data.bullishConviction?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">🟢 BULLISH CONVICTION — LARGE CALL POSITIONS</div>` +
+    data.bullishConviction.map(b => `<div style="padding:4px 0;font-size:11px;">
+      <strong>${b.ticker}</strong> — ${b.trader} (${b.position} ${b.size || ''}) — ${b.reason || ''}
+    </div>`).join('') + '</div>';
   }
   
   // Portfolio Overlap
