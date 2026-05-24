@@ -2612,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.5.1';
+const APEX_VERSION = '4.5.2';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -4686,20 +4686,34 @@ TACTICAL:\n${posList(tactPos)}\n`;
 
   // Inject watchlist tickers for evaluation
   if (state.watchlist.length > 0) {
-    const watchItems = state.watchlist.map(w => `${w.ticker}${w.evalData ? ' (' + w.evalData.verdict + ')' : ''}`).join(', ');
-    ctx += `\nWATCHLIST (user is tracking these — evaluate if any should be new ideas): ${watchItems}\n`;
+    const watchItems = state.watchlist.map(w => {
+      const eval_ = w.evalData;
+      return `${w.ticker}${eval_ ? ` (${eval_.verdict}${eval_.fundamentals ? ' — ' + eval_.fundamentals.substring(0, 60) : ''})` : ''}`;
+    }).join('\n  ');
+    ctx += `\nWATCHLIST — CONSIDER THESE AS CANDIDATES FOR NEW IDEAS:\n  ${watchItems}\n`;
   }
   
-  // Inject research feed highlights
-  const researchPicks = [];
+  // Inject ALL research feed picks as candidates
+  const allResearchPicks = [];
+  const allResearchRisks = [];
   ['earnings','institutional','political','rotation','insider'].forEach(feed => {
     const data = state.research?.[feed];
-    if (data?.topPicks?.length > 0) {
-      researchPicks.push(...data.topPicks.slice(0, 3).map(p => `${p.ticker} (${feed}: ${p.signal} — ${p.reason || ''})`));
-    }
+    if (!data) return;
+    (data.topPicks || []).forEach(p => {
+      if (p.ticker) allResearchPicks.push(`${p.ticker} (${feed}: ${p.signal} — ${p.reason || ''})`);
+    });
+    (data.topShorts || []).forEach(s => {
+      if (s.ticker) allResearchRisks.push(`${s.ticker} (${feed}: ${s.trader} ${s.position} — ${s.reason || ''})`);
+    });
+    (data.riskFlags || []).forEach(r => {
+      if (r.ticker) allResearchRisks.push(`⚠ ${r.ticker} (${feed} RISK: ${r.trader} ${r.position} ${r.size || ''} — ${r.reason || ''})`);
+    });
   });
-  if (researchPicks.length > 0) {
-    ctx += `\nRESEARCH FEED HIGHLIGHTS (from institutional/political/insider/earnings scans — confirm or contradict):\n${researchPicks.join('\n')}\n`;
+  if (allResearchPicks.length > 0) {
+    ctx += `\nRESEARCH FEED CANDIDATES — CONSIDER ALL FOR NEW IDEAS (confirm or reject based on your analysis):\n  ${allResearchPicks.join('\n  ')}\n`;
+  }
+  if (allResearchRisks.length > 0) {
+    ctx += `\nRESEARCH RISK SIGNALS — FACTOR INTO VERDICTS FOR HELD POSITIONS:\n  ${allResearchRisks.join('\n  ')}\n`;
   }
   
   // Inject BX Trender signals for held positions
@@ -5206,12 +5220,14 @@ Then a short narrative on geopolitics, inflation, sector tailwinds/headwinds.
 ### CORE POSITIONS REVIEW (Led by 📊 Value Investor, supported by 📈 Technical Analyst)
 Per position: Ticker | VERDICT (BUY/HOLD/TRIM/EXIT) | Sentiment | Momentum (↑/→/↓) | Confidence | Reason
 For each: Include 📊 Value view (cite forward P/E or PEG with actual number) AND 📈 Technical view (RSI value, MA position, support/resistance).
+IMPORTANT: Check the RESEARCH RISK SIGNALS section above. If any held position has smart money shorts, insider selling, or institutional exits against it, factor this into your verdict and explicitly mention it.
 
 ### TACTICAL POSITIONS REVIEW (Led by 📈 Technical Analyst, supported by 📊 Value Investor)
 Same format. Emphasise technical setup with actual RSI/MACD numbers, momentum indicators, entry/exit timing.
 
 ## PART 3 — NEW IDEAS
 5-15 new tickers NOT in portfolio. 1-2 per focus sector. Tag Core/Tactical.
+IMPORTANT: Review ALL tickers from the WATCHLIST and RESEARCH FEED CANDIDATES sections above. Include any that merit recommendation based on your analysis. You may also discover new ideas beyond those lists. Reject candidates that don't meet quality standards — explain briefly why if a prominent candidate is excluded.
 For EACH idea, indicate the lead analyst:
 - 📊 Value Pick = fundamentals justify the price (must show forward P/E < 25 OR PEG < 1.5 OR FCF yield > 5%)
 - 📈 Technical Pick = technical setup (RSI < 35 OR clear support level OR reversal pattern)
