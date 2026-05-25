@@ -2612,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.6.0';
+const APEX_VERSION = '4.6.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9288,38 +9288,60 @@ Schema: {"feedName":"${feedName}","topPicks":[{"ticker":"XYZ","signal":"BUY|WATC
   
   if (feedName === 'political') {
     feedInstructions = `
-REQUIRED ANALYSIS:
-1. TOP 5 LONG PICKS: Best long convictions — stock purchases + large call positions. Rank by conviction.
-2. TOP 5 SHORT PICKS: Most notable short positions and put purchases. These are investment ideas for users who may want to short or avoid these stocks. Include the trader's thesis for the short.
-3. RISK FLAGS: Check if ANY short position, put purchase, or exit targets a stock in MY PORTFOLIO. This is the MOST IMPORTANT section — even a single short against a held position is high-priority intelligence.
-4. BULLISH CONVICTION: Any trader making large call option bets — these signal high-conviction directional bets beyond just buying shares.
-5. PORTFOLIO OVERLAP: Any other activity (buys/sells) matching my positions.
-6. 1-sentence summary.`;
+REQUIRED ANALYSIS — STRICT ATTRIBUTION RULES:
+Every pick MUST cite a specific person from the tracked list and their actual disclosed trade. Do NOT recommend stocks based on general analysis or analyst consensus. If a tracked person did not make a trade, do not invent one.
+
+1. TOP LONG PICKS (up to 5): Only include stocks where a SPECIFIC tracked person disclosed a BUY, increased position, or purchased CALL options. Each pick MUST name the person, trade date, and amount. If fewer than 5 traders made notable buys, return fewer picks. NEVER fill with unattributed recommendations.
+
+2. TOP SHORT PICKS (up to 5): Only include stocks where a SPECIFIC tracked person disclosed a SHORT, purchased PUTs, or exited entirely. Same attribution rule — name the person and trade details. "Analyst consensus" is NOT a valid trader attribution.
+
+3. RISK FLAGS: Shorts/puts/exits targeting MY PORTFOLIO. Must cite specific person.
+
+4. BULLISH CONVICTION: Large call option bets by tracked persons.
+
+5. PORTFOLIO OVERLAP: Any tracked person activity on my positions.
+
+CRITICAL: If the research data found few actual trades from tracked persons, return fewer picks (even 0-2 is fine). Quality and accuracy over quantity. Say "Only 2 notable trades found in this period" rather than padding with generic stock analysis.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"1 sentence thesis","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Name","position":"SHORT|PUT","size":"$50M","reason":"why this is a risk","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+{"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"[Person Name] bought $X on [date]. [1 sentence context]","sector":"Sector","suggestedTag":"Core|Tactical","trader":"Person Name"}],"topShorts":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"[Person Name] [action] on [date]. [thesis]","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"risk detail","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Person Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"X trades found from Y tracked persons this period"}`;
   } else if (feedName === 'institutional') {
     feedInstructions = `
-REQUIRED ANALYSIS:
-1. TOP 5 ACCUMULATION PICKS: Stocks being consistently bought or increased across institutions. Rank by conviction (multi-fund consensus > single fund).
-2. TOP 5 EXITS/REDUCTIONS: Stocks being most aggressively sold or exited. These are risk signals — smart money leaving a name is worth noting.
-3. RISK FLAGS: Check if ANY institution EXITED or significantly REDUCED a stock in MY PORTFOLIO. This is HIGH PRIORITY intelligence.
-4. AGGREGATE FLOW: Are tracked institutions overall INCREASING or DECREASING equity exposure? What is the net direction? Include cash levels if found.
-5. PORTFOLIO OVERLAP: Any activity on my positions (buys, sells, increases, decreases).
-6. 1-sentence summary.`;
+REQUIRED ANALYSIS — STRICT ATTRIBUTION RULES:
+Every pick MUST cite a specific tracked institution and their actual 13F filing or disclosed trade. Do NOT recommend stocks based on general analysis. If an institution did not make a trade, do not invent one.
+
+1. TOP ACCUMULATION PICKS (up to 5): Only stocks where a SPECIFIC tracked institution INCREASED position. Must name the fund, share count or dollar change, and filing date. If fewer than 5 funds made notable buys, return fewer picks.
+
+2. TOP EXITS/REDUCTIONS (up to 5): Only stocks a SPECIFIC tracked institution SOLD or REDUCED. Must cite fund name and details.
+
+3. RISK FLAGS: Exits/reductions targeting MY PORTFOLIO. Must cite specific fund.
+
+4. AGGREGATE FLOW: Overall direction of tracked institutions — net buying or selling? Cash levels if found.
+
+5. PORTFOLIO OVERLAP: Any tracked institution activity on my positions.
+
+CRITICAL: If research found few actual 13F trades, return fewer picks. "Only 2 institutional moves found" is better than padding with generic analysis.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"institutional","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"sold $50M","reason":"1 sentence","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"$50M","reason":"risk to your position","riskLevel":"HIGH|MEDIUM"}],"feedSpecific":{"aggregateFlow":"increasing|decreasing|mixed","netDirection":"Institutions are net sellers this quarter","cashLevels":"Berkshire $397B record cash"},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+{"feedName":"institutional","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"[Fund Name] added X shares ($Ym) in [filing]. [context]","sector":"Sector","suggestedTag":"Core|Tactical","trader":"Fund Name"}],"topShorts":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"sold $50M","reason":"[Fund] exited/reduced [details]","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Fund Name","position":"EXIT|REDUCE","size":"$50M","reason":"risk detail","riskLevel":"HIGH|MEDIUM"}],"feedSpecific":{"aggregateFlow":"increasing|decreasing|mixed","netDirection":"description","cashLevels":"details if found"},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"X trades found from Y tracked institutions"}`;
   } else if (feedName === 'insider') {
     feedInstructions = `
-REQUIRED ANALYSIS:
-1. TOP 5 INSIDER CONVICTION BUYS: Largest discretionary insider purchases. Include buyer name, title, amount.
-2. TOP 5 INSIDER WARNING SELLS: Largest discretionary insider sales (NOT 10b5-1 plans). Focus on C-suite selling clusters.
-3. RISK FLAGS: Check if ANY insider is SELLING stocks in MY PORTFOLIO. Insider selling on a held position = HIGH PRIORITY risk.
-4. POSITIVE CONFLUENCE: Tickers where insider BUYING + bullish options flow align = strongest opportunity.
-5. NEGATIVE CONFLUENCE: Tickers where insider SELLING + bearish options flow align = strongest danger signal.
+REQUIRED ANALYSIS — STRICT ATTRIBUTION RULES:
+Every pick MUST cite a specific insider (name and title) and their actual SEC Form 4 filing. Do NOT recommend stocks based on general analysis or options flow alone.
+
+1. TOP INSIDER CONVICTION BUYS (up to 5): Only stocks where a SPECIFIC named insider filed a Form 4 purchase. Must cite name, title, dollar amount, date. If fewer than 5 insider buys found, return fewer picks.
+
+2. TOP INSIDER WARNING SELLS (up to 5): Only discretionary sells by named insiders. Exclude 10b5-1 pre-planned sales. Must cite name, title, amount.
+
+3. RISK FLAGS: Insider sells targeting MY PORTFOLIO. Must cite specific insider.
+
+4. POSITIVE CONFLUENCE: Tickers with BOTH a named insider buy AND bullish options flow.
+
+5. NEGATIVE CONFLUENCE: Tickers with BOTH a named insider sell AND bearish options flow. Strongest danger signal.
+
 6. PORTFOLIO OVERLAP: Any insider activity on my positions.
-7. 1-sentence summary.`;
+
+CRITICAL: If research found few actual Form 4 filings, return fewer picks. Options flow WITHOUT an insider filing goes in confluence sections only, not in top picks.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"insider","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"1 sentence","sector":"Sector","suggestedTag":"Core|Tactical"}],"topShorts":[{"ticker":"XYZ","trader":"CEO Name","position":"SELL","size":"sold $5M","reason":"discretionary sale before catalyst","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"CFO Name","position":"SELL","size":"$2M","reason":"risk to your position","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"CEO","position":"BUY+CALLS","size":"$1.2M","reason":"positive confluence"}],"feedSpecific":{"negativeConfluence":[{"ticker":"XYZ","insiderSignal":"CFO sold $3M","optionsSignal":"Put sweep $5M","combined":"Strongest danger signal"}]},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"1 sentence"}`;
+{"feedName":"insider","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"[Name, Title] bought $Xm on [date] (Form 4). [context]","sector":"Sector","suggestedTag":"Core|Tactical","trader":"Name, Title"}],"topShorts":[{"ticker":"XYZ","trader":"Name, Title","position":"SELL","size":"sold $5M","reason":"[Name] sold [details]. Discretionary.","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Name, Title","position":"SELL","size":"$2M","reason":"risk detail","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Name, Title","position":"BUY+CALLS","size":"$1.2M","reason":"positive confluence"}],"feedSpecific":{"negativeConfluence":[{"ticker":"XYZ","insiderSignal":"CFO sold $3M","optionsSignal":"Put sweep $5M","combined":"danger signal"}]},"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"X insider filings found, Y with options confluence"}`;
   } else {
     feedInstructions = `
 REQUIRED ANALYSIS:
