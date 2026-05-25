@@ -2612,7 +2612,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.5.2';
+const APEX_VERSION = '4.6.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -6437,6 +6437,22 @@ function refreshTarget() {
   
   newIdeas.forEach(idea => {
     if (!idea.suggestedWeight || idea.suggestedWeight <= 0) return;
+    const ideaTicker = idea.ticker.toUpperCase();
+    
+    // Skip if this ticker is already in targetEntries (held position or prior idea)
+    const existing = targetEntries.find(e => e.ticker.toUpperCase() === ideaTicker);
+    if (existing) {
+      // Already held — treat as weight-increase suggestion, not new entry
+      if (!existing.isNew && idea.suggestedWeight > existing.rawTargetWeight) {
+        existing._addNote = `AI suggests increasing to ${idea.suggestedWeight}%`;
+        // If verdict was HOLD, upgrade raw weight to suggested (but don't lock — let normalization handle)
+        if (existing.status === 'KEEP' && !existing._locked) {
+          existing.rawTargetWeight = Math.max(existing.rawTargetWeight, idea.suggestedWeight);
+        }
+      }
+      return; // Skip — already in the portfolio
+    }
+    
     if (idea._forceInclude) { // User overrode the gate
       newCount++;
       const leadScore = { 'dual': 2, 'value': 1, 'technical': 1, 'speculative': 0 };
@@ -6459,9 +6475,9 @@ function refreshTarget() {
       (idea.suggestedWeight >= 3 ? 2 : idea.suggestedWeight >= 2 ? 1 : 0) +
       (idea.priority ? 2 : 0); // Priority ideas from Part 7 get a bonus
     
-    // Find weakest same-sector competitor (using same 0-10 scale via _conviction)
-    const sameSector = targetEntries.filter(e => e.sector === (idea.sector || '') && e.status !== 'EXIT');
-    const competitors = sameSector.length > 0 ? sameSector : targetEntries.filter(e => e.status !== 'EXIT' && e.status !== 'NEW');
+    // Find weakest same-sector competitor (exclude same ticker to prevent self-comparison)
+    const sameSector = targetEntries.filter(e => e.sector === (idea.sector || '') && e.status !== 'EXIT' && e.ticker.toUpperCase() !== ideaTicker);
+    const competitors = sameSector.length > 0 ? sameSector : targetEntries.filter(e => e.status !== 'EXIT' && e.status !== 'NEW' && e.ticker.toUpperCase() !== ideaTicker);
     
     let weakestScore = Infinity, weakestTicker = '—';
     competitors.forEach(e => {
@@ -6514,8 +6530,8 @@ function refreshTarget() {
       else if (e.currentWeight >= 4) e._conviction += 3;
       else if (e.currentWeight >= 2) e._conviction += 1;
       
-      // NEW entries get penalty (unproven)
-      if (e.isNew) e._conviction -= 5;
+      // NEW entries get slight penalty (unproven, but not crushing)
+      if (e.isNew) e._conviction -= 2;
     });
     
     flexible.sort((a, b) => a._conviction - b._conviction);
@@ -6739,10 +6755,11 @@ function refreshTarget() {
     <td colspan="4" style="font-size:11px;color:var(--text-tertiary);">${actionableCount} actionable trades</td>
   </tr>`;
 
-  // Excluded ideas section
+  // Excluded ideas section — remove old ones first
+  document.querySelectorAll('.excl-section').forEach(el => el.remove());
   if (excludedIdeas.length > 0) {
     const exclEl = document.createElement('div');
-    exclEl.className = 'card fade-in';
+    exclEl.className = 'card fade-in excl-section';
     exclEl.style.cssText = 'margin-top:12px;border-left:3px solid var(--amber);';
     exclEl.innerHTML = `
       <div class="card-header" style="cursor:pointer;" onclick="this.parentElement.querySelector('.excl-body').style.display=this.parentElement.querySelector('.excl-body').style.display==='none'?'block':'none'">
@@ -8037,51 +8054,54 @@ function computeDimensionScores(u) {
   // Each dimension: 0-100 raw score
   const scores = { value: 0, quality: 0, momentum: 0, conviction: 0, risk: 50 };
   
-  // ═══ VALUE (is it cheap?) 0-100 ═══
+  // ═══ VALUE (is it cheap?) 0-100 — OWNERSHIP-BLIND ═══
   let vPts = 0, vMax = 0;
   // Forward P/E vs sector (40 pts possible)
   if (u.fwdPE && u.fwdPE > 0) {
     const sectorPE = u.sectorPE || 22; // Default sector median
     const peRatio = u.fwdPE / sectorPE;
     vPts += peRatio < 0.6 ? 40 : peRatio < 0.8 ? 30 : peRatio < 1.0 ? 20 : peRatio < 1.2 ? 10 : 0;
+    vMax += 40;
   }
-  vMax += 40;
   // PEG ratio (25 pts)
   if (u.peg && u.peg > 0) {
     vPts += u.peg < 0.8 ? 25 : u.peg < 1.0 ? 20 : u.peg < 1.5 ? 12 : u.peg < 2.0 ? 5 : 0;
+    vMax += 25;
   }
-  vMax += 25;
   // FCF yield (15 pts)
   if (u.fcfYield) {
     vPts += u.fcfYield > 8 ? 15 : u.fcfYield > 5 ? 12 : u.fcfYield > 3 ? 8 : u.fcfYield > 0 ? 3 : 0;
+    vMax += 15;
   }
-  vMax += 15;
   // Price vs 52-week high (20 pts)
   if (u.pctFromHigh) {
     const drop = Math.abs(u.pctFromHigh);
     vPts += drop > 40 ? 20 : drop > 25 ? 15 : drop > 15 ? 10 : drop > 5 ? 5 : 0;
+    vMax += 20;
   }
-  vMax += 20;
-  scores.value = vMax > 0 ? Math.round(vPts / vMax * 100) : 0;
+  // Score only from available data — missing data = neutral (not zero)
+  scores.value = vMax > 0 ? Math.round(vPts / vMax * 100) : 40; // 40 = neutral when no data
   
-  // ═══ QUALITY (will it survive/grow?) 0-100 ═══
+  // ═══ QUALITY (will it survive/grow?) 0-100 — OWNERSHIP-BLIND ═══
   let qPts = 0, qMax = 0;
-  // Revenue trend (30 pts)
-  if (u.revTrend === '↑' || u.revTrend === '↑↑') qPts += 30;
-  else if (u.revTrend === '→') qPts += 15;
+  // Revenue trend (35 pts — increased weight to compensate for removed held bonus)
+  if (u.revTrend === '↑' || u.revTrend === '↑↑') qPts += 35;
+  else if (u.revTrend === '→') qPts += 18;
   else if (u.revTrend === '↓') qPts += 0;
-  qMax += 30;
-  // AI verdict quality (25 pts)
+  else qPts += 15; // Unknown = neutral, not zero
+  qMax += 35;
+  // AI verdict quality (25 pts — use neutral default for non-analyzed stocks)
   const vScore = { 'BUY': 25, 'HOLD': 18, 'TRIM': 5, 'EXIT': 0 };
-  qPts += vScore[u.aiVerdict] || 10;
+  qPts += vScore[u.aiVerdict] || (u.watchVerdict === 'STRONG_BUY' ? 25 : u.watchVerdict === 'BUY' ? 20 : 12); // Neutral default
   qMax += 25;
-  // Tag and vetting (20 pts)
-  if (u.sources.has('held')) qPts += 15; // Already vetted
-  if (u.tag === 'core') qPts += 5;
-  qMax += 20;
+  // Core vs Tactical tag (15 pts — user classification, not ownership)
+  if (u.tag === 'core') qPts += 15;
+  else if (u.tag === 'tactical') qPts += 8;
+  else qPts += 10; // Untagged = neutral
+  qMax += 15;
   // Risk level from analysis (25 pts — low risk = high quality)
   const rScore = { 'Low': 25, 'Low-Medium': 20, 'Medium': 15, 'Medium-High': 8, 'High': 3 };
-  qPts += rScore[u.riskLevel] || 12;
+  qPts += rScore[u.riskLevel] || 13; // Neutral default
   qMax += 25;
   scores.quality = qMax > 0 ? Math.round(qPts / qMax * 100) : 0;
   
@@ -8110,18 +8130,18 @@ function computeDimensionScores(u) {
   mMax += 15;
   scores.momentum = mMax > 0 ? Math.round(mPts / mMax * 100) : 0;
   
-  // ═══ CONVICTION (does smart money agree?) 0-100 ═══
+  // ═══ CONVICTION (does smart money agree?) 0-100 — OWNERSHIP-BLIND ═══
   let cPts = 0, cMax = 0;
-  // AI confidence (25 pts)
+  // AI confidence (25 pts — neutral default for non-analyzed)
   const confMap = { 'High': 25, 'Medium-High': 20, 'Medium': 15, 'Low-Medium': 8, 'Low': 3 };
-  cPts += confMap[u.aiConfidence] || 10;
+  cPts += confMap[u.aiConfidence] || 12; // Neutral default (was 10)
   cMax += 25;
   // Signal count — research feed convergence (35 pts)
   cPts += Math.min(u.signalCount * 7, 35);
   cMax += 35;
-  // AI sentiment (20 pts)
+  // AI sentiment (20 pts — neutral default)
   const sentMap = { 'Bullish': 20, 'Extreme Bull': 20, 'Neutral': 10, 'Mixed': 8, 'Bearish': 3 };
-  cPts += sentMap[u.aiSentiment] || 8;
+  cPts += sentMap[u.aiSentiment] || 10; // Neutral default (was 8)
   cMax += 20;
   // Watchlist evaluation (20 pts)
   if (u.watchVerdict === 'STRONG_BUY') cPts += 20;
@@ -8130,20 +8150,19 @@ function computeDimensionScores(u) {
   cMax += 20;
   scores.conviction = cMax > 0 ? Math.round(cPts / cMax * 100) : 0;
   
-  // ═══ RISK (what could go wrong?) 0-100 (100 = LOW risk = good) ═══
+  // ═══ RISK (what could go wrong?) 0-100 (100 = LOW risk = good) — OWNERSHIP-BLIND ═══
   let rPts = 50, rMax = 100; // Start at 50, adjust
-  // Position concentration (penalize overweight)
-  if (u.weight > 10) rPts -= 20;
-  else if (u.weight > 7) rPts -= 10;
-  else if (u.weight > 5) rPts -= 5;
-  else rPts += 10; // Small position = lower risk
   // Volatility from price drop
   if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) rPts -= 15;
   else if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 25) rPts -= 8;
-  else rPts += 10;
-  // Tag risk
-  if (u.tag === 'tactical') rPts -= 10;
+  else if (u.pctFromHigh && Math.abs(u.pctFromHigh) < 10) rPts += 10;
   else rPts += 5;
+  // BX state risk (BEAR = higher risk)
+  if (u.bxState === 'BEAR' || u.bxState === 'SELL') rPts -= 10;
+  else if (u.bxState === 'BULL' || u.bxState === 'BUY') rPts += 10;
+  // Risk level from analysis
+  if (u.riskLevel === 'High') rPts -= 10;
+  else if (u.riskLevel === 'Low') rPts += 10;
   scores.risk = Math.max(0, Math.min(100, rPts));
   
   return scores;
