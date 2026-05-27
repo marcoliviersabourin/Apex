@@ -2654,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.8.1';
+const APEX_VERSION = '4.9.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8115,9 +8115,11 @@ function computeDimensionScores(u) {
   
   // ═══ VALUE (is it cheap?) 0-100 — OWNERSHIP-BLIND ═══
   let vPts = 0, vMax = 0;
+  let hasEarnings = false;
   // Forward P/E vs sector (40 pts possible)
   if (u.fwdPE && u.fwdPE > 0) {
-    const sectorPE = u.sectorPE || 22; // Default sector median
+    hasEarnings = true;
+    const sectorPE = u.sectorPE || 22;
     const peRatio = u.fwdPE / sectorPE;
     vPts += peRatio < 0.6 ? 40 : peRatio < 0.8 ? 30 : peRatio < 1.0 ? 20 : peRatio < 1.2 ? 10 : 0;
     vMax += 40;
@@ -8132,14 +8134,35 @@ function computeDimensionScores(u) {
     vPts += u.fcfYield > 8 ? 15 : u.fcfYield > 5 ? 12 : u.fcfYield > 3 ? 8 : u.fcfYield > 0 ? 3 : 0;
     vMax += 15;
   }
-  // Price vs 52-week high (20 pts)
+  // Price vs 52-week high (20 pts — rewards dips, but capped for extreme drawdowns)
   if (u.pctFromHigh) {
     const drop = Math.abs(u.pctFromHigh);
-    vPts += drop > 40 ? 20 : drop > 25 ? 15 : drop > 15 ? 10 : drop > 5 ? 5 : 0;
+    // Moderate dips are opportunities; extreme drawdowns (>50%) are danger signs, not value
+    vPts += drop > 50 ? 5 : drop > 40 ? 10 : drop > 25 ? 15 : drop > 15 ? 12 : drop > 5 ? 5 : 0;
     vMax += 20;
   }
-  // Score only from available data — missing data = neutral (not zero)
-  scores.value = vMax > 0 ? Math.round(vPts / vMax * 100) : 40; // 40 = neutral when no data
+  
+  let rawValue = vMax > 0 ? Math.round(vPts / vMax * 100) : 40;
+  
+  // ══ VALUE TRAP DETECTION ══
+  // Extremely cheap + extreme drawdown = value trap, not opportunity
+  if (u.fwdPE && u.fwdPE < 8 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 50) {
+    rawValue = Math.min(rawValue, 30); // Cap at 30 — the market is pricing in trouble
+  }
+  // Very cheap in expensive sector (P/E ratio < 0.3 of sector) + big drawdown = likely structural decline
+  if (u.fwdPE && u.sectorPE && u.fwdPE / u.sectorPE < 0.3 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) {
+    rawValue = Math.min(rawValue, 25);
+  }
+  
+  // ══ UNPROFITABLE COMPANY PENALTY ══
+  // No P/E because no earnings is WORSE than unknown — score below neutral
+  if (!hasEarnings && vMax === 0) {
+    // Check if we know it's unprofitable (negative earnings mentioned in verdict text)
+    const isUnprofitable = u.fwdPE === null && (u.aiAction?.toLowerCase().includes('unprofitable') || u.aiAction?.toLowerCase().includes('no earnings') || u.riskLevel === 'High');
+    rawValue = isUnprofitable ? 15 : 30; // 15 for known unprofitable, 30 for truly unknown
+  }
+  
+  scores.value = rawValue;
   
   // ═══ QUALITY (will it survive/grow?) 0-100 — OWNERSHIP-BLIND ═══
   let qPts = 0, qMax = 0;
@@ -8171,9 +8194,19 @@ function computeDimensionScores(u) {
   mPts += bxScore[u.bxState] || 0;
   mMax += 40;
   // Signal return vs buy-and-hold (30 pts)
+  // BUT: "outperforming" a -96% decline is not momentum — absolute return matters
   if (u.sigReturn !== null && u.bhReturn !== null) {
     const outperf = u.sigReturn - u.bhReturn;
-    mPts += outperf > 20 ? 30 : outperf > 0 ? 20 : outperf > -10 ? 10 : 0;
+    if (u.sigReturn > 0) {
+      // Positive absolute return — outperformance matters
+      mPts += outperf > 20 ? 30 : outperf > 0 ? 20 : 10;
+    } else if (u.sigReturn > -20) {
+      // Small negative — partial credit for limiting damage
+      mPts += outperf > 20 ? 15 : outperf > 0 ? 10 : 5;
+    } else {
+      // Deep negative absolute return — "less bad" is not momentum
+      mPts += 0;
+    }
   }
   mMax += 30;
   // AI momentum arrow (15 pts)
@@ -8187,7 +8220,16 @@ function computeDimensionScores(u) {
     else mPts += 3; // Overbought — risky
   }
   mMax += 15;
-  scores.momentum = mMax > 0 ? Math.round(mPts / mMax * 100) : 0;
+  let rawMomentum = mMax > 0 ? Math.round(mPts / mMax * 100) : 0;
+  
+  // ══ ABSOLUTE RETURN FLOOR ══
+  // A stock down >50% over the period cannot have high momentum regardless of BX state
+  if (u.bhReturn !== null && u.bhReturn < -50) rawMomentum = Math.min(rawMomentum, 20);
+  else if (u.bhReturn !== null && u.bhReturn < -30) rawMomentum = Math.min(rawMomentum, 40);
+  // Similarly, signal return deep negative = momentum is broken
+  if (u.sigReturn !== null && u.sigReturn < -50) rawMomentum = Math.min(rawMomentum, 15);
+  
+  scores.momentum = rawMomentum;
   
   // ═══ CONVICTION (does smart money agree?) 0-100 — OWNERSHIP-BLIND ═══
   let cPts = 0, cMax = 0;
