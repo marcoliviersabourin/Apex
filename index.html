@@ -2654,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.8.0';
+const APEX_VERSION = '4.8.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9310,17 +9310,22 @@ Report all raw findings with specific numbers.`;
     const focus = cfg.focus || 'all';
     return preamble + `Search for ANY Trump-related market-moving events in the past ${hours} hours. This is time-sensitive — include timestamps.
 
-1. TRUTH SOCIAL / SOCIAL MEDIA: Any Trump posts mentioning specific companies, sectors, or CEOs by name. Include the actual post text or quote if found.
-2. EXECUTIVE ACTIONS: Executive orders, memorandums, or policy directives signed that affect specific sectors or companies.
-3. PUBLIC COMMENTS: Press conferences, interviews, rally speeches mentioning companies or sectors. Include direct quotes.
-4. TRADE & TARIFF: Any tariff announcements, trade deal progress, sanctions changes, or trade-related comments.
-5. CEO MEETINGS: Any reported meetings between Trump and corporate executives.
-6. LEGISLATIVE SIGNALS: Comments about specific bills (CHIPS Act, infrastructure, defense spending) that benefit specific companies.
+CRITICAL RULES:
+- If Trump mentioned a SPECIFIC COMPANY BY NAME (e.g. "Micron is a great company"), that MUST be a SEPARATE finding from any broader sector event. Do NOT lump company-specific mentions into sector-wide alerts.
+- For EACH event found, also search for the actual stock price reaction. If a stock moved >5% following a Trump event, note the percentage move. Stocks that moved >10% are HEADLINE MOVERS and should be reported first.
+- Recent events (past 24-48h) are more actionable than older ones. Prioritize by recency.
+
+SEARCH FOR:
+1. DIRECT COMPANY MENTIONS: Truth Social posts, speeches, or interviews where Trump names a specific company or CEO. These cause the largest moves. Report EACH company mention as a separate finding.
+2. EXECUTIVE ACTIONS: Executive orders, memorandums, policy directives affecting sectors/companies.
+3. TRADE & TARIFF: Tariff announcements, trade deals, sanctions — with specific company impact.
+4. CEO MEETINGS: Meetings with corporate executives, with quotes if available.
+5. LEGISLATIVE: Comments on bills (CHIPS Act, defense, infrastructure) benefiting specific companies.
+6. PRICE REACTIONS: For each event, what did the affected stocks actually do? Search for "[ticker] stock price this week" to find the market reaction.
 
 ${focus === 'portfolio' ? 'FOCUS: Only events affecting these tickers: ' + tickers : focus === 'sectors' ? 'FOCUS: Only events affecting these sectors: ' + sectors : 'Search broadly for all market-moving Trump signals.'}
 
-For EACH finding report: exact quote/action, timestamp, which tickers are affected, and whether markets have already reacted.
-Be specific with timestamps — hours matter for these signals.`;
+Report each finding SEPARATELY — do not combine multiple events into one. Include timestamps and price moves.`;
   }
   
   if (feedName === 'rotation') {
@@ -9433,17 +9438,21 @@ Be selective — only recommend stocks with genuine edge from this data. Generic
   if (feedName === 'trump') {
     feedInstructions = `
 REQUIRED ANALYSIS — TRUMP SIGNAL TRACKER (TIME-SENSITIVE):
-For each signal, assess urgency and whether the market has already priced it in.
 
-1. ACTIONABLE ALERTS: Events with STILL-open opportunity. Rank by urgency. Each must cite specific Trump statement/action with timestamp.
-2. AFFECTED TICKERS: For each alert, list tickers with direction (Bullish/Bearish) and magnitude (High >5% / Medium 2-5% / Low <2%).
-3. PORTFOLIO IMPACT: Cross-reference with my portfolio — which positions benefit or suffer?
-4. SECTOR SHIFTS: Policy signals affecting entire sectors.
-5. ALREADY PRICED IN: Events that already moved — note as "priced in" so I don't chase.
+CRITICAL FORMATTING RULES:
+- HEADLINE MOVERS FIRST: Any stock that moved >10% following a Trump event gets its OWN separate alert at the top, marked ACT_NOW. Do not bury a 20% mover inside a group of 6 tickers.
+- COMPANY-SPECIFIC vs SECTOR-WIDE: If Trump named a specific company, that is a separate alert from any broader sector signal. "Trump praises Micron" ≠ "China summit helps semiconductors."
+- ONE EVENT PER ALERT: Do not combine "Boeing deal + Jensen Huang meeting + Tim Cook meeting" into one alert. Each distinct event is its own alert.
 
-CRITICAL: Only include events with SPECIFIC company/sector impact. General rhetoric without market implications excluded.`;
+REQUIRED SECTIONS:
+1. HEADLINE MOVERS: Stocks that moved >10% on Trump signals. Each its own alert with the specific trigger and price move.
+2. ACTIONABLE ALERTS: Other events with still-open opportunity. Each cites specific Trump statement with timestamp.
+3. AFFECTED TICKERS: Direction and magnitude per ticker.
+4. PORTFOLIO IMPACT: Which of my positions benefit or suffer?
+5. SECTOR SHIFTS: Broader policy signals.
+6. PRICED IN: Events already fully reflected in prices.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"trump","alerts":[{"event":"description","quote":"exact words if found","timestamp":"ISO or approx","hoursAgo":14,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR","portfolioImpact":"effect on user"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found in past Yh"}`;
+{"feedName":"trump","alerts":[{"event":"ONE specific event","quote":"exact words","timestamp":"ISO or approx","hoursAgo":14,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR","portfolioImpact":"effect","priceMove":"+20% since event"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found, Y headline movers"}`;
   }
 
   return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
@@ -9709,6 +9718,7 @@ function renderFeedResults(feedName) {
           <span style="color:${a.direction === 'Bullish' ? 'var(--green)' : 'var(--red)'};">${a.direction} (${a.magnitude})</span>
           <span>${a.hoursAgo}h ago</span>
           <span style="color:${pricedColor};">Priced in: ${a.pricedIn}</span>
+          ${a.priceMove ? '<span style="font-weight:700;color:var(--green);">📈 ' + a.priceMove + '</span>' : ''}
         </div>
         ${a.portfolioImpact ? '<div style="font-size:10px;color:var(--amber);margin-top:2px;">' + a.portfolioImpact + '</div>' : ''}
       </div>`;
