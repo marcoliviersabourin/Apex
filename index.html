@@ -953,6 +953,17 @@ input[type="range"]::-webkit-slider-thumb {
       <button class="btn btn-primary" onclick="navigateTo('portfolio')">Import Portfolio</button>
     </div>
     <div id="dashContent" style="display:none;">
+      <!-- Trump Signal Banner -->
+      <div id="trumpBanner" style="display:none;margin-bottom:12px;padding:10px 16px;background:rgba(59,130,246,0.1);border:1px solid var(--blue);border-radius:var(--radius-sm);cursor:pointer;" onclick="navigateTo('research');setTimeout(()=>showResearchFeed('trump'),100);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">🇺🇸</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:12px;" id="trumpBannerTitle"></div>
+            <div style="font-size:10px;color:var(--text-secondary);" id="trumpBannerDetail"></div>
+          </div>
+          <span style="font-size:10px;color:var(--blue);">View →</span>
+        </div>
+      </div>
       <!-- Metrics row -->
       <div class="metrics-grid fade-in">
         <div class="metric-card core">
@@ -1142,17 +1153,13 @@ input[type="range"]::-webkit-slider-thumb {
       <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;" id="regimeAdvice"></div>
     </div>
 
-    <!-- AI Regime Assessment -->
-    <div class="card fade-in stagger-1" style="margin-top:12px;" id="aiRegimeCard">
-      <div class="card-title" style="margin-bottom:8px;">🧠 AI Regime Assessment</div>
-      <div id="aiRegimeDisplay" style="font-size:11px;color:var(--text-tertiary);">Not run yet — tap 🧠 AI Regime Check above</div>
-    </div>
-
-    <!-- Score Breakdown -->
-    <div class="card fade-in stagger-1" style="margin-top:12px;">
-      <div class="card-title" style="margin-bottom:12px;">Computed Indicators <span style="font-size:10px;color:var(--text-tertiary);font-weight:400;" id="computedLabel">(informational — AI drives regime when fresh)</span></div>
-      <div id="regimeScoreTable"></div>
-      <div style="margin-top:10px;font-size:13px;font-family:'IBM Plex Mono',monospace;" id="regimeTotalScore"></div>
+    <!-- Unified Market Data -->
+    <div class="card fade-in stagger-1" style="margin-top:12px;" id="marketDataCard">
+      <div class="card-header">
+        <span class="card-title">📊 Market Data</span>
+        <span style="font-size:10px;color:var(--text-tertiary);" id="marketDataSource"></span>
+      </div>
+      <div id="unifiedMarketData" style="font-size:11px;color:var(--text-tertiary);">Run 🧠 AI Regime Check for real-time market data, or 🔄 Recompute for BX-derived indicators.</div>
     </div>
 
     <!-- Manual Override -->
@@ -2048,6 +2055,7 @@ input[type="range"]::-webkit-slider-thumb {
       <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">🏛 Notable</button>
       <button class="btn btn-sm" onclick="showResearchFeed('rotation')" data-feed="rotation">🔄 Rotation</button>
       <button class="btn btn-sm" onclick="showResearchFeed('insider')" data-feed="insider">💎 Insider</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('trump')" data-feed="trump">🇺🇸 Trump</button>
     </div>
 
     <!-- Feed: Weekly Analysis -->
@@ -2253,6 +2261,40 @@ input[type="range"]::-webkit-slider-thumb {
           <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.10-0.15 | Run weekly</span>
         </div>
         <div id="feedResults-insider" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Trump Signals -->
+    <div class="research-feed" id="feed-trump" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🇺🇸 Trump Signal Tracker</span>
+          <span id="feedDate-trump" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Tracks market-moving Trump statements, policy actions, executive orders, and CEO meetings. Designed for frequent checking — run daily or before market open.</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+          <div class="form-group" style="margin:0;min-width:120px;">
+            <label class="form-label" style="font-size:9px;">Lookback</label>
+            <select class="form-select" id="trump-lookback" style="font-size:11px;">
+              <option value="24">24 hours</option><option value="48" selected>48 hours</option><option value="168">7 days</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:140px;">
+            <label class="form-label" style="font-size:9px;">Focus</label>
+            <select class="form-select" id="trump-focus" style="font-size:11px;">
+              <option value="all" selected>All signals</option><option value="portfolio">My positions only</option><option value="sectors">My focus sectors</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin:8px 0;">
+          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
+          <textarea class="form-input" id="trump-instructions" rows="2" placeholder="e.g. Focus on semiconductor/CHIPS Act comments, ignore general political rhetoric..." style="font-size:11px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('trump')">▶ Run Trump Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.03-0.05 | Run daily or on-demand</span>
+        </div>
+        <div id="feedResults-trump" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -2612,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.6.1';
+const APEX_VERSION = '4.8.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2759,7 +2801,7 @@ function saveState() {
       });
       // Prune research — keep only topPicks and config, drop raw text
       const emergencyResearch = { config: state.research?.config || {} };
-      ['earnings','institutional','political','rotation','insider'].forEach(f => {
+      ['earnings','institutional','political','rotation','insider','trump'].forEach(f => {
         if (state.research?.[f]) {
           emergencyResearch[f] = { feedName: f, runDate: state.research[f].runDate, topPicks: state.research[f].topPicks || [], portfolioOverlap: state.research[f].portfolioOverlap || [], summary: state.research[f].summary || '' };
         }
@@ -2817,6 +2859,7 @@ function navigateTo(page) {
   if (page === 'dashboard') refreshDashboard();
   if (page === 'portfolio') refreshHoldings();
   if (page === 'analysis') { refreshAnalysisConfig(); updateCostEstimate(); checkAnalysisProgress(); }
+  if (page === 'regime') { renderRegimeFromState(); }
   if (page === 'research') { refreshResearch(); }
   if (page === 'strategy') { refreshStrategy(); }
   if (page === 'universe') { refreshUniverse(); }
@@ -3339,6 +3382,22 @@ function addPosition() {
 
 // ═══ DASHBOARD ═══
 function refreshDashboard() {
+  // Trump signal banner — check for recent high-urgency signals
+  const trumpData = state.research?.trump;
+  const trumpBanner = document.getElementById('trumpBanner');
+  if (trumpBanner) {
+    const hasUrgent = trumpData?.alerts?.some(a => a.urgency === 'ACT_NOW' || a.urgency === 'ACT_TODAY');
+    const trumpAge = trumpData?.runDate ? Math.floor((Date.now() - new Date(trumpData.runDate).getTime()) / 3600000) : 999;
+    if (hasUrgent && trumpAge < 48) {
+      const urgentAlerts = trumpData.alerts.filter(a => a.urgency === 'ACT_NOW' || a.urgency === 'ACT_TODAY');
+      const tickers = [...new Set(urgentAlerts.flatMap(a => a.tickers || []))];
+      trumpBanner.style.display = 'block';
+      document.getElementById('trumpBannerTitle').textContent = `${urgentAlerts.length} Trump signal(s) — ${tickers.join(', ')}`;
+      document.getElementById('trumpBannerDetail').textContent = urgentAlerts[0].event?.substring(0, 80) + '...';
+    } else {
+      trumpBanner.style.display = 'none';
+    }
+  }
   const hasPositions = state.positions.length > 0;
   document.getElementById('dashEmpty').style.display = hasPositions ? 'none' : 'block';
   document.getElementById('dashContent').style.display = hasPositions ? 'block' : 'none';
@@ -4696,7 +4755,7 @@ TACTICAL:\n${posList(tactPos)}\n`;
   // Inject ALL research feed picks as candidates
   const allResearchPicks = [];
   const allResearchRisks = [];
-  ['earnings','institutional','political','rotation','insider'].forEach(feed => {
+  ['earnings','institutional','political','rotation','insider','trump'].forEach(feed => {
     const data = state.research?.[feed];
     if (!data) return;
     (data.topPicks || []).forEach(p => {
@@ -8398,7 +8457,7 @@ async function refreshUniverseTechData() {
   state.watchlist.forEach(w => allTickers.add(w.ticker.toUpperCase()));
   (state.analysisData?.newIdeas || []).forEach(i => allTickers.add(i.ticker.toUpperCase()));
   // Research feed picks
-  ['earnings','institutional','political','rotation','insider'].forEach(feed => {
+  ['earnings','institutional','political','rotation','insider','trump'].forEach(feed => {
     (state.research?.[feed]?.topPicks || []).forEach(p => allTickers.add(p.ticker.toUpperCase()));
   });
   // Always include VIXY for VIX proxy (regime detection)
@@ -9246,6 +9305,24 @@ FLAG "POSITIVE CONFLUENCE": Stocks where insider BUYING and BULLISH options flow
 Report all raw findings with specific numbers.`;
   }
   
+  if (feedName === 'trump') {
+    const hours = cfg.lookback || '48';
+    const focus = cfg.focus || 'all';
+    return preamble + `Search for ANY Trump-related market-moving events in the past ${hours} hours. This is time-sensitive — include timestamps.
+
+1. TRUTH SOCIAL / SOCIAL MEDIA: Any Trump posts mentioning specific companies, sectors, or CEOs by name. Include the actual post text or quote if found.
+2. EXECUTIVE ACTIONS: Executive orders, memorandums, or policy directives signed that affect specific sectors or companies.
+3. PUBLIC COMMENTS: Press conferences, interviews, rally speeches mentioning companies or sectors. Include direct quotes.
+4. TRADE & TARIFF: Any tariff announcements, trade deal progress, sanctions changes, or trade-related comments.
+5. CEO MEETINGS: Any reported meetings between Trump and corporate executives.
+6. LEGISLATIVE SIGNALS: Comments about specific bills (CHIPS Act, infrastructure, defense spending) that benefit specific companies.
+
+${focus === 'portfolio' ? 'FOCUS: Only events affecting these tickers: ' + tickers : focus === 'sectors' ? 'FOCUS: Only events affecting these sectors: ' + sectors : 'Search broadly for all market-moving Trump signals.'}
+
+For EACH finding report: exact quote/action, timestamp, which tickers are affected, and whether markets have already reacted.
+Be specific with timestamps — hours matter for these signals.`;
+  }
+  
   if (feedName === 'rotation') {
     const cycle = cfg.cycle || 'auto';
     // Compute sector momentum from BX data
@@ -9352,6 +9429,22 @@ REQUIRED ANALYSIS:
 Be selective — only recommend stocks with genuine edge from this data. Generic recommendations (buy AAPL, buy MSFT) are not useful.`;
     feedSchema = schema;
   }
+  
+  if (feedName === 'trump') {
+    feedInstructions = `
+REQUIRED ANALYSIS — TRUMP SIGNAL TRACKER (TIME-SENSITIVE):
+For each signal, assess urgency and whether the market has already priced it in.
+
+1. ACTIONABLE ALERTS: Events with STILL-open opportunity. Rank by urgency. Each must cite specific Trump statement/action with timestamp.
+2. AFFECTED TICKERS: For each alert, list tickers with direction (Bullish/Bearish) and magnitude (High >5% / Medium 2-5% / Low <2%).
+3. PORTFOLIO IMPACT: Cross-reference with my portfolio — which positions benefit or suffer?
+4. SECTOR SHIFTS: Policy signals affecting entire sectors.
+5. ALREADY PRICED IN: Events that already moved — note as "priced in" so I don't chase.
+
+CRITICAL: Only include events with SPECIFIC company/sector impact. General rhetoric without market implications excluded.`;
+    feedSchema = `Return ONLY JSON:
+{"feedName":"trump","alerts":[{"event":"description","quote":"exact words if found","timestamp":"ISO or approx","hoursAgo":14,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR","portfolioImpact":"effect on user"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found in past Yh"}`;
+  }
 
   return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
 
@@ -9397,6 +9490,10 @@ function saveFeedConfig(feedName) {
     cfg.minSize = document.getElementById('ins-minsize')?.value || '500K';
     cfg.role = document.getElementById('ins-role')?.value || 'directors';
     cfg.instructions = document.getElementById('ins-instructions')?.value || '';
+  } else if (feedName === 'trump') {
+    cfg.lookback = document.getElementById('trump-lookback')?.value || '48';
+    cfg.focus = document.getElementById('trump-focus')?.value || 'all';
+    cfg.instructions = document.getElementById('trump-instructions')?.value || '';
   }
   state.research.config[feedName] = cfg;
 }
@@ -9593,6 +9690,47 @@ function renderFeedResults(feedName) {
       <td style="font-size:11px;">${p.sector || ''}</td>
       <td style="font-size:11px;color:var(--text-secondary);">${p.reason || ''}</td>
     </tr>`).join('') + '</tbody></table></div>';
+  }
+  
+  // Trump Alerts (time-sensitive)
+  if (data.alerts?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">🇺🇸 TRUMP SIGNALS (${data.alerts.length})</div>` +
+    data.alerts.map(a => {
+      const urgColor = a.urgency === 'ACT_NOW' ? 'var(--red)' : a.urgency === 'ACT_TODAY' ? 'var(--amber)' : 'var(--text-tertiary)';
+      const pricedColor = a.pricedIn === 'Fully' ? 'var(--text-tertiary)' : a.pricedIn === 'Partially' ? 'var(--amber)' : 'var(--green)';
+      return `<div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${urgColor};">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;">${(a.tickers||[]).join(', ')}</span>
+          <span style="font-size:10px;color:${urgColor};font-weight:700;">${a.urgency}</span>
+        </div>
+        <div style="font-size:11px;margin-top:4px;">${a.event}</div>
+        ${a.quote ? '<div style="font-size:10px;color:var(--text-tertiary);font-style:italic;margin-top:2px;">"' + a.quote + '"</div>' : ''}
+        <div style="display:flex;gap:12px;margin-top:4px;font-size:10px;">
+          <span style="color:${a.direction === 'Bullish' ? 'var(--green)' : 'var(--red)'};">${a.direction} (${a.magnitude})</span>
+          <span>${a.hoursAgo}h ago</span>
+          <span style="color:${pricedColor};">Priced in: ${a.pricedIn}</span>
+        </div>
+        ${a.portfolioImpact ? '<div style="font-size:10px;color:var(--amber);margin-top:2px;">' + a.portfolioImpact + '</div>' : ''}
+      </div>`;
+    }).join('') + '</div>';
+  }
+  
+  // Trump Sector Impacts
+  if (data.sectorImpacts?.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin-bottom:6px;">SECTOR IMPACTS</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">` +
+    data.sectorImpacts.map(s => `<div style="padding:6px 10px;background:var(--bg-secondary);border-radius:var(--radius-sm);font-size:11px;">
+      <span style="color:${s.direction === 'Bullish' ? 'var(--green)' : 'var(--red)'};">●</span> ${s.sector}: <strong>${s.direction}</strong> — ${s.reason}
+    </div>`).join('') + '</div></div>';
+  }
+  
+  // Trump Portfolio Flags
+  if (data.portfolioFlags?.length > 0) {
+    html += `<div style="margin-bottom:12px;padding:8px;background:rgba(59,130,246,0.1);border:1px solid var(--blue);border-radius:var(--radius-sm);">
+    <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:4px;">📋 YOUR PORTFOLIO</div>` +
+    data.portfolioFlags.map(f => `<div style="font-size:11px;padding:3px 0;">
+      <strong>${f.ticker}</strong> (${f.held ? 'HELD' : f.watchlist ? 'WATCHLIST' : 'NEW'}) — ${f.action}
+    </div>`).join('') + '</div>';
   }
   
   // Top Shorts table
@@ -9911,34 +10049,8 @@ async function computeRegime() {
   state.regime.regimeSource = regimeSource;
   state.regime.lastComputed = new Date().toISOString();
   
-  // Render AI assessment card
-  const aiEl = document.getElementById('aiRegimeDisplay');
-  if (aiEl && aiAssess?.regime) {
-    const ageD = Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000);
-    const rc = aiAssess.regime === 'CRISIS' ? 'var(--red)' : aiAssess.regime === 'VOLATILE' ? 'var(--amber)' : 'var(--green)';
-    aiEl.innerHTML = `
-      <div style="display:flex;gap:16px;flex-wrap:wrap;">
-        <div style="min-width:120px;">
-          <div style="font-size:22px;font-weight:800;color:${rc};">${aiAssess.regime}</div>
-          <div style="font-size:10px;color:var(--text-tertiary);">Confidence: ${aiAssess.confidence} | ${ageD === 0 ? 'Today' : ageD + 'd ago'}</div>
-          <div style="font-size:9px;margin-top:2px;color:${ageD <= 7 ? 'var(--green)' : 'var(--amber)'};">${ageD <= 7 ? '✓ ACTIVE — driving all scoring weights' : '⚠ Stale — computed indicators used instead'}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;flex:1;min-width:300px;">
-          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">VIX</div><div class="metric-value" style="font-size:16px;">${aiAssess.vix?.level || '?'}</div><div style="font-size:9px;color:var(--text-tertiary);">${aiAssess.vix?.termStructure || ''}</div></div>
-          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">S&P vs 200d</div><div class="metric-value" style="font-size:16px;color:${aiAssess.sp500?.above ? 'var(--green)' : 'var(--red)'};">${aiAssess.sp500?.vs200dma || '?'}</div></div>
-          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">Breadth</div><div class="metric-value" style="font-size:16px;">${aiAssess.breadth?.pctAbove50dma || '?'}%</div></div>
-          <div class="metric-card" style="padding:6px 10px;"><div class="metric-label">Put/Call</div><div class="metric-value" style="font-size:16px;">${aiAssess.putCallRatio || '?'}</div></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:16px;margin-top:8px;">
-        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Credit Spreads</div><div style="font-size:12px;">${aiAssess.creditSpreads?.direction || '?'}</div></div>
-        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Yield Curve (2Y-10Y)</div><div style="font-size:12px;">${aiAssess.yieldCurve?.spread2y10y || '?'}% ${aiAssess.yieldCurve?.inverted ? '⚠ INVERTED' : ''}</div></div>
-        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Fund Flows</div><div style="font-size:12px;">${aiAssess.fundFlows || '?'}</div></div>
-        <div class="metric-card" style="padding:6px 10px;flex:1;"><div class="metric-label">Mood</div><div style="font-size:12px;font-weight:700;">${aiAssess.moodScore || '?'}/100</div></div>
-      </div>
-      ${aiAssess.reasoning ? '<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);font-style:italic;">' + aiAssess.reasoning + '</div>' : ''}
-    `;
-  }
+  // Render unified market data table
+  renderUnifiedMarketData(aiAssess, aiFresh, factors);
   
   // ═══ COMPUTE OPPORTUNITY SCORES ═══
   const opportunities = computeOpportunities();
@@ -9946,6 +10058,78 @@ async function computeRegime() {
   
   saveState();
   renderRegimePage(regime, regimeColor, regimeDesc, regimeAdvice, totalScore, factors, opportunities);
+}
+
+function renderUnifiedMarketData(aiAssess, aiFresh, factors) {
+  const el = document.getElementById('unifiedMarketData');
+  if (!el) return;
+  
+  const aiAge = aiAssess?.date ? Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000) : 999;
+  const aiDateStr = aiAge === 0 ? 'Today' : aiAge <= 7 ? aiAge + 'd ago' : aiAge < 999 ? aiAge + 'd ago ⚠' : '';
+  
+  const fb = (days) => days <= 7 ? '🟢' : days <= 14 ? '🟡' : '🔴';
+  const fc = (days) => days <= 7 ? 'var(--green)' : days <= 14 ? 'var(--amber)' : 'var(--red)';
+  
+  // Compute BX freshness
+  const bxDates = Object.values(state.technicalData).map(t => t.lastFetched).filter(Boolean);
+  const bxAge = bxDates.length > 0 ? Math.floor((Date.now() - new Date(bxDates.sort()[0]).getTime()) / 86400000) : 999;
+  
+  // Build rows — best available data per metric
+  const rows = [];
+  
+  // AI metrics (primary when fresh)
+  if (aiAssess?.regime) {
+    const vc = aiAssess.vix?.level < 20 ? 'var(--green)' : aiAssess.vix?.level < 30 ? 'var(--amber)' : 'var(--red)';
+    const sc = aiAssess.sp500?.above ? 'var(--green)' : 'var(--red)';
+    const bc = (aiAssess.breadth?.pctAbove50dma || 0) >= 60 ? 'var(--green)' : (aiAssess.breadth?.pctAbove50dma || 0) >= 40 ? 'var(--amber)' : 'var(--red)';
+    const pc = (aiAssess.putCallRatio || 0) > 1.0 ? 'var(--red)' : (aiAssess.putCallRatio || 0) < 0.7 ? 'var(--amber)' : 'var(--green)';
+    
+    rows.push({ metric: 'VIX Index', value: `<span style="color:${vc};font-weight:700;">${aiAssess.vix?.level || '?'}</span> <span style="font-size:9px;">${aiAssess.vix?.termStructure || ''}</span>`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'S&P 500 vs 200d MA', value: `<span style="color:${sc};font-weight:700;">${aiAssess.sp500?.vs200dma || '?'}</span> ${aiAssess.sp500?.above ? 'above' : 'below'}`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Market Breadth', value: `<span style="color:${bc};font-weight:700;">${aiAssess.breadth?.pctAbove50dma || '?'}%</span> stocks above 50d MA`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Put/Call Ratio', value: `<span style="color:${pc};font-weight:700;">${aiAssess.putCallRatio || '?'}</span>`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Credit Spreads', value: aiAssess.creditSpreads?.direction || '?', source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Yield Curve (2Y-10Y)', value: `${aiAssess.yieldCurve?.spread2y10y || '?'}% ${aiAssess.yieldCurve?.inverted ? '<span style="color:var(--red);font-weight:700;">⚠ INVERTED</span>' : ''}`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Fund Flows', value: aiAssess.fundFlows || '?', source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+    rows.push({ metric: 'Mood Score', value: `<span style="font-weight:700;">${aiAssess.moodScore || '?'}</span>/100`, source: 'AI Regime Check', fresh: fb(aiAge), age: aiDateStr });
+  }
+  
+  // BX-derived metrics (always show — unique data not from AI)
+  const bxCons = factors.find(f => f.label.includes('BX Consensus'));
+  const bxCorr = factors.find(f => f.label.includes('Correlation'));
+  if (bxCons) rows.push({ metric: 'Portfolio BX Consensus', value: bxCons.current, source: 'BX Trender', fresh: fb(bxAge), age: bxAge < 999 ? bxAge + 'd' : 'N/A', sep: !aiAssess?.regime });
+  if (bxCorr) rows.push({ metric: 'Sector Correlation', value: bxCorr.current, source: 'BX Trender', fresh: fb(bxAge), age: bxAge < 999 ? bxAge + 'd' : 'N/A' });
+  
+  // Stale fallback metrics (only show when AI is missing, for VIX and S&P)
+  if (!aiAssess?.regime) {
+    const vixFactor = factors.find(f => f.label.includes('VIX Level'));
+    const spFactor = factors.find(f => f.label.includes('S&P 500'));
+    const moodFactor = factors.find(f => f.label.includes('Mood'));
+    if (vixFactor) rows.push({ metric: 'VIX (VIXY proxy)', value: `${vixFactor.current} <span style="font-size:9px;color:var(--amber);">monthly data — run AI check for daily</span>`, source: 'Alpha Vantage', fresh: '🟡', age: 'monthly' });
+    if (spFactor) rows.push({ metric: 'S&P vs 20M EMA', value: `${spFactor.current} <span style="font-size:9px;color:var(--amber);">≠ 200d MA</span>`, source: 'Alpha Vantage', fresh: spFactor.noData ? '🔴' : '🟡', age: 'monthly' });
+    if (moodFactor) rows.push({ metric: 'Mood Score', value: moodFactor.current, source: 'Weekly Analysis', fresh: '🟡', age: '' });
+  }
+  
+  const regimeSrc = state.regime?.regimeSource || 'Computed';
+  const rc = state.regime?.current === 'CRISIS' ? 'var(--red)' : state.regime?.current === 'VOLATILE' ? 'var(--amber)' : 'var(--green)';
+  
+  el.innerHTML = `
+    ${aiAssess?.reasoning ? '<div style="font-size:11px;color:var(--text-secondary);font-style:italic;margin-bottom:10px;line-height:1.5;">' + aiAssess.reasoning + '</div>' : ''}
+    <table style="width:100%;"><thead><tr>
+      <th>Metric</th><th>Value</th><th>Source</th><th style="text-align:center;">Fresh</th>
+    </tr></thead><tbody>
+    ${rows.map((r, i) => `${r.sep ? '<tr><td colspan="4" style="padding:4px 0;border-bottom:1px solid var(--border-subtle);font-size:9px;color:var(--text-tertiary);">BX-Derived Indicators</td></tr>' : ''}
+    <tr>
+      <td style="font-weight:600;">${r.metric}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${r.value}</td>
+      <td style="font-size:10px;color:var(--text-tertiary);">${r.source}</td>
+      <td style="text-align:center;">${r.fresh} <span style="font-size:9px;color:var(--text-tertiary);">${r.age}</span></td>
+    </tr>`).join('')}
+    </tbody></table>
+    <div style="margin-top:8px;font-size:11px;">Active regime: <strong style="color:${rc};">${state.regime?.current || 'TRENDING'}</strong> — source: ${regimeSrc}</div>
+  `;
+  
+  document.getElementById('marketDataSource').textContent = aiFresh ? '✓ AI-driven (fresh)' : aiAssess?.regime ? '⚠ AI stale — computed fallback' : 'Computed only — run AI check for better data';
 }
 
 function computeOpportunities() {
@@ -10040,25 +10224,11 @@ function renderRegimePage(regime, color, desc, advice, score, factors, opportuni
   document.getElementById('regimeAdvice').textContent = advice;
   document.getElementById('regimeTimestamp').textContent = 'Score: ' + score + ' | ' + new Date().toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
   
-  // Score breakdown table
-  document.getElementById('regimeScoreTable').innerHTML = `<table style="width:100%;"><thead><tr>
-    <th>Factor</th><th>Current</th><th>Threshold</th><th>Status</th><th class="num">Pts</th>
-  </tr></thead><tbody>` + factors.map(f => {
-    const statusColor = f.noData ? 'var(--text-tertiary)' : f.triggered ? 'var(--red)' : 'var(--green)';
-    const statusIcon = f.noData ? '○' : f.triggered ? '⚠' : '✓';
-    return `<tr>
-      <td style="font-weight:600;">${f.label}</td>
-      <td style="font-family:'IBM Plex Mono',monospace;">${f.current}</td>
-      <td style="color:var(--text-tertiary);">${f.threshold}</td>
-      <td style="color:${statusColor};">${statusIcon} ${f.noData ? 'No data' : f.triggered ? 'Triggered' : 'Normal'}</td>
-      <td class="num" style="font-weight:700;color:${f.points > 0 ? 'var(--red)' : 'var(--green)'};">${f.points}</td>
-    </tr>`;
-  }).join('') + '</tbody></table>';
-  
+  // Unified market data already rendered in computeRegime
+  // Just update the source label
+  const srcEl = document.getElementById('marketDataSource');
   const regimeSrc = state.regime.regimeSource || 'Computed';
-  const compLabel = document.getElementById('computedLabel');
-  if (compLabel) compLabel.textContent = aiFresh ? '(informational — AI assessment is driving regime)' : '(active — no fresh AI data, computed score used)';
-  document.getElementById('regimeTotalScore').innerHTML = `Computed Score: <span style="color:${color};font-weight:800;">${score}</span> <span style="color:var(--text-tertiary);">(0-1: Trending, 2-3: Volatile, 4+: Crisis)</span><br><span style="font-size:11px;">Active regime: <strong style="color:${color};">${regime}</strong> — source: ${regimeSrc}</span>`;
+  if (srcEl) srcEl.textContent = `Active regime: ${regime} — source: ${regimeSrc}`;
   
   // Override state
   const ovr = state.regime?.override || 'auto';
@@ -10341,6 +10511,45 @@ async function enrichOpportunities() {
 
 // Add regime to refreshAll
 function refreshRegime() { if (state.regime?.lastComputed) computeRegime(); }
+
+function renderRegimeFromState() {
+  if (!state.regime) { state.regime = { override: 'auto' }; }
+  const r = state.regime;
+  const regime = r.current || 'TRENDING';
+  const rc = regime === 'CRISIS' ? 'var(--red)' : regime === 'VOLATILE' ? 'var(--amber)' : 'var(--green)';
+  
+  // Render the regime banner
+  const regEl = document.getElementById('regimeDisplay');
+  if (regEl) regEl.style.borderColor = rc;
+  const regLabel = document.getElementById('regimeLabel');
+  if (regLabel) { regLabel.textContent = regime; regLabel.style.color = rc; }
+  const regDesc = document.getElementById('regimeDescription');
+  if (regDesc) regDesc.textContent = regime === 'CRISIS' ? 'Technicals are unreliable. Switch to fundamentals-first.' : regime === 'VOLATILE' ? 'Mixed signals. Require fundamental confirmation.' : 'Technical signals are reliable. Normal rules apply.';
+  const regAdv = document.getElementById('regimeAdvice');
+  if (regAdv) regAdv.textContent = regime === 'CRISIS' ? 'Strategy: DCA into quality. Wider stops. Hold cash.' : regime === 'VOLATILE' ? 'Strategy: Tighten stops. Reduce new sizes. Sell signals more trustworthy.' : 'Strategy: Follow BX signals. Normal sizing.';
+  const regTs = document.getElementById('regimeTimestamp');
+  if (regTs) regTs.textContent = `Score: ${r.score || 0} | ${r.lastComputed ? new Date(r.lastComputed).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Not computed'}`;
+  
+  // Render unified market data from saved state
+  const aiAssess = r.aiAssessment;
+  const aiAge = aiAssess?.date ? Math.floor((Date.now() - new Date(aiAssess.date).getTime()) / 86400000) : 999;
+  const aiFresh = aiAge <= 7;
+  renderUnifiedMarketData(aiAssess, aiFresh, r.factors || []);
+  
+  // Override state
+  const ovr = r.override || 'auto';
+  const ovrSel = document.getElementById('regimeOverrideSelect');
+  if (ovrSel) ovrSel.value = ovr;
+  const ovrReason = document.getElementById('regimeOverrideReason');
+  if (ovrReason) ovrReason.value = r.overrideReason || '';
+  
+  // Render opportunity table if available
+  if (r.opportunities) renderOpportunityRadar(r.opportunities);
+  
+  // Sector stances and scenario history
+  renderSectorStances();
+  renderScenarioHistory();
+}
 
 // ═══ SERVICE WORKER REGISTRATION (for PWA) ═══
 if ('serviceWorker' in navigator) {
