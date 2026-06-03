@@ -2654,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '4.9.0';
+const APEX_VERSION = '5.0.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8113,53 +8113,87 @@ function computeDimensionScores(u) {
   // Each dimension: 0-100 raw score
   const scores = { value: 0, quality: 0, momentum: 0, conviction: 0, risk: 50 };
   
-  // ═══ VALUE (is it cheap?) 0-100 — OWNERSHIP-BLIND ═══
+  // ═══ VALUE (is it cheap?) 0-100 — 4-LAYER FRAMEWORK ═══
   let vPts = 0, vMax = 0;
   let hasEarnings = false;
-  // Forward P/E vs sector (40 pts possible)
+  
+  // ── LAYER 1: Sector-aware default P/E ──
+  const sectorDefaults = {
+    'Energy': 15, 'Materials': 15, 'Finance': 15, 'Financials': 15,
+    'Healthcare': 22, 'Consumer Discretionary': 22, 'Industrials': 22, 'Consumer Staples': 18,
+    'Technology': 35, 'Defence': 22, 'ETF': 20,
+  };
+  // Sub-sector overrides for hyper-growth categories
+  const sectorStr = (u.sector || '').toLowerCase();
+  const isAIInfra = sectorStr.includes('ai') || sectorStr.includes('data center') || sectorStr.includes('cloud');
+  const isQuantum = sectorStr.includes('quantum');
+  const isEV = sectorStr.includes('ev') || sectorStr.includes('electric vehicle');
+  const baseSectorPE = u.sectorPE || sectorDefaults[u.sector] || 22;
+  const subsectorMultiplier = isAIInfra ? 2.0 : isQuantum ? 2.5 : isEV ? 1.8 : 1.0;
+  
+  // ── LAYER 3: Growth adjustment ──
+  let growthMultiplier = 1.0;
+  if (u.revTrend === '↑' || u.revTrend === '↑↑') growthMultiplier = 2.0; // Strong growth
+  else if (u.revTrend === '→') growthMultiplier = 1.0;
+  else if (u.revTrend === '↓') growthMultiplier = 0.7; // Shrinking shouldn't be expensive
+  // else unknown — leave at 1.0
+  
+  const adjustedSectorPE = baseSectorPE * subsectorMultiplier * growthMultiplier;
+  
+  // Forward P/E vs growth-adjusted sector (40 pts)
   if (u.fwdPE && u.fwdPE > 0) {
     hasEarnings = true;
-    const sectorPE = u.sectorPE || 22;
-    const peRatio = u.fwdPE / sectorPE;
-    vPts += peRatio < 0.6 ? 40 : peRatio < 0.8 ? 30 : peRatio < 1.0 ? 20 : peRatio < 1.2 ? 10 : 0;
+    const peRatio = u.fwdPE / adjustedSectorPE;
+    vPts += peRatio < 0.6 ? 40 : peRatio < 0.8 ? 30 : peRatio < 1.0 ? 20 : peRatio < 1.3 ? 10 : peRatio < 1.8 ? 5 : 0;
     vMax += 40;
+    
+    // ── LAYER 2: Absolute P/E risk haircut ──
+    // Extreme multiples carry absolute risk regardless of sector
+    if (u.fwdPE > 150) vPts = Math.round(vPts * 0.4); // -60% haircut
+    else if (u.fwdPE > 80) vPts = Math.round(vPts * 0.6); // -40%
+    else if (u.fwdPE > 40) vPts = Math.round(vPts * 0.75); // -25%
+    else if (u.fwdPE > 25) vPts = Math.round(vPts * 0.9); // -10%
   }
-  // PEG ratio (25 pts)
+  
+  // PEG ratio (20 pts — reduced weight, uses adjusted denominator for missing data)
   if (u.peg && u.peg > 0) {
-    vPts += u.peg < 0.8 ? 25 : u.peg < 1.0 ? 20 : u.peg < 1.5 ? 12 : u.peg < 2.0 ? 5 : 0;
-    vMax += 25;
+    vPts += u.peg < 0.8 ? 20 : u.peg < 1.0 ? 16 : u.peg < 1.5 ? 10 : u.peg < 2.0 ? 4 : 0;
+    vMax += 20;
+  } else {
+    vMax += 12; // ── LAYER 4: Missing data gets smaller denominator than bad data ──
+    vPts += 5; // Small neutral credit for unknown
   }
+  
   // FCF yield (15 pts)
   if (u.fcfYield) {
     vPts += u.fcfYield > 8 ? 15 : u.fcfYield > 5 ? 12 : u.fcfYield > 3 ? 8 : u.fcfYield > 0 ? 3 : 0;
     vMax += 15;
+  } else {
+    vMax += 8; // Smaller denominator for missing
+    vPts += 3;
   }
-  // Price vs 52-week high (20 pts — rewards dips, but capped for extreme drawdowns)
+  
+  // Price vs 52-week high (20 pts)
   if (u.pctFromHigh) {
     const drop = Math.abs(u.pctFromHigh);
-    // Moderate dips are opportunities; extreme drawdowns (>50%) are danger signs, not value
     vPts += drop > 50 ? 5 : drop > 40 ? 10 : drop > 25 ? 15 : drop > 15 ? 12 : drop > 5 ? 5 : 0;
     vMax += 20;
   }
   
-  let rawValue = vMax > 0 ? Math.round(vPts / vMax * 100) : 40;
+  let rawValue = vMax > 0 ? Math.round(vPts / vMax * 100) : 35;
   
   // ══ VALUE TRAP DETECTION ══
-  // Extremely cheap + extreme drawdown = value trap, not opportunity
   if (u.fwdPE && u.fwdPE < 8 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 50) {
-    rawValue = Math.min(rawValue, 30); // Cap at 30 — the market is pricing in trouble
+    rawValue = Math.min(rawValue, 30);
   }
-  // Very cheap in expensive sector (P/E ratio < 0.3 of sector) + big drawdown = likely structural decline
-  if (u.fwdPE && u.sectorPE && u.fwdPE / u.sectorPE < 0.3 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) {
+  if (u.fwdPE && adjustedSectorPE && u.fwdPE / adjustedSectorPE < 0.2 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) {
     rawValue = Math.min(rawValue, 25);
   }
   
   // ══ UNPROFITABLE COMPANY PENALTY ══
-  // No P/E because no earnings is WORSE than unknown — score below neutral
-  if (!hasEarnings && vMax === 0) {
-    // Check if we know it's unprofitable (negative earnings mentioned in verdict text)
+  if (!hasEarnings && vMax <= 40) {
     const isUnprofitable = u.fwdPE === null && (u.aiAction?.toLowerCase().includes('unprofitable') || u.aiAction?.toLowerCase().includes('no earnings') || u.riskLevel === 'High');
-    rawValue = isUnprofitable ? 15 : 30; // 15 for known unprofitable, 30 for truly unknown
+    rawValue = isUnprofitable ? 15 : 30;
   }
   
   scores.value = rawValue;
@@ -9367,7 +9401,11 @@ SEARCH FOR:
 
 ${focus === 'portfolio' ? 'FOCUS: Only events affecting these tickers: ' + tickers : focus === 'sectors' ? 'FOCUS: Only events affecting these sectors: ' + sectors : 'Search broadly for all market-moving Trump signals.'}
 
-Report each finding SEPARATELY — do not combine multiple events into one. Include timestamps and price moves.`;
+Report each finding SEPARATELY — do not combine multiple events into one. Include timestamps and price moves.
+
+TICKER-SPECIFIC SEARCH (CRITICAL — do not skip):
+For each of these tickers, also search "[company name] Trump" or "[ticker] Trump statement" to catch rally mentions, interviews, and remarks that broader policy searches miss. Rally speeches often name companies that don't appear in executive order or trade deal coverage:
+${tickers.split(', ').slice(0, 12).join(', ')}${watchTickers ? ', ' + watchTickers.split(', ').slice(0, 8).join(', ') : ''}`;
   }
   
   if (feedName === 'rotation') {
