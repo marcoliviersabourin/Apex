@@ -2654,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.0.0';
+const APEX_VERSION = '5.0.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8532,9 +8532,14 @@ async function refreshUniverseTechData() {
   state.positions.forEach(p => allTickers.add(p.symbol.toUpperCase()));
   state.watchlist.forEach(w => allTickers.add(w.ticker.toUpperCase()));
   (state.analysisData?.newIdeas || []).forEach(i => allTickers.add(i.ticker.toUpperCase()));
-  // Research feed picks
+  // Research feed picks — only from feeds less than 14 days old
   ['earnings','institutional','political','rotation','insider','trump'].forEach(feed => {
-    (state.research?.[feed]?.topPicks || []).forEach(p => allTickers.add(p.ticker.toUpperCase()));
+    const data = state.research?.[feed];
+    if (!data?.topPicks) return;
+    const feedAge = data.runDate ? Math.floor((Date.now() - new Date(data.runDate).getTime()) / 86400000) : 999;
+    if (feedAge <= 14) {
+      data.topPicks.forEach(p => { if (p.ticker) allTickers.add(p.ticker.toUpperCase()); });
+    }
   });
   // Always include VIXY for VIX proxy (regime detection)
   allTickers.add('VIXY');
@@ -9752,13 +9757,40 @@ function renderFeedResults(feedName) {
   const el = document.getElementById('feedResults-' + feedName);
   if (!el) return;
   
-  // For weekly analysis, show summary from analysisData
+  // For weekly analysis, show ideas and verdicts summary
   if (feedName === 'analysis') {
     const ad = state.analysisData;
     if (!ad) { el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">No analysis data yet. Run weekly analysis.</div>'; return; }
+    const ideas = ad.newIdeas || [];
+    const verdicts = ad.verdicts || [];
+    const buys = verdicts.filter(v => v.verdict === 'BUY').length;
+    const trims = verdicts.filter(v => v.verdict === 'TRIM').length;
+    const exits = verdicts.filter(v => v.verdict === 'EXIT').length;
     el.innerHTML = `<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
-      <div style="margin-bottom:8px;"><strong>${(ad.verdicts||[]).length}</strong> position verdicts | <strong>${(ad.newIdeas||[]).length}</strong> new ideas | Mood: <strong>${ad.macro?.mood || '—'}</strong></div>
-      ${(ad.newIdeas||[]).slice(0,5).map(i => `<div style="padding:4px 0;border-bottom:1px solid var(--border-subtle);"><strong>${i.ticker}</strong> (${i.sector}) — ${i.thesis || ''}</div>`).join('')}
+      <div style="margin-bottom:12px;display:flex;gap:12px;">
+        <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">Verdicts</div><div class="metric-value">${verdicts.length}</div></div>
+        <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">BUY</div><div class="metric-value" style="color:var(--green);">${buys}</div></div>
+        <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">TRIM</div><div class="metric-value" style="color:var(--amber);">${trims}</div></div>
+        <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">EXIT</div><div class="metric-value" style="color:var(--red);">${exits}</div></div>
+        <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">New Ideas</div><div class="metric-value" style="color:var(--blue);">${ideas.length}</div></div>
+      </div>
+      ${ideas.length > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">NEW IDEAS FROM LATEST ANALYSIS</div>
+      <table style="width:100%;"><thead><tr><th>Ticker</th><th>Sector</th><th>Tag</th><th>Weight</th><th>Risk</th><th>Thesis</th></tr></thead><tbody>
+      ${ideas.map(i => `<tr>
+        <td style="font-weight:700;">${i.ticker}</td>
+        <td style="font-size:10px;">${i.sector || ''}</td>
+        <td><span class="badge ${i.tag === 'tactical' ? 'badge-tactical' : 'badge-core'}" style="font-size:8px;">${(i.tag || 'core').toUpperCase()}</span></td>
+        <td class="num">${i.suggestedWeight || '—'}%</td>
+        <td style="font-size:10px;color:${i.riskLevel === 'High' ? 'var(--red)' : i.riskLevel === 'Low' ? 'var(--green)' : 'var(--amber)'};">${i.riskLevel || '—'}</td>
+        <td style="font-size:10px;color:var(--text-secondary);">${i.thesis || ''}</td>
+      </tr>`).join('')}
+      </tbody></table>` : ''}
+      ${verdicts.length > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin:12px 0 6px;">KEY VERDICTS</div>
+      ${verdicts.filter(v => v.verdict !== 'HOLD').map(v => `<div style="padding:4px 0;border-bottom:1px solid var(--border-subtle);">
+        <span style="font-weight:700;">${v.ticker}</span>
+        <span class="badge ${v.verdict === 'BUY' ? 'badge-buy' : v.verdict === 'TRIM' ? 'badge-hold' : 'badge-exit'}" style="font-size:8px;">${v.verdict}</span>
+        <span style="font-size:10px;color:var(--text-secondary);margin-left:4px;">${v.actionNote || ''}</span>
+      </div>`).join('')}` : ''}
     </div>`;
     return;
   }
