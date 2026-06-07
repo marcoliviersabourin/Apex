@@ -2654,7 +2654,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.0.1';
+const APEX_VERSION = '5.0.2';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5285,8 +5285,12 @@ IMPORTANT: Check the RESEARCH RISK SIGNALS section above. If any held position h
 Same format. Emphasise technical setup with actual RSI/MACD numbers, momentum indicators, entry/exit timing.
 
 ## PART 3 — NEW IDEAS
-5-15 new tickers NOT in portfolio. 1-2 per focus sector. Tag Core/Tactical.
-IMPORTANT: Review ALL tickers from the WATCHLIST and RESEARCH FEED CANDIDATES sections above. Include any that merit recommendation based on your analysis. You may also discover new ideas beyond those lists. Reject candidates that don't meet quality standards — explain briefly why if a prominent candidate is excluded.
+5-15 new tickers NOT currently in the portfolio. 1-2 per focus sector. Tag Core/Tactical.
+IMPORTANT: Review ALL tickers from the WATCHLIST and RESEARCH FEED CANDIDATES sections above as potential ideas. HOWEVER:
+- If a candidate is ALREADY IN THE PORTFOLIO (listed in the positions above), do NOT include it here. Instead, strengthen your verdict for that stock in Part 2 (upgrade to BUY with increased weight if warranted).
+- Only include stocks the user does NOT already hold.
+- You may also discover new ideas beyond the candidate lists via your own analysis.
+- Reject candidates that don't meet quality standards — explain briefly why if a prominent candidate is excluded.
 For EACH idea, indicate the lead analyst:
 - 📊 Value Pick = fundamentals justify the price (must show forward P/E < 25 OR PEG < 1.5 OR FCF yield > 5%)
 - 📈 Technical Pick = technical setup (RSI < 35 OR clear support level OR reversal pattern)
@@ -9775,16 +9779,32 @@ function renderFeedResults(feedName) {
         <div class="metric-card" style="flex:1;padding:8px;"><div class="metric-label">New Ideas</div><div class="metric-value" style="color:var(--blue);">${ideas.length}</div></div>
       </div>
       ${ideas.length > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">NEW IDEAS FROM LATEST ANALYSIS</div>
-      <table style="width:100%;"><thead><tr><th>Ticker</th><th>Sector</th><th>Tag</th><th>Weight</th><th>Risk</th><th>Thesis</th></tr></thead><tbody>
-      ${ideas.map(i => `<tr>
-        <td style="font-weight:700;">${i.ticker}</td>
-        <td style="font-size:10px;">${i.sector || ''}</td>
-        <td><span class="badge ${i.tag === 'tactical' ? 'badge-tactical' : 'badge-core'}" style="font-size:8px;">${(i.tag || 'core').toUpperCase()}</span></td>
-        <td class="num">${i.suggestedWeight || '—'}%</td>
-        <td style="font-size:10px;color:${i.riskLevel === 'High' ? 'var(--red)' : i.riskLevel === 'Low' ? 'var(--green)' : 'var(--amber)'};">${i.riskLevel || '—'}</td>
-        <td style="font-size:10px;color:var(--text-secondary);">${i.thesis || ''}</td>
-      </tr>`).join('')}
-      </tbody></table>` : ''}
+      ${ideas.map((i, idx) => `<div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${i.priority ? 'var(--green)' : 'var(--border-subtle)'};">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:700;font-size:13px;">${i.ticker}</span>
+          <span class="badge ${i.tag === 'tactical' ? 'badge-tactical' : 'badge-core'}" style="font-size:8px;">${(i.tag || 'core').toUpperCase()}</span>
+          <span style="font-size:10px;color:var(--text-tertiary);">${i.sector || ''} · ${i.exchange || ''} · ${i.marketCap || ''}</span>
+          ${i.priority ? '<span style="font-size:10px;color:var(--green);font-weight:700;">⭐ Priority</span>' : ''}
+          <span style="margin-left:auto;font-size:10px;">Wt: ${i.suggestedWeight || '—'}% · Risk: <span style="color:${i.riskLevel === 'High' ? 'var(--red)' : i.riskLevel === 'Low' ? 'var(--green)' : 'var(--amber)'};">${i.riskLevel || '—'}</span></span>
+        </div>
+        <div style="font-size:11px;margin-top:4px;color:var(--text-secondary);">${i.thesis || ''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;font-size:10px;">
+          <div>
+            <div style="font-weight:600;color:var(--text-tertiary);">📊 Value</div>
+            <div style="color:var(--text-secondary);">${i.valueSummary || i.fundamentals || 'No data'}</div>
+          </div>
+          <div>
+            <div style="font-weight:600;color:var(--text-tertiary);">📈 Technical</div>
+            <div style="color:var(--text-secondary);">${i.technicalSummary || 'No data'}</div>
+          </div>
+          <div>
+            <div style="font-weight:600;color:var(--text-tertiary);">🎯 Catalysts & Risks</div>
+            <div style="color:var(--text-secondary);">${i.catalysts || 'None'} ${i.risks ? '| ⚠ ' + i.risks : ''}</div>
+          </div>
+        </div>
+        ${i.moat ? '<div style="font-size:10px;margin-top:4px;color:var(--text-tertiary);">Moat: ' + i.moat + '</div>' : ''}
+        ${i.leadAnalyst ? '<div style="font-size:9px;margin-top:2px;color:var(--text-tertiary);">Lead: ' + (i.leadAnalyst === 'dual' ? '📊📈 Dual Signal' : i.leadAnalyst === 'value' ? '📊 Value Pick' : i.leadAnalyst === 'technical' ? '📈 Technical Pick' : '⚠ Speculative') + ' · Revenue: ' + (i.revTrend || '—') + '</div>' : ''}
+      </div>`).join('')}` : ''}
       ${verdicts.length > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--text-tertiary);margin:12px 0 6px;">KEY VERDICTS</div>
       ${verdicts.filter(v => v.verdict !== 'HOLD').map(v => `<div style="padding:4px 0;border-bottom:1px solid var(--border-subtle);">
         <span style="font-weight:700;">${v.ticker}</span>
