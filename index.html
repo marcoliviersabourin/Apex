@@ -2380,6 +2380,7 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn btn-sm" onclick="filterUniverse('watchlist')" data-uf="watchlist">Watchlist</button>
         <button class="btn btn-sm" onclick="filterUniverse('idea')" data-uf="idea">AI Ideas</button>
         <button class="btn btn-sm" onclick="filterUniverse('research')" data-uf="research">Research</button>
+        <button class="btn btn-sm" onclick="filterUniverse('shorts')" data-uf="shorts" style="border-color:var(--red);color:var(--red);">🔻 Shorts</button>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
           <span style="font-size:10px;color:var(--text-tertiary);">Period:</span>
           <select class="form-select" id="universePeriod" style="font-size:11px;width:80px;" onchange="refreshUniverse()">
@@ -2654,7 +2655,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.0.2';
+const APEX_VERSION = '5.0.3';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -4863,7 +4864,8 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
   "newIdeas": [
     {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual|speculative","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
-  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
+  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}],
+  "shortCandidates": [{"ticker":"XYZ","sector":"Technology","thesis":"1 sentence","catalyst":"specific event","signals":["insider_selling","bx_bear"],"entryTrigger":"break below $XX","stopLoss":"15% above entry","targetDownside":"-25%","timeHorizon":"2-3 months","riskLevel":"High|Medium"}]
 }
 
 CRITICAL: Include EVERY portfolio position in verdicts and EVERY new idea in newIdeas. Keep ALL text fields under 100 characters. Start with { end with }.`;
@@ -5298,6 +5300,18 @@ For EACH idea, indicate the lead analyst:
 - ⚠ Speculative Growth = high multiple but compelling growth story (forward P/E > 40 — must be explicitly acknowledged)
 Format: Ticker | Exchange | Sector | Cap | Core/Tactical | Lead (📊/📈/📊📈/⚠) | Description
 
+## PART 3b — SHORT CANDIDATES
+Based on the RESEARCH RISK SIGNALS above, your own analysis, and current market conditions, identify 2-5 stocks that are strong SHORT candidates. These are stocks the user might profit from by betting AGAINST.
+
+REQUIREMENTS for a short recommendation:
+- Must have a specific CATALYST (not just "expensive"). Catalysts: earnings miss risk, insider selling cluster, regulatory threat, competitive disruption, accounting red flags, loss of key contract.
+- Must have at least 2 confirming signals (e.g. insider selling + BX BEAR, or smart money short + extreme valuation + decelerating revenue).
+- Must NOT be in the user's portfolio (for held stocks use TRIM/EXIT in Part 2 instead).
+- Avoid stocks with short interest >25% (squeeze risk).
+- Include for each: entry trigger (technical level to confirm), stop-loss (15% max above entry), target downside (%), and time horizon.
+
+Format: Ticker | Sector | Catalyst | Confirming Signals | Entry Trigger | Stop-Loss | Target | Time Horizon
+
 ## PART 4 — FUNDAMENTALS & TECHNICALS
 Per idea provide BOTH with concrete numbers:
 📊 Value view: forward P/E (actual number), PEG ratio, revenue growth rate, FCF yield, margin trend, intrinsic value vs current price
@@ -5394,7 +5408,8 @@ KEEP ALL TEXT FIELDS BRIEF — max 100 chars each. Schema:
   "newIdeas": [
     {"ticker":"XYZ","exchange":"NASDAQ","sector":"Technology","tag":"Core|Tactical","marketCap":"Large","thesis":"1 sentence","leadAnalyst":"value|technical|dual|speculative","valueSummary":"brief","technicalSummary":"brief","revenueTrend":"↑","revenueNote":"","moat":"","catalysts":"","risks":"","riskLevel":"Low|Medium|High","suggestedWeight":2.5,"priority":false,"fundamentals":"brief"}
   ],
-  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}]
+  "priorityIdeas": [{"ticker":"XYZ","note":"brief"}],
+  "shortCandidates": [{"ticker":"XYZ","sector":"Technology","thesis":"1 sentence","catalyst":"specific event","signals":["insider_selling","bx_bear"],"entryTrigger":"break below $XX","stopLoss":"15% above entry","targetDownside":"-25%","timeHorizon":"2-3 months","riskLevel":"High|Medium"}]
 }
 
 CRITICAL: Include EVERY portfolio position in verdicts and EVERY new idea in newIdeas. Keep ALL text fields under 100 characters. Start with { end with }.`;
@@ -8614,6 +8629,19 @@ function buildUniverseData() {
     u.ideaLead = i.leadAnalyst;
   });
   
+  // Source 3b: Short Candidates (from weekly analysis)
+  (state.analysisData?.shortCandidates || []).forEach(s => {
+    const key = s.ticker?.toUpperCase()?.trim();
+    if (!key || !/^[A-Z0-9.]{1,10}$/.test(key)) return;
+    if (!universe[key]) universe[key] = createUniverseEntry(key);
+    const u = universe[key];
+    u.sources.add('short');
+    u.sector = s.sector || u.sector;
+    u.shortThesis = s.thesis; u.shortCatalyst = s.catalyst;
+    u.shortEntry = s.entryTrigger; u.shortStop = s.stopLoss;
+    u.shortTarget = s.targetDownside; u.shortHorizon = s.timeHorizon;
+  });
+  
   // Source 4-8: Research feeds
   const feedNames = ['earnings', 'institutional', 'political', 'rotation', 'insider'];
   feedNames.forEach(feed => {
@@ -8629,6 +8657,15 @@ function buildUniverseData() {
       u.feedSignals[feed] = { signal: pick.signal, confidence: pick.confidence, reason: pick.reason };
       u.sector = pick.sector || u.sector;
       u.tag = pick.suggestedTag?.toLowerCase() || u.tag;
+    });
+    // Also add topShorts from research as short candidates
+    (data.topShorts || []).forEach(s => {
+      const key = s.ticker?.toUpperCase()?.trim();
+      if (!key || !/^[A-Z0-9.]{1,10}$/.test(key)) return;
+      if (!universe[key]) universe[key] = createUniverseEntry(key);
+      universe[key].sources.add('short');
+      if (!universe[key].shortThesis) universe[key].shortThesis = s.reason;
+      if (!universe[key].shortCatalyst) universe[key].shortCatalyst = `${s.trader}: ${s.position}`;
     });
     // Also add overlap flags
     (data.portfolioOverlap || []).forEach(ov => {
@@ -8808,6 +8845,7 @@ function renderUniverseTable() {
       if (_universeFilter === 'watchlist') return u.sources.has('watchlist');
       if (_universeFilter === 'idea') return u.sources.has('idea');
       if (_universeFilter === 'research') return Object.keys(u.feedSignals).length > 0;
+      if (_universeFilter === 'shorts') return u.sources.has('short');
       return true;
     });
   }
@@ -9810,6 +9848,22 @@ function renderFeedResults(feedName) {
         <span style="font-weight:700;">${v.ticker}</span>
         <span class="badge ${v.verdict === 'BUY' ? 'badge-buy' : v.verdict === 'TRIM' ? 'badge-hold' : 'badge-exit'}" style="font-size:8px;">${v.verdict}</span>
         <span style="font-size:10px;color:var(--text-secondary);margin-left:4px;">${v.actionNote || ''}</span>
+      </div>`).join('')}` : ''}
+      
+      ${(ad.shortCandidates || []).length > 0 ? `<div style="font-size:11px;font-weight:700;color:var(--red);margin:12px 0 6px;">🔻 SHORT CANDIDATES</div>
+      ${ad.shortCandidates.map(s => `<div style="padding:8px 12px;margin-bottom:6px;background:rgba(239,68,68,0.05);border-radius:var(--radius-sm);border-left:3px solid var(--red);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:700;font-size:13px;">${s.ticker}</span>
+          <span style="font-size:10px;color:var(--red);font-weight:600;">SHORT</span>
+          <span style="font-size:10px;color:var(--text-tertiary);">${s.sector || ''}</span>
+          <span style="margin-left:auto;font-size:10px;">Target: <span style="color:var(--red);">${s.targetDownside || '?'}</span> · Stop: ${s.stopLoss || '15%'} · ${s.timeHorizon || ''}</span>
+        </div>
+        <div style="font-size:11px;margin-top:4px;color:var(--text-secondary);">${s.thesis || ''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;font-size:10px;">
+          <div><span style="color:var(--text-tertiary);">Catalyst:</span> ${s.catalyst || 'None specified'}</div>
+          <div><span style="color:var(--text-tertiary);">Entry:</span> ${s.entryTrigger || 'At market'}</div>
+          <div><span style="color:var(--text-tertiary);">Signals:</span> ${(s.signals || []).join(', ') || '—'}</div>
+        </div>
       </div>`).join('')}` : ''}
     </div>`;
     return;
