@@ -2655,7 +2655,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.0.3';
+const APEX_VERSION = '5.1.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -5301,15 +5301,22 @@ For EACH idea, indicate the lead analyst:
 Format: Ticker | Exchange | Sector | Cap | Core/Tactical | Lead (📊/📈/📊📈/⚠) | Description
 
 ## PART 3b — SHORT CANDIDATES
-Based on the RESEARCH RISK SIGNALS above, your own analysis, and current market conditions, identify 2-5 stocks that are strong SHORT candidates. These are stocks the user might profit from by betting AGAINST.
+Based on the RESEARCH RISK SIGNALS above, your own analysis, and current market conditions, identify 2-5 stocks that are strong SHORT candidates.
 
 REQUIREMENTS for a short recommendation:
-- Must have a specific CATALYST (not just "expensive"). Catalysts: earnings miss risk, insider selling cluster, regulatory threat, competitive disruption, accounting red flags, loss of key contract.
-- Must have at least 2 confirming signals (e.g. insider selling + BX BEAR, or smart money short + extreme valuation + decelerating revenue).
+- Must have a specific CATALYST (earnings miss risk, insider selling, regulatory threat, competitive disruption, accounting red flags). "Expensive" alone is NOT a valid short thesis.
+- Must have at least 2 confirming signals (e.g. insider selling + declining momentum, or smart money short + extreme valuation + decelerating revenue).
 - Must NOT be in the user's portfolio (for held stocks use TRIM/EXIT in Part 2 instead).
 - Avoid stocks with short interest >25% (squeeze risk).
-- Include for each: entry trigger (technical level to confirm), stop-loss (15% max above entry), target downside (%), and time horizon.
+- PREFER stocks with declining momentum — stocks in strong uptrends are dangerous shorts even if overvalued.
 
+DO NOT RECOMMEND SHORTING if:
+- Trump or major politicians personally own the stock
+- Multiple institutions are actively accumulating it
+- Revenue growth exceeds 25% YoY with expanding margins
+- The stock is near all-time highs with strong breadth (momentum shorts get squeezed)
+
+For each: entry trigger (technical level), stop-loss (15% max), target downside (%), time horizon.
 Format: Ticker | Sector | Catalyst | Confirming Signals | Entry Trigger | Stop-Loss | Target | Time Horizon
 
 ## PART 4 — FUNDAMENTALS & TECHNICALS
@@ -8779,6 +8786,7 @@ function buildUniverseData() {
     u.dimensions = computeDimensionScores(u);
     u.composite = computeComposite(u.dimensions, state.regime?.current || 'TRENDING');
     u.sizingBand = getSizingBand(u.composite);
+    u.shortScore = computeShortScore(u.ticker, u);
   });
   
   return Object.values(universe);
@@ -8845,7 +8853,7 @@ function renderUniverseTable() {
       if (_universeFilter === 'watchlist') return u.sources.has('watchlist');
       if (_universeFilter === 'idea') return u.sources.has('idea');
       if (_universeFilter === 'research') return Object.keys(u.feedSignals).length > 0;
-      if (_universeFilter === 'shorts') return u.sources.has('short');
+      if (_universeFilter === 'shorts') return u.shortScore?.net > 0 || u.sources.has('short');
       return true;
     });
   }
@@ -8853,6 +8861,10 @@ function renderUniverseTable() {
   // Sort
   const dir = _universeSort.dir === 'desc' ? -1 : 1;
   data.sort((a, b) => {
+    // When viewing shorts, sort by net short score descending
+    if (_universeFilter === 'shorts' && _universeSort.col === 'composite') {
+      return -1 * ((a.shortScore?.net||0) - (b.shortScore?.net||0));
+    }
     switch(_universeSort.col) {
       case 'ticker': return dir * a.ticker.localeCompare(b.ticker);
       case 'composite': return dir * ((a.composite||0) - (b.composite||0));
@@ -8939,12 +8951,20 @@ function renderUniverseTable() {
       <td style="font-weight:700;">${u.ticker}</td>
       <td style="font-size:9px;">${srcBadges.join(' ')}</td>
       <td style="font-size:10px;">${u.sector || ''}</td>
+      ${_universeFilter === 'shorts' ? `
+      <td class="num" style="font-weight:800;font-size:14px;color:${u.shortScore?.net >= 35 ? 'var(--red)' : u.shortScore?.net > 0 ? 'var(--amber)' : 'var(--green)'};">${u.shortScore?.net || 0}</td>
+      <td style="font-size:9px;font-weight:600;color:${u.shortScore?.net >= 35 ? 'var(--red)' : u.shortScore?.net > 0 ? 'var(--amber)' : 'var(--green)'};">${u.shortScore?.conviction || '—'}</td>
+      <td class="num" style="font-size:10px;color:var(--red);">${u.shortScore?.bearTotal || 0}</td>
+      <td class="num" style="font-size:10px;color:var(--green);">${u.shortScore?.antiTotal || 0}</td>
+      <td class="num" style="font-size:10px;">${u.shortScore?.bearish?.length || 0}</td>
+      ` : `
       <td class="num" style="font-weight:800;font-size:14px;color:${u.composite >= 70 ? 'var(--green)' : u.composite >= 40 ? 'var(--amber)' : u.composite > 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${u.composite || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.value >= 50 ? 'var(--green)' : u.dimensions?.value >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.value || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.quality >= 50 ? 'var(--green)' : u.dimensions?.quality >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.quality || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.momentum >= 50 ? 'var(--green)' : u.dimensions?.momentum >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.momentum || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.conviction >= 50 ? 'var(--green)' : u.dimensions?.conviction >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.conviction || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.risk >= 50 ? 'var(--green)' : u.dimensions?.risk >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.risk || 50}</td>
+      `}
       <td style="font-size:9px;color:${u.sizingBand?.color || 'var(--text-tertiary)'};font-weight:600;">${u.sizingBand?.band || '—'}</td>
       <td style="text-align:center;">
         <span style="font-weight:700;color:${sigColor};">${u.signalCount}</span>
@@ -9031,6 +9051,19 @@ function toggleUniverseDetail(row, ticker) {
         ${u.catalysts ? '<div style="margin-top:4px;">Catalysts: ' + u.catalysts.substring(0, 80) + '</div>' : ''}
       </div>
     </div>
+    ${u.shortScore && u.shortScore.net > -50 ? `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,0.05);border-radius:var(--radius-sm);">
+      <div style="font-weight:700;margin-bottom:4px;">🔻 Short Conviction: <span style="color:${u.shortScore.net >= 35 ? 'var(--red)' : u.shortScore.net > 0 ? 'var(--amber)' : 'var(--green)'};">${u.shortScore.net} (${u.shortScore.conviction})</span></div>
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:9px;color:var(--red);font-weight:600;margin-bottom:2px;">BEARISH (${u.shortScore.bearTotal} pts)</div>
+          ${u.shortScore.bearish.map(b => '<div style="font-size:10px;">• ' + b.signal + ' <span style="color:var(--red);">+' + b.pts + '</span></div>').join('') || '<div style="font-size:10px;color:var(--text-tertiary);">No bearish signals</div>'}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:9px;color:var(--green);font-weight:600;margin-bottom:2px;">ANTI-SHORT (${u.shortScore.antiTotal} pts)</div>
+          ${u.shortScore.antishort.map(a => '<div style="font-size:10px;">• ' + a.signal + ' <span style="color:var(--green);">-' + a.pts + '</span></div>').join('') || '<div style="font-size:10px;color:var(--text-tertiary);">No anti-short signals</div>'}
+        </div>
+      </div>
+    </div>` : ''}
   </td>`;
   row.after(detailRow);
 }
@@ -10326,6 +10359,127 @@ function renderUnifiedMarketData(aiAssess, aiFresh, factors) {
   `;
   
   document.getElementById('marketDataSource').textContent = aiFresh ? '✓ AI-driven (fresh)' : aiAssess?.regime ? '⚠ AI stale — computed fallback' : 'Computed only — run AI check for better data';
+}
+
+function computeShortScore(ticker, u) {
+  const t = ticker.toUpperCase();
+  let bearish = [], antishort = [];
+  
+  // ═══ BEARISH SIGNALS (increase short conviction) ═══
+  
+  // Check all research feeds for bearish signals on this ticker
+  ['political','institutional','insider','earnings','rotation','trump'].forEach(feed => {
+    const data = state.research?.[feed];
+    if (!data) return;
+    
+    // topShorts — smart money shorting
+    (data.topShorts || []).forEach(s => {
+      if (s.ticker?.toUpperCase() === t) {
+        const pts = feed === 'political' ? 25 : feed === 'institutional' ? 20 : 20;
+        bearish.push({ signal: `${s.trader || feed}: ${s.position || 'SHORT'}`, pts, source: feed });
+      }
+    });
+    
+    // riskFlags — direct risk to this ticker
+    (data.riskFlags || []).forEach(r => {
+      if (r.ticker?.toUpperCase() === t) {
+        bearish.push({ signal: `Risk: ${r.trader || ''} ${r.position || ''}`, pts: 20, source: feed });
+      }
+    });
+    
+    // Negative confluence (insider sell + bearish options)
+    (data.feedSpecific?.negativeConfluence || []).forEach(n => {
+      if (n.ticker?.toUpperCase() === t) {
+        bearish.push({ signal: `Negative confluence: ${n.insiderSignal}`, pts: 30, source: 'insider' });
+      }
+    });
+  });
+  
+  // BX state
+  if (u.bxState === 'BEAR' || u.bxState === 'SELL') {
+    bearish.push({ signal: `BX ${u.bxState}`, pts: 15, source: 'bx' });
+  }
+  
+  // Extreme drawdown
+  if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 40) {
+    bearish.push({ signal: `${Math.abs(u.pctFromHigh).toFixed(0)}% from high`, pts: 10, source: 'price' });
+  }
+  
+  // Value trap (cheap but broken)
+  if (u.fwdPE && u.fwdPE < 8 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 50) {
+    bearish.push({ signal: 'Value trap (P/E < 8 + drawdown)', pts: 10, source: 'scoring' });
+  }
+  
+  // AI verdict EXIT or TRIM
+  if (u.aiVerdict === 'EXIT') bearish.push({ signal: 'AI verdict: EXIT', pts: 15, source: 'analysis' });
+  else if (u.aiVerdict === 'TRIM') bearish.push({ signal: 'AI verdict: TRIM', pts: 8, source: 'analysis' });
+  
+  // B&H deeply negative
+  if (u.bhReturn !== null && u.bhReturn < -30) {
+    bearish.push({ signal: `B&H return ${u.bhReturn.toFixed(0)}%`, pts: 10, source: 'bx' });
+  }
+  
+  // ═══ ANTI-SHORT SIGNALS (reduce short conviction) ═══
+  
+  ['political','institutional','insider','earnings','trump'].forEach(feed => {
+    const data = state.research?.[feed];
+    if (!data) return;
+    
+    // topPicks — smart money buying (anti-short)
+    (data.topPicks || []).forEach(p => {
+      if (p.ticker?.toUpperCase() === t) {
+        const pts = feed === 'political' ? 25 : feed === 'institutional' ? 20 : 15;
+        antishort.push({ signal: `${p.trader || feed}: ${p.signal || 'BUY'}`, pts, source: feed });
+      }
+    });
+    
+    // Bullish conviction (large call bets)
+    (data.bullishConviction || []).forEach(b => {
+      if (b.ticker?.toUpperCase() === t) {
+        antishort.push({ signal: `Bullish conviction: ${b.trader} ${b.size || ''}`, pts: 15, source: feed });
+      }
+    });
+  });
+  
+  // Trump personally owns shares (from trump feed alerts)
+  const trumpData = state.research?.trump;
+  if (trumpData?.alerts) {
+    trumpData.alerts.forEach(a => {
+      if ((a.tickers || []).includes(t) && a.direction === 'Bullish') {
+        antishort.push({ signal: `Trump signal: ${a.event?.substring(0, 40)}`, pts: 30, source: 'trump' });
+      }
+    });
+  }
+  if (trumpData?.portfolioFlags) {
+    trumpData.portfolioFlags.forEach(f => {
+      if (f.ticker?.toUpperCase() === t && f.action?.toLowerCase().includes('buy')) {
+        antishort.push({ signal: 'Trump portfolio: bullish', pts: 25, source: 'trump' });
+      }
+    });
+  }
+  
+  // BX BULL or BUY (anti-short)
+  if (u.bxState === 'BULL' || u.bxState === 'BUY') {
+    antishort.push({ signal: `BX ${u.bxState} — uptrend`, pts: 20, source: 'bx' });
+  }
+  
+  // Revenue growth (anti-short)
+  if (u.revTrend === '↑' || u.revTrend === '↑↑') {
+    antishort.push({ signal: 'Revenue growing', pts: 10, source: 'fundamentals' });
+  }
+  
+  // Held by user (you're long — don't short your own position)
+  if (u.sources.has('held')) {
+    antishort.push({ signal: 'YOU HOLD THIS — use TRIM/EXIT instead', pts: 50, source: 'portfolio' });
+  }
+  
+  // Calculate net score
+  const bearTotal = bearish.reduce((s, b) => s + b.pts, 0);
+  const antiTotal = antishort.reduce((s, a) => s + a.pts, 0);
+  const net = bearTotal - antiTotal;
+  const conviction = net >= 60 ? 'STRONG SHORT' : net >= 35 ? 'MODERATE SHORT' : net >= 15 ? 'WEAK SHORT' : net > 0 ? 'MARGINAL' : 'NOT SHORTABLE';
+  
+  return { bearish, antishort, bearTotal, antiTotal, net, conviction };
 }
 
 function computeOpportunities() {
