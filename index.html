@@ -2657,7 +2657,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.6';
+const APEX_VERSION = '5.3.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9373,6 +9373,178 @@ function refreshResearch() {
   if (activeTab) renderFeedResults(activeTab.dataset.feed);
 }
 
+// ═══ SEC EDGAR 13F DIRECT API ═══
+const FUND_CIK_MAP = {
+  'Michael Burry': { cik: '1649339', fund: 'Scion Asset Management' },
+  'Warren Buffett': { cik: '1067983', fund: 'Berkshire Hathaway' },
+  'David Tepper': { cik: '1656456', fund: 'Appaloosa Management' },
+  'Bill Ackman': { cik: '1336528', fund: 'Pershing Square Capital' },
+  'Bill Gates': { cik: '1166559', fund: 'Bill & Melinda Gates Foundation Trust' },
+};
+
+async function fetchSEC13F(personName) {
+  const entry = FUND_CIK_MAP[personName];
+  if (!entry) return null;
+  
+  const paddedCIK = entry.cik.padStart(10, '0');
+  try {
+    // Step 1: Get filing index
+    const subResp = await fetch(`https://data.sec.gov/submissions/CIK${paddedCIK}.json`, {
+      headers: { 'User-Agent': 'APEX-PWA research@apex-app.dev', 'Accept': 'application/json' }
+    });
+    if (!subResp.ok) throw new Error(`SEC API ${subResp.status}`);
+    const subData = await subResp.json();
+    
+    // Step 2: Find most recent 13F filing
+    const filings = subData.filings?.recent || subData.recent;
+    if (!filings?.form) return { fund: entry.fund, error: 'No filing data found' };
+    
+    let filing13F = null;
+    for (let i = 0; i < filings.form.length; i++) {
+      if (filings.form[i] === '13F-HR' || filings.form[i] === '13F-HR/A') {
+        filing13F = {
+          form: filings.form[i],
+          date: filings.filingDate[i],
+          accession: filings.accessionNumber[i].replace(/-/g, ''),
+          accessionFormatted: filings.accessionNumber[i],
+          reportDate: filings.reportDate?.[i] || filings.filingDate[i],
+          primaryDoc: filings.primaryDocument?.[i]
+        };
+        break;
+      }
+    }
+    if (!filing13F) return { fund: entry.fund, error: 'No 13F filing found' };
+    
+    // Step 3: Fetch the filing's information table (XML)
+    const accPath = filing13F.accessionFormatted.replace(/-/g, '');
+    const baseUrl = `https://www.sec.gov/Archives/edgar/data/${entry.cik}/${accPath}`;
+    
+    // Try to find the infotable document from the filing index
+    let infoTableUrl = null;
+    try {
+      const indexResp = await fetch(`${baseUrl}/index.json`, {
+        headers: { 'User-Agent': 'APEX-PWA research@apex-app.dev' }
+      });
+      if (indexResp.ok) {
+        const indexData = await indexResp.json();
+        const infoDoc = indexData.directory?.item?.find(f => 
+          f.name?.toLowerCase().includes('infotable') || 
+          f.name?.toLowerCase().includes('information_table') ||
+          (f.name?.endsWith('.xml') && !f.name?.includes('primary'))
+        );
+        if (infoDoc) infoTableUrl = `${baseUrl}/${infoDoc.name}`;
+      }
+    } catch(e) { /* CORS may block index.json */ }
+    
+    // Step 4: Parse positions from the XML
+    let positions = [];
+    if (infoTableUrl) {
+      try {
+        const xmlResp = await fetch(infoTableUrl, {
+          headers: { 'User-Agent': 'APEX-PWA research@apex-app.dev' }
+        });
+        if (xmlResp.ok) {
+          const xmlText = await xmlResp.text();
+          positions = parse13FXML(xmlText);
+        }
+      } catch(e) { apexLog('INFO', `SEC 13F XML fetch failed for ${personName}: ${e.message}`); }
+    }
+    
+    return {
+      fund: entry.fund,
+      person: personName,
+      filingDate: filing13F.date,
+      reportDate: filing13F.reportDate,
+      form: filing13F.form,
+      positions,
+      positionCount: positions.length,
+      source: 'SEC EDGAR (direct)',
+      url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${entry.cik}&type=13F&dateb=&owner=include&count=5`
+    };
+  } catch(e) {
+    apexLog('INFO', `SEC EDGAR fetch failed for ${personName}: ${e.message}`);
+    return { fund: entry.fund, person: personName, error: e.message, positions: [] };
+  }
+}
+
+function parse13FXML(xmlText) {
+  const positions = [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const ns = doc.documentElement.namespaceURI || '';
+    const entries = doc.getElementsByTagNameNS(ns, 'infoTable');
+    const entriesFallback = entries.length > 0 ? entries : doc.getElementsByTagName('infoTable');
+    
+    for (let i = 0; i < entriesFallback.length; i++) {
+      const el = entriesFallback[i];
+      const getText = (tag) => {
+        const found = el.getElementsByTagNameNS(ns, tag);
+        return (found.length > 0 ? found[0] : el.getElementsByTagName(tag)?.[0])?.textContent?.trim() || '';
+      };
+      positions.push({
+        issuer: getText('nameOfIssuer'),
+        titleOfClass: getText('titleOfClass'),
+        cusip: getText('cusip'),
+        value: parseInt(getText('value')) || 0, // in thousands
+        shares: parseInt(getText('sshPrnamt')) || 0,
+        shareType: getText('sshPrnamtType'), // SH or PRN
+        putCall: getText('putCall'), // PUT, CALL, or empty
+        investmentDiscretion: getText('investmentDiscretion'),
+        votingAuth: getText('Sole') || ''
+      });
+    }
+  } catch(e) {
+    apexLog('INFO', `13F XML parse error: ${e.message}`);
+  }
+  return positions;
+}
+
+function format13FForClaude(results) {
+  let text = '═══ 13F FILING DATA (DIRECT FROM SEC EDGAR — VERIFIED) ═══\n\n';
+  results.forEach(r => {
+    if (r.error && r.positions?.length === 0) {
+      text += `${r.fund} (${r.person}): ${r.error}\n\n`;
+      return;
+    }
+    text += `${r.fund} (${r.person}) — Filed: ${r.filingDate}, Report Date: ${r.reportDate}\n`;
+    text += `Total positions: ${r.positionCount} | Source: ${r.source}\n`;
+    if (r.positions.length > 0) {
+      // Separate puts, calls, and regular positions
+      const puts = r.positions.filter(p => p.putCall === 'PUT');
+      const calls = r.positions.filter(p => p.putCall === 'CALL');
+      const longs = r.positions.filter(p => !p.putCall);
+      
+      // Top 15 longs by value
+      longs.sort((a, b) => b.value - a.value);
+      text += `\nTOP LONG POSITIONS (${longs.length} total):\n`;
+      longs.slice(0, 15).forEach(p => {
+        text += `  ${p.issuer} | ${p.shares.toLocaleString()} shares | $${(p.value * 1000).toLocaleString()} | ${p.titleOfClass}\n`;
+      });
+      
+      // ALL puts (critical for shorts)
+      if (puts.length > 0) {
+        text += `\nALL PUT POSITIONS (${puts.length}) — BEARISH BETS:\n`;
+        puts.forEach(p => {
+          text += `  ⚠ PUT: ${p.issuer} | ${p.shares.toLocaleString()} contracts | $${(p.value * 1000).toLocaleString()} notional | ${p.titleOfClass}\n`;
+        });
+      }
+      
+      // ALL calls
+      if (calls.length > 0) {
+        text += `\nALL CALL POSITIONS (${calls.length}) — BULLISH BETS:\n`;
+        calls.forEach(p => {
+          text += `  CALL: ${p.issuer} | ${p.shares.toLocaleString()} contracts | $${(p.value * 1000).toLocaleString()} notional | ${p.titleOfClass}\n`;
+        });
+      }
+    } else {
+      text += `  (XML parse failed — filing exists but positions could not be extracted. Search for this fund manually.)\n`;
+    }
+    text += '\n';
+  });
+  return text;
+}
+
 async function runResearchFeed(feedName) {
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key in Settings first', 'error'); return; }
@@ -9396,7 +9568,30 @@ async function runResearchFeed(feedName) {
   let totalCost = 0;
   
   try {
+    // ═══ STEP 0 (Political only): Fetch 13F data directly from SEC EDGAR ═══
+    let sec13FData = '';
+    if (feedName === 'political') {
+      if (btn) btn.textContent = '⏳ Step 0: SEC EDGAR...';
+      const members = state.research?.config?.political?.members || DEFAULT_POLITICAL;
+      const edgarResults = [];
+      for (const person of members) {
+        if (FUND_CIK_MAP[person]) {
+          apexLog('INFO', `SEC EDGAR: Fetching 13F for ${person}...`);
+          const result = await fetchSEC13F(person);
+          if (result) edgarResults.push(result);
+          await new Promise(r => setTimeout(r, 200)); // Rate limit: 10 req/sec
+        }
+      }
+      if (edgarResults.length > 0) {
+        sec13FData = format13FForClaude(edgarResults);
+        const totalPositions = edgarResults.reduce((s, r) => s + (r.positions?.length || 0), 0);
+        apexLog('INFO', `SEC EDGAR: ${edgarResults.length} funds, ${totalPositions} total positions fetched (FREE)`);
+        toast(`📡 SEC EDGAR: ${totalPositions} positions from ${edgarResults.length} funds`);
+      }
+    }
+    
     // ═══ STEP 1: Haiku + web search — gather raw data (cheap) ═══
+    if (btn) btn.textContent = '⏳ Step 1: Searching...';
     const gatherPrompt = buildGatherPrompt(feedName);
     const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: gatherPrompt}], true, 3000);
     
@@ -9405,7 +9600,10 @@ async function runResearchFeed(feedName) {
     totalCost += cost1;
     apexLog('API', `${feedName} Step 1 (Haiku search) — $${cost1.toFixed(3)}`, `in=${u1.input_tokens} out=${u1.output_tokens}`);
     
-    if (!step1.text || step1.text.length < 50) {
+    // Combine SEC EDGAR data with web search findings
+    const combinedRaw = sec13FData ? sec13FData + '\n═══ WEB SEARCH FINDINGS (political trades, news, commentary) ═══\n' + step1.text : step1.text;
+    
+    if (!combinedRaw || combinedRaw.length < 50) {
       toast(`${feedName}: search returned no data`, 'error');
       if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
       return;
@@ -9414,7 +9612,7 @@ async function runResearchFeed(feedName) {
     // ═══ STEP 2: Sonnet WITHOUT web search — analyze and judge (smart) ═══
     if (btn) btn.textContent = '⏳ Step 2: Analyzing...';
     
-    const analyzePrompt = buildAnalyzePrompt(feedName, step1.text);
+    const analyzePrompt = buildAnalyzePrompt(feedName, combinedRaw);
     const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, 2000);
     
     const u2 = step2.data?.usage || {};
@@ -9514,30 +9712,18 @@ Report all raw findings with specific numbers and dates.`;
     const investorMembers = memberList.filter(m => investors.some(i => m.includes(i.split(' ').pop())) || !['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     const politicianMembers = memberList.filter(m => ['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     
-    return preamble + `Search for recent trades and positions by these tracked persons: ${members}.
+    return preamble + `NOTE: 13F filing data for major investors (Buffett, Tepper, Ackman, Gates, Burry) is being fetched DIRECTLY from SEC EDGAR in a separate step. Your job is to search for data that 13F filings DON'T contain:
 
-SEARCH STRATEGY (work within your search budget — prioritize the most valuable queries):
+1. POLITICAL TRADES: Search Capitol Trades or Quiver Quantitative for STOCK Act disclosures (past ${days} days) by: ${politicianMembers.join(', ')}
+   Report: person, ticker, buy/sell/call/put, dollar amount, disclosure date.
 
-1. INVESTOR 13F FILINGS: Search for the most recent 13F filings for key investors. Prioritize these high-value searches:
-   → "${investorMembers.slice(0, 3).join('" 13F, "')}" 13F filing 2025 2026 (WhaleWisdom, Fintel, Dataroma)
-   → For each, report: new buys, exits, increases, decreases, ALL put/call positions, filing date.
-   ${investorMembers.length > 3 ? '→ Also search for: ' + investorMembers.slice(3).join(', ') : ''}
+2. RECENT NEWS & COMMENTARY: Search for recent news (past ${days} days) about any tracked person's investment thesis, interviews, or real-time trades: ${members}
 
-2. POLITICAL TRADES: Search Capitol Trades or Quiver Quantitative for STOCK Act disclosures (past ${days} days) by: ${politicianMembers.join(', ')}
+3. SHORT SELLER REPORTS: Search for ${shortSellers.join(', ')} — published short reports, activist campaigns, public bearish calls.
 
-3. SHORT SELLERS: Search for ${shortSellers.join(', ')} — recent short reports, disclosed positions, public statements.
+4. PORTFOLIO CROSS-CHECK: Search for any tracked person activity on my held tickers: ${tickers}
 
-4. PORTFOLIO-SPECIFIC CHECK: Search for any tracked person activity on these specific tickers (my held positions): ${tickers}
-   Try: "[person] [ticker]" for the most likely combinations.
-
-REPORTING RULES:
-- Report ALL findings you can verify from search results.
-- Include position sizes and dates when found.
-- If you find a trade mentioned but cannot verify the exact amount, include it and mark as [UNVERIFIED].
-- Prefer reporting unverified findings over reporting nothing — the user can verify manually.
-- DO NOT fabricate trades or numbers. If your search didn't find data for a person, say "No data found for [person]" rather than inventing positions.
-
-Minimum trade size: $${minSize}. Report all raw findings.`;
+Minimum trade size: $${minSize}. Focus on POLITICAL and REAL-TIME data that complements the SEC 13F filings.`;
   }
   
   if (feedName === 'insider') {
