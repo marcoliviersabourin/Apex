@@ -2656,7 +2656,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.0';
+const APEX_VERSION = '5.2.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9455,21 +9455,46 @@ Report all raw findings with specific numbers and dates.`;
     const days = cfg.lookback || '60';
     const members = cfg.members?.join(', ') || DEFAULT_POLITICAL.join(', ');
     const minSize = cfg.minSize || '100K';
-    return preamble + `Search for recent stock trades, options positions, and investment disclosures (past ${days} days) by these notable traders and political figures: ${members}.
+    
+    // Separate investors (13F) from politicians (STOCK Act)
+    const investors = ['Warren Buffett', 'David Tepper', 'Bill Ackman', 'Bill Gates', 'Michael Burry'];
+    const shortSellers = ['Hindenburg Research', 'Citron Research'];
+    const memberList = members.split(', ');
+    const investorMembers = memberList.filter(m => investors.some(i => m.includes(i.split(' ').pop())) || !['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
+    const politicianMembers = memberList.filter(m => ['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
+    
+    return preamble + `This research has TWO LAYERS. Complete BOTH.
 
-For POLITICIANS: search Capitol Trades, Quiver Quantitative, or Congressional disclosure databases. STOCK Act requires disclosure within 45 days.
-For INVESTORS: search SEC 13F filings, Form 4 insider filings, public statements, and financial news about their recent trades.
-For SHORT SELLERS/ACTIVISTS: search for disclosed short positions, put purchases, and public short reports (Hindenburg, Citron, etc.).
+═══ LAYER 1: 13F FILING DATA (INVESTORS) ═══
+For these INVESTORS, search for their COMPLETE most recent 13F filing on WhaleWisdom, Fintel, 13F.info, Dataroma, or SEC EDGAR: ${investorMembers.join(', ')}
 
-IMPORTANT: Search for ALL position types equally:
-- LONG positions (stock purchases, call options)
-- SHORT positions (short selling, put options)  
-- EXITS (selling existing long positions)
+For EACH investor's 13F, report:
+- ALL new positions (not held previous quarter) — these are NEW CONVICTION BUYS
+- ALL exits (completely sold) — these are CONVICTION SELLS
+- ALL significant increases (added >25% shares)
+- ALL significant decreases (trimmed >25%)
+- ALL PUT positions (bearish bets) — CRITICAL: report EVERY put, not just the largest
+- ALL CALL positions (bullish bets)
+- Filing date and quarter covered
+- Top 5 holdings by portfolio weight
 
+DO NOT skip smaller positions. Burry's 13F may have 20+ put positions — report ALL of them, not just the headline ones. The positions that don't make news are often the most valuable signals.
+
+For SHORT SELLERS/ACTIVISTS (${shortSellers.join(', ')}): search for published short reports, disclosed short positions, and public statements in the past ${days} days.
+
+═══ LAYER 2: POLITICAL & REAL-TIME TRADES ═══
+For these POLITICIANS, search Capitol Trades, Quiver Quantitative, or Congressional disclosure databases (STOCK Act, past ${days} days): ${politicianMembers.join(', ')}
+Report: person, ticker, buy/sell/call/put, dollar amount, disclosure date.
+
+Also search for RECENT NEWS (past ${days} days) about any tracked person's investment activity — interviews, public statements, new positions announced outside of 13F cycles.
+
+═══ TICKER-SPECIFIC CROSS-CHECK ═══
+For each of my key tickers, verify if ANY tracked person holds a position (long or short):
+${tickers.split(', ').slice(0, 12).join(', ')}${watchTickers ? ', ' + watchTickers.split(', ').slice(0, 8).join(', ') : ''}
+
+Search: "[person name] [ticker]" for each combination where a match is plausible.
 Minimum trade size: $${minSize}.
-For each trade found: person name, ticker, position type (LONG/SHORT/CALL/PUT/EXIT), dollar amount, disclosure date, source.
-Also look for patterns — multiple people on the same side of a trade.
-Report all raw findings.`;
+Report ALL raw findings — completeness over brevity.`;
   }
   
   if (feedName === 'insider') {
