@@ -2656,7 +2656,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.2';
+const APEX_VERSION = '5.2.3';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9389,6 +9389,14 @@ async function runResearchFeed(feedName) {
     if (parsed) {
       parsed.runDate = new Date().toISOString();
       parsed.feedName = feedName;
+      // Save previous run for contradiction detection
+      if (state.research[feedName]?.topPicks || state.research[feedName]?.topShorts) {
+        state.research[feedName + '_prev'] = {
+          topPicks: state.research[feedName].topPicks || [],
+          topShorts: state.research[feedName].topShorts || [],
+          runDate: state.research[feedName].runDate
+        };
+      }
       state.research[feedName] = parsed;
       saveState();
       renderFeedResults(feedName);
@@ -9463,22 +9471,25 @@ Report all raw findings with specific numbers and dates.`;
     const investorMembers = memberList.filter(m => investors.some(i => m.includes(i.split(' ').pop())) || !['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     const politicianMembers = memberList.filter(m => ['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     
-    return preamble + `This research has TWO LAYERS. Complete BOTH.
+    return preamble + `This research has THREE LAYERS. Complete ALL THREE.
 
-═══ LAYER 1: 13F FILING DATA (INVESTORS) ═══
-For these INVESTORS, search for their COMPLETE most recent 13F filing on WhaleWisdom, Fintel, 13F.info, Dataroma, or SEC EDGAR: ${investorMembers.join(', ')}
+═══ LAYER 1: 13F FILING DATA (INVESTORS) — SEARCH EACH PERSON SEPARATELY ═══
+CRITICAL: You MUST search for EACH investor individually. Do NOT let one person's results crowd out another. If you search for "${investorMembers[0] || 'Buffett'}" and get many results, you still MUST separately search for "${investorMembers[1] || 'Tepper'}", "${investorMembers[2] || 'Ackman'}", etc.
+
+${investorMembers.map(m => `→ Search: "${m} 13F filing 2026" or "${m} portfolio Q1 2026" on WhaleWisdom/Fintel/SEC`).join('\n')}
 
 For EACH investor's 13F, report:
-- ALL new positions (not held previous quarter) — these are NEW CONVICTION BUYS
-- ALL exits (completely sold) — these are CONVICTION SELLS
+- ALL new positions (not held previous quarter) — NEW CONVICTION BUYS
+- ALL exits (completely sold) — CONVICTION SELLS
 - ALL significant increases (added >25% shares)
 - ALL significant decreases (trimmed >25%)
-- ALL PUT positions (bearish bets) — CRITICAL: report EVERY put, not just the largest
+- ALL PUT positions (bearish bets) — report EVERY put, not just the largest
 - ALL CALL positions (bullish bets)
 - Filing date and quarter covered
-- Top 5 holdings by portfolio weight
 
-DO NOT skip smaller positions. Burry's 13F may have 20+ put positions — report ALL of them, not just the headline ones. The positions that don't make news are often the most valuable signals.
+VERIFICATION RULE: For any position change you report, you MUST have found a specific source (article, filing summary, or data page) that states the share count or dollar amount. If you cannot find a specific source confirming a trade, mark it as [UNVERIFIED] and explain what you inferred vs what you found. Do NOT generate plausible-sounding numbers from context.
+
+DO NOT skip smaller positions. Burry's 13F may have 20+ put positions — report ALL of them.
 
 For SHORT SELLERS/ACTIVISTS (${shortSellers.join(', ')}): search for published short reports, disclosed short positions, and public statements in the past ${days} days.
 
@@ -9488,13 +9499,13 @@ Report: person, ticker, buy/sell/call/put, dollar amount, disclosure date.
 
 Also search for RECENT NEWS (past ${days} days) about any tracked person's investment activity — interviews, public statements, new positions announced outside of 13F cycles.
 
-═══ TICKER-SPECIFIC CROSS-CHECK ═══
+═══ LAYER 3: TICKER-SPECIFIC CROSS-CHECK ═══
 For each of my key tickers, verify if ANY tracked person holds a position (long or short):
 ${tickers.split(', ').slice(0, 12).join(', ')}${watchTickers ? ', ' + watchTickers.split(', ').slice(0, 8).join(', ') : ''}
 
 Search: "[person name] [ticker]" for each combination where a match is plausible.
 Minimum trade size: $${minSize}.
-Report ALL raw findings — completeness over brevity.`;
+Report ALL raw findings — completeness over brevity. Mark any unverified inferences as [UNVERIFIED].`;
   }
   
   if (feedName === 'insider') {
@@ -9593,6 +9604,10 @@ REQUIRED ANALYSIS — STRICT ATTRIBUTION RULES:
 Every pick MUST cite a specific person from the tracked list and their actual disclosed trade. Do NOT recommend stocks based on general analysis or analyst consensus. If a tracked person did not make a trade, do not invent one.
 
 1. TOP LONG PICKS (up to 5): Only include stocks where a SPECIFIC tracked person disclosed a BUY, increased position, or purchased CALL options. Each pick MUST name the person, trade date, and amount. If fewer than 5 traders made notable buys, return fewer picks. NEVER fill with unattributed recommendations.
+
+VERIFICATION: If a finding was marked [UNVERIFIED] in the research data, include it but add "unverified":true to the JSON entry. Do NOT present unverified data as confirmed.
+
+COVERAGE CHECK: Your output MUST include findings from EACH tracked person for whom data was found. If the research data mentions 4 different investors, your output should reference all 4 — not just the one with the most dramatic trades.
 
 2. ALL SHORT POSITIONS: Include EVERY disclosed SHORT, PUT purchase, or full EXIT from a tracked person. Do NOT limit to 5 — if Burry has 8 put positions, include all 8. Shorts targeting stocks in MY PORTFOLIO or WATCHLIST must ALWAYS be included regardless of size. Same attribution rule — name the person and trade details.
 
@@ -9965,6 +9980,27 @@ function renderFeedResults(feedName) {
   if (!data) { el.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:12px;">No data yet. Run the scan above.</div>'; return; }
   
   let html = '';
+  
+  // Cross-run contradiction detection
+  const prevData = state.research?.[feedName + '_prev'];
+  if (prevData) {
+    const contradictions = [];
+    (data.topPicks || []).forEach(pick => {
+      const prevShort = (prevData.topShorts || []).find(s => s.ticker?.toUpperCase() === pick.ticker?.toUpperCase());
+      if (prevShort) contradictions.push(`${pick.ticker}: NOW says BUY (${pick.trader || ''}) but PREVIOUS run said ${prevShort.position} (${prevShort.trader || ''})`);
+    });
+    (data.topShorts || []).forEach(short => {
+      const prevPick = (prevData.topPicks || []).find(p => p.ticker?.toUpperCase() === short.ticker?.toUpperCase());
+      if (prevPick) contradictions.push(`${short.ticker}: NOW says ${short.position} (${short.trader || ''}) but PREVIOUS run said BUY (${prevPick.trader || ''})`);
+    });
+    if (contradictions.length > 0) {
+      html += `<div style="padding:10px;margin-bottom:12px;background:rgba(239,68,68,0.1);border:1px solid var(--red);border-radius:var(--radius-sm);">
+        <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;">⚠ CONTRADICTIONS WITH PREVIOUS RUN — VERIFY MANUALLY</div>
+        ${contradictions.map(c => '<div style="font-size:10px;padding:2px 0;">' + c + '</div>').join('')}
+        <div style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">LLM search results vary between runs. When data contradicts, verify on WhaleWisdom or SEC EDGAR directly.</div>
+      </div>`;
+    }
+  }
   
   // Top Picks table
   if (data.topPicks?.length > 0) {
