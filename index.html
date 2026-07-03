@@ -2406,6 +2406,7 @@ input[type="range"]::-webkit-slider-thumb {
           <th style="cursor:pointer;" onclick="sortUniverse('momentum')" title="Momentum dimension">Mom</th>
           <th style="cursor:pointer;" onclick="sortUniverse('conviction')" title="Conviction dimension">Conv</th>
           <th style="cursor:pointer;" onclick="sortUniverse('risk')" title="Risk dimension (100=safe)">Risk</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('researchRisk')" title="Research Risk Score (independent, 100=high risk)">RR</th>
           <th>Band</th>
           <th style="cursor:pointer;" onclick="sortUniverse('signals')">Sig#</th>
           <th>BX</th>
@@ -2655,7 +2656,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.1.0';
+const APEX_VERSION = '5.2.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8157,6 +8158,20 @@ function computeDimensionScores(u) {
   const baseSectorPE = u.sectorPE || sectorDefaults[u.sector] || 22;
   const subsectorMultiplier = isAIInfra ? 2.0 : isQuantum ? 2.5 : isEV ? 1.8 : 1.0;
   
+  // ── LAYER 5: Cyclical industry detection ──
+  // For cyclical stocks, low P/E at peak margins = SELL signal, not value
+  const isCyclical = sectorStr.includes('memory') || sectorStr.includes('semiconductor') ||
+    sectorStr.includes('dram') || sectorStr.includes('nand') || sectorStr.includes('hbm') ||
+    ['Energy', 'Materials'].includes(u.sector) ||
+    sectorStr.includes('mining') || sectorStr.includes('steel') || sectorStr.includes('chemical') ||
+    sectorStr.includes('oil') || sectorStr.includes('gas') ||
+    ['MU', 'WDC', 'STX', 'SOXL'].includes(u.ticker);
+  // Net margin proxy for "peak cycle" — if net margin data available from enrichment
+  const fundData = state.research?.universeFundamentals?.[u.ticker];
+  const netMargin = u.netMargin || fundData?.netMargin || null;
+  const isPeakCycle = isCyclical && netMargin !== null && netMargin > 35; // >35% margin in cyclical = likely peak
+  const isCyclicalCheap = isCyclical && u.fwdPE && u.fwdPE < 15; // Low P/E in cyclical sector
+  
   // ── LAYER 3: Growth adjustment ──
   let growthMultiplier = 1.0;
   if (u.revTrend === '↑' || u.revTrend === '↑↑') growthMultiplier = 2.0; // Strong growth
@@ -8207,6 +8222,15 @@ function computeDimensionScores(u) {
   }
   
   let rawValue = vMax > 0 ? Math.round(vPts / vMax * 100) : 35;
+  
+  // ══ LAYER 5b: CYCLICAL PEAK PENALTY ══
+  // Low P/E + high margins in cyclical industry = peak cycle, NOT cheap
+  if (isPeakCycle && isCyclicalCheap) {
+    rawValue = Math.min(rawValue, 20); // Hard cap — market is pricing in earnings decline
+  } else if (isCyclicalCheap && !isPeakCycle) {
+    // Cyclical + cheap but we don't have margin data → partial penalty (uncertain)
+    rawValue = Math.min(rawValue, 45); // Discount but don't crush — may be genuinely cheap
+  }
   
   // ══ VALUE TRAP DETECTION ══
   if (u.fwdPE && u.fwdPE < 8 && u.pctFromHigh && Math.abs(u.pctFromHigh) > 50) {
@@ -8735,6 +8759,7 @@ function buildUniverseData() {
       if (fund.forwardPE > 0) u.fwdPE = fund.forwardPE;
       if (fund.peg) u.peg = fund.peg;
       if (fund.fcfYield) u.fcfYield = fund.fcfYield;
+      if (fund.netMargin !== undefined) u.netMargin = fund.netMargin;
       if (fund.revenueGrowing !== undefined) u.revTrend = fund.revenueGrowing ? '↑' : '↓';
     }
     
@@ -8787,6 +8812,7 @@ function buildUniverseData() {
     u.composite = computeComposite(u.dimensions, state.regime?.current || 'TRENDING');
     u.sizingBand = getSizingBand(u.composite);
     u.shortScore = computeShortScore(u.ticker, u);
+    u.researchRisk = computeResearchRisk(u.ticker, u);
   });
   
   return Object.values(universe);
@@ -8798,7 +8824,7 @@ function createUniverseEntry(ticker) {
     sector: '', tag: 'core', weight: 0, price: 0, value: 0,
     suggestedWeight: 0, bxState: '', bxValue: null,
     aiVerdict: '', aiSentiment: '', aiConfidence: '', aiMomentum: '', aiAction: '',
-    fwdPE: null, peg: null, fcfYield: null, revTrend: '', riskLevel: '',
+    fwdPE: null, peg: null, fcfYield: null, netMargin: null, revTrend: '', riskLevel: '',
     marketCap: '', catalysts: '', moat: '', sectorPE: null,
     oppScore: 0, oppStatus: '', dislocation: 0, quality: 0, bottom: 0, pctFromHigh: 0,
     bhReturn: null, sigReturn: null, signalCount: 0, rsi: null,
@@ -8873,6 +8899,7 @@ function renderUniverseTable() {
       case 'momentum': return dir * ((a.dimensions?.momentum||0) - (b.dimensions?.momentum||0));
       case 'conviction': return dir * ((a.dimensions?.conviction||0) - (b.dimensions?.conviction||0));
       case 'risk': return dir * ((a.dimensions?.risk||0) - (b.dimensions?.risk||0));
+      case 'researchRisk': return dir * ((a.researchRisk?.score||0) - (b.researchRisk?.score||0));
       case 'signals': return dir * (a.signalCount - b.signalCount);
       case 'weight': return dir * (a.weight - b.weight);
       default: return dir * ((a.composite||0) - (b.composite||0));
@@ -8956,7 +8983,7 @@ function renderUniverseTable() {
       <td style="font-size:9px;font-weight:600;color:${u.shortScore?.net >= 35 ? 'var(--red)' : u.shortScore?.net > 0 ? 'var(--amber)' : 'var(--green)'};">${u.shortScore?.conviction || '—'}</td>
       <td class="num" style="font-size:10px;color:var(--red);">${u.shortScore?.bearTotal || 0}</td>
       <td class="num" style="font-size:10px;color:var(--green);">${u.shortScore?.antiTotal || 0}</td>
-      <td class="num" style="font-size:10px;">${u.shortScore?.bearish?.length || 0}</td>
+      <td class="num" style="font-size:10px;font-weight:${u.researchRisk?.score >= 25 ? '700' : '400'};color:${u.researchRisk?.score >= 50 ? 'var(--red)' : u.researchRisk?.score >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.researchRisk?.score || 0}</td>
       ` : `
       <td class="num" style="font-weight:800;font-size:14px;color:${u.composite >= 70 ? 'var(--green)' : u.composite >= 40 ? 'var(--amber)' : u.composite > 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${u.composite || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.value >= 50 ? 'var(--green)' : u.dimensions?.value >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.value || 0}</td>
@@ -8965,6 +8992,7 @@ function renderUniverseTable() {
       <td class="num" style="font-size:10px;color:${u.dimensions?.conviction >= 50 ? 'var(--green)' : u.dimensions?.conviction >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.conviction || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.risk >= 50 ? 'var(--green)' : u.dimensions?.risk >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.risk || 50}</td>
       `}
+      <td class="num" style="font-size:10px;font-weight:${u.researchRisk?.score >= 25 ? '700' : '400'};color:${u.researchRisk?.score >= 50 ? 'var(--red)' : u.researchRisk?.score >= 25 ? 'var(--amber)' : u.researchRisk?.score > 0 ? 'var(--text-tertiary)' : 'var(--green)'};" title="${u.researchRisk?.level || 'NONE'}: ${u.researchRisk?.signals?.map(s=>s.text).join(', ') || 'no signals'}">${u.researchRisk?.score || 0}</td>
       <td style="font-size:9px;color:${u.sizingBand?.color || 'var(--text-tertiary)'};font-weight:600;">${u.sizingBand?.band || '—'}</td>
       <td style="text-align:center;">
         <span style="font-weight:700;color:${sigColor};">${u.signalCount}</span>
@@ -9064,6 +9092,12 @@ function toggleUniverseDetail(row, ticker) {
         </div>
       </div>
     </div>` : ''}
+    ${u.researchRisk?.signals?.length > 0 ? `<div style="margin-top:8px;padding:8px;background:var(--bg-secondary);border-radius:var(--radius-sm);">
+      <div style="font-weight:700;margin-bottom:4px;">📡 Research Risk: <span style="color:${u.researchRisk.score >= 50 ? 'var(--red)' : u.researchRisk.score >= 25 ? 'var(--amber)' : 'var(--green)'};">${u.researchRisk.score} (${u.researchRisk.level})</span> <span style="font-size:9px;color:var(--text-tertiary);font-weight:400;">— independent from composite</span></div>
+      ${u.researchRisk.signals.map(s => `<div style="font-size:10px;padding:1px 0;">
+        <span style="color:${s.type === 'bearish' ? 'var(--red)' : 'var(--green)'};">${s.pts > 0 ? '+' : ''}${s.pts}</span> ${s.text} <span style="color:var(--text-tertiary);font-size:9px;">(${s.source})</span>
+      </div>`).join('')}
+    </div>` : ''}
   </td>`;
   row.after(detailRow);
 }
@@ -9129,7 +9163,7 @@ async function enrichUniverse() {
     const step1 = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content:
       `Search for current fundamental data for these stocks: ${batch.join(', ')}
 ${analysisContext ? '\nEXISTING DATA (verify/supplement):\n' + analysisContext : ''}
-For each stock report: forward P/E ratio, PEG ratio, sector average P/E, FCF yield %, whether revenue is growing YoY. Report all numbers found.`
+For each stock report: forward P/E ratio, PEG ratio, sector average P/E, FCF yield %, net profit margin %, whether revenue is growing YoY. Report all numbers found.`
     }], true, 2000);
     
     const u1 = step1.data?.usage || {};
@@ -9144,7 +9178,7 @@ For each stock report: forward P/E ratio, PEG ratio, sector average P/E, FCF yie
 ${rawData}
 
 Return ONLY a JSON array. No markdown:
-[{"ticker":"XYZ","forwardPE":25,"peg":1.2,"sectorPE":30,"fcfYield":4.5,"revenueGrowing":true}]
+[{"ticker":"XYZ","forwardPE":25,"peg":1.2,"sectorPE":30,"fcfYield":4.5,"netMargin":15.5,"revenueGrowing":true}]
 If earnings are negative, set forwardPE to null. Include ALL tickers: ${batch.join(', ')}`
     }], false, 1500);
     
@@ -10359,6 +10393,87 @@ function renderUnifiedMarketData(aiAssess, aiFresh, factors) {
   `;
   
   document.getElementById('marketDataSource').textContent = aiFresh ? '✓ AI-driven (fresh)' : aiAssess?.regime ? '⚠ AI stale — computed fallback' : 'Computed only — run AI check for better data';
+}
+
+// ═══ RESEARCH RISK SCORE — Independent from composite (Option C) ═══
+// Scores 0-100 where 100 = maximum risk from research signals
+// NOT factored into composite — displayed separately for experience tracking
+function computeResearchRisk(ticker, u) {
+  const t = ticker.toUpperCase();
+  let riskPts = 0;
+  const signals = [];
+  
+  // Check all research feeds for risk signals
+  ['political','institutional','insider','earnings','rotation','trump'].forEach(feed => {
+    const data = state.research?.[feed];
+    if (!data) return;
+    
+    // topShorts targeting this ticker
+    (data.topShorts || []).forEach(s => {
+      if (s.ticker?.toUpperCase() === t) {
+        riskPts += 20;
+        signals.push({ text: `${s.trader}: ${s.position || 'SHORT'}`, pts: 20, type: 'bearish', source: feed });
+      }
+    });
+    
+    // riskFlags targeting this ticker
+    (data.riskFlags || []).forEach(r => {
+      if (r.ticker?.toUpperCase() === t) {
+        riskPts += 25;
+        signals.push({ text: `Risk flag: ${r.trader} ${r.position}`, pts: 25, type: 'bearish', source: feed });
+      }
+    });
+    
+    // Negative confluence
+    (data.feedSpecific?.negativeConfluence || []).forEach(n => {
+      if (n.ticker?.toUpperCase() === t) {
+        riskPts += 30;
+        signals.push({ text: `Neg confluence: ${n.insiderSignal}`, pts: 30, type: 'bearish', source: 'insider' });
+      }
+    });
+    
+    // topPicks / bullishConviction = risk REDUCTION (positive signal)
+    (data.topPicks || []).forEach(p => {
+      if (p.ticker?.toUpperCase() === t) {
+        riskPts -= 10;
+        signals.push({ text: `${p.trader || feed}: ${p.signal || 'BUY'}`, pts: -10, type: 'bullish', source: feed });
+      }
+    });
+    (data.bullishConviction || []).forEach(b => {
+      if (b.ticker?.toUpperCase() === t) {
+        riskPts -= 8;
+        signals.push({ text: `Bullish: ${b.trader} ${b.position}`, pts: -8, type: 'bullish', source: feed });
+      }
+    });
+  });
+  
+  // BX state risk
+  if (u.bxState === 'BEAR' || u.bxState === 'SELL') {
+    riskPts += 10;
+    signals.push({ text: `BX ${u.bxState}`, pts: 10, type: 'bearish', source: 'bx' });
+  } else if (u.bxState === 'BULL' || u.bxState === 'BUY') {
+    riskPts -= 5;
+    signals.push({ text: `BX ${u.bxState}`, pts: -5, type: 'bullish', source: 'bx' });
+  }
+  
+  // Cyclical peak risk
+  const sectorStr = (u.sector || '').toLowerCase();
+  const isCyclical = sectorStr.includes('memory') || sectorStr.includes('semiconductor') ||
+    ['Energy', 'Materials'].includes(u.sector) || ['MU', 'WDC', 'STX'].includes(t);
+  if (isCyclical && u.fwdPE && u.fwdPE < 15) {
+    riskPts += 15;
+    signals.push({ text: 'Cyclical: low P/E may = peak cycle', pts: 15, type: 'bearish', source: 'scoring' });
+  }
+  
+  // Extreme drawdown
+  if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 25) {
+    riskPts += 10;
+    signals.push({ text: `${Math.abs(u.pctFromHigh).toFixed(0)}% from high`, pts: 10, type: 'bearish', source: 'price' });
+  }
+  
+  const score = Math.max(0, Math.min(100, riskPts));
+  const level = score >= 50 ? 'HIGH' : score >= 25 ? 'MEDIUM' : score > 0 ? 'LOW' : 'NONE';
+  return { score, level, signals };
 }
 
 function computeShortScore(ticker, u) {
