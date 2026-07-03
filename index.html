@@ -2010,7 +2010,8 @@ input[type="range"]::-webkit-slider-thumb {
     <div id="watchlistContent" style="display:none;">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-primary" onclick="evaluateWatchlist()" id="evalWatchlistBtn">🤖 Evaluate Pending</button>
-        <button class="btn btn-sm" onclick="reEvaluateAllWatchlist()" id="reEvalWatchlistBtn" title="Re-evaluate all items with latest market data">🔄 Re-evaluate All</button>
+        <button class="btn btn-sm" onclick="reEvaluateStaleWatchlist()" title="Re-evaluate only items with new signals or stale data">🔄 Re-eval Stale</button>
+        <button class="btn btn-sm" onclick="reEvaluateAllWatchlist()" title="Force re-evaluate ALL items">🔄 Re-eval All</button>
         <button class="btn btn-sm" onclick="promoteEvaluatedToIdeas()" title="Bulk-promote only STRONG_BUY items. Use per-row Promote button for BUY/WATCH.">→ Promote STRONG BUY</button>
         <button class="btn btn-sm" onclick="refreshWatchlistTechData()" id="refreshWatchTechBtn" title="Fetch BX Trender data for watchlist tickers">📈 Refresh BX Data</button>
       </div>
@@ -2656,7 +2657,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.4';
+const APEX_VERSION = '5.2.6';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -6262,10 +6263,52 @@ async function evaluateWatchlist() {
   toast(`Done: ${completed} evaluated (${strongBuy} ★, ${buy} BUY, ${watch} WATCH, ${pass} PASS)${failed ? ', ' + failed + ' failed' : ''}${remaining ? ', ' + remaining + ' remaining' : ''}`);
 }
 
+async function reEvaluateStaleWatchlist() {
+  if (state.watchlist.length === 0) { toast('No watchlist items', 'error'); return; }
+  
+  const staleItems = state.watchlist.filter(w => {
+    // Never evaluated
+    if (!w.lastEval) return true;
+    const evalAge = Math.floor((Date.now() - new Date(w.lastEval).getTime()) / 86400000);
+    // Eval older than 14 days
+    if (evalAge > 14) return true;
+    // BX signal changed since last eval
+    const bx = state.technicalData?.[w.ticker.toUpperCase()];
+    if (bx?.lastFetched && w.lastEval && new Date(bx.lastFetched) > new Date(w.lastEval)) return true;
+    // Research feed mentioned this ticker since last eval
+    const mentioned = ['earnings','institutional','political','rotation','insider','trump'].some(feed => {
+      const data = state.research?.[feed];
+      if (!data?.runDate || !w.lastEval) return false;
+      if (new Date(data.runDate) < new Date(w.lastEval)) return false;
+      return (data.topPicks || []).some(p => p.ticker?.toUpperCase() === w.ticker.toUpperCase()) ||
+             (data.topShorts || []).some(s => s.ticker?.toUpperCase() === w.ticker.toUpperCase()) ||
+             (data.riskFlags || []).some(r => r.ticker?.toUpperCase() === w.ticker.toUpperCase());
+    });
+    if (mentioned) return true;
+    return false;
+  });
+  
+  if (staleItems.length === 0) { toast('All watchlist items are fresh — nothing to re-evaluate'); return; }
+  
+  const estCost = (staleItems.length * 0.03).toFixed(2);
+  if (!confirm(`Re-evaluate ${staleItems.length} stale items (of ${state.watchlist.length} total)?\nStale = eval >14d, new BX signal, or research mention.\nEstimated cost: ~$${estCost}`)) return;
+  
+  staleItems.forEach(w => {
+    w.status = 'pending';
+    w.evalData = null;
+    w.lastEval = null;
+  });
+  saveState();
+  refreshWatchlist();
+  toast(`Reset ${staleItems.length} stale items — evaluating...`);
+  evaluateWatchlist._skipConfirm = true;
+  await evaluateWatchlist();
+}
+
 async function reEvaluateAllWatchlist() {
   if (state.watchlist.length === 0) { toast('No watchlist items to re-evaluate', 'error'); return; }
-  const estCost = (state.watchlist.length * 0.08).toFixed(2);
-  if (!confirm(`Re-evaluate ALL ${state.watchlist.length} watchlist items?\nThis resets promoted items too.\nEstimated cost: ~$${estCost}`)) return;
+  const estCost = (state.watchlist.length * 0.03).toFixed(2);
+  if (!confirm(`Force re-evaluate ALL ${state.watchlist.length} watchlist items?\nThis resets everything including promoted items.\nEstimated cost: ~$${estCost}`)) return;
   // Reset ALL items including promoted back to pending
   state.watchlist.forEach(w => {
     // If was promoted, remove from ideas list so it can be re-evaluated fresh
@@ -9471,49 +9514,30 @@ Report all raw findings with specific numbers and dates.`;
     const investorMembers = memberList.filter(m => investors.some(i => m.includes(i.split(' ').pop())) || !['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     const politicianMembers = memberList.filter(m => ['Pelosi','Cruz','Moore','Greene','Trump'].some(p => m.includes(p)));
     
-    return preamble + `This research has THREE LAYERS. Complete ALL THREE.
+    return preamble + `Search for recent trades and positions by these tracked persons: ${members}.
 
-═══ LAYER 1: 13F FILING DATA (INVESTORS) — SEARCH EACH PERSON SEPARATELY ═══
-CRITICAL: You MUST search for EACH investor individually. Do NOT let one person's results crowd out another. If you search for "${investorMembers[0] || 'Buffett'}" and get many results, you still MUST separately search for "${investorMembers[1] || 'Tepper'}", "${investorMembers[2] || 'Ackman'}", etc.
+SEARCH STRATEGY (work within your search budget — prioritize the most valuable queries):
 
-${investorMembers.map(m => `→ Search: "${m} 13F filing 2026" or "${m} portfolio Q1 2026" on WhaleWisdom/Fintel/SEC`).join('\n')}
+1. INVESTOR 13F FILINGS: Search for the most recent 13F filings for key investors. Prioritize these high-value searches:
+   → "${investorMembers.slice(0, 3).join('" 13F, "')}" 13F filing 2025 2026 (WhaleWisdom, Fintel, Dataroma)
+   → For each, report: new buys, exits, increases, decreases, ALL put/call positions, filing date.
+   ${investorMembers.length > 3 ? '→ Also search for: ' + investorMembers.slice(3).join(', ') : ''}
 
-For EACH investor's 13F, report:
-- ALL new positions (not held previous quarter) — NEW CONVICTION BUYS
-- ALL exits (completely sold) — CONVICTION SELLS
-- ALL significant increases (added >25% shares)
-- ALL significant decreases (trimmed >25%)
-- ALL PUT positions (bearish bets) — report EVERY put, not just the largest
-- ALL CALL positions (bullish bets)
-- Filing date and quarter covered
+2. POLITICAL TRADES: Search Capitol Trades or Quiver Quantitative for STOCK Act disclosures (past ${days} days) by: ${politicianMembers.join(', ')}
 
-VERIFICATION RULE: For any position change you report, you MUST have found a specific source (article, filing summary, or data page) that states the share count or dollar amount. If you cannot find a specific source confirming a trade, mark it as [UNVERIFIED] and explain what you inferred vs what you found. Do NOT generate plausible-sounding numbers from context.
+3. SHORT SELLERS: Search for ${shortSellers.join(', ')} — recent short reports, disclosed positions, public statements.
 
-DO NOT skip smaller positions. Burry's 13F may have 20+ put positions — report ALL of them.
+4. PORTFOLIO-SPECIFIC CHECK: Search for any tracked person activity on these specific tickers (my held positions): ${tickers}
+   Try: "[person] [ticker]" for the most likely combinations.
 
-For SHORT SELLERS/ACTIVISTS (${shortSellers.join(', ')}): search for published short reports, disclosed short positions, and public statements in the past ${days} days.
+REPORTING RULES:
+- Report ALL findings you can verify from search results.
+- Include position sizes and dates when found.
+- If you find a trade mentioned but cannot verify the exact amount, include it and mark as [UNVERIFIED].
+- Prefer reporting unverified findings over reporting nothing — the user can verify manually.
+- DO NOT fabricate trades or numbers. If your search didn't find data for a person, say "No data found for [person]" rather than inventing positions.
 
-═══ LAYER 2: POLITICAL & REAL-TIME TRADES ═══
-For these POLITICIANS, search Capitol Trades, Quiver Quantitative, or Congressional disclosure databases (STOCK Act, past ${days} days): ${politicianMembers.join(', ')}
-Report: person, ticker, buy/sell/call/put, dollar amount, disclosure date.
-
-Also search for RECENT NEWS (past ${days} days) about any tracked person's investment activity — interviews, public statements, new positions announced outside of 13F cycles.
-
-═══ LAYER 3: TICKER-SPECIFIC CROSS-CHECK ═══
-For each of my tickers below, verify if ANY tracked person holds a position (long or short).
-This covers my full Universe — portfolio, watchlist, and research candidates:
-${(() => {
-  const allT = new Set();
-  tickers.split(', ').forEach(t => allT.add(t.trim()));
-  (watchTickers || '').split(', ').filter(Boolean).forEach(t => allT.add(t.trim()));
-  (state.analysisData?.newIdeas || []).forEach(i => { if (i.ticker) allT.add(i.ticker.toUpperCase()); });
-  return [...allT].slice(0, 30).join(', ');
-})()}
-
-Search: "[person name] [ticker]" for each combination where a match is plausible.
-PRIORITY: Portfolio and watchlist tickers first, then research candidates.
-Minimum trade size: $${minSize}.
-Report ALL raw findings — completeness over brevity. Mark any unverified inferences as [UNVERIFIED].`;
+Minimum trade size: $${minSize}. Report all raw findings.`;
   }
   
   if (feedName === 'insider') {
