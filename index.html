@@ -2656,7 +2656,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.1';
+const APEX_VERSION = '5.2.2';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9594,7 +9594,7 @@ Every pick MUST cite a specific person from the tracked list and their actual di
 
 1. TOP LONG PICKS (up to 5): Only include stocks where a SPECIFIC tracked person disclosed a BUY, increased position, or purchased CALL options. Each pick MUST name the person, trade date, and amount. If fewer than 5 traders made notable buys, return fewer picks. NEVER fill with unattributed recommendations.
 
-2. TOP SHORT PICKS (up to 5): Only include stocks where a SPECIFIC tracked person disclosed a SHORT, purchased PUTs, or exited entirely. Same attribution rule — name the person and trade details. "Analyst consensus" is NOT a valid trader attribution.
+2. ALL SHORT POSITIONS: Include EVERY disclosed SHORT, PUT purchase, or full EXIT from a tracked person. Do NOT limit to 5 — if Burry has 8 put positions, include all 8. Shorts targeting stocks in MY PORTFOLIO or WATCHLIST must ALWAYS be included regardless of size. Same attribution rule — name the person and trade details.
 
 3. RISK FLAGS: Shorts/puts/exits targeting MY PORTFOLIO. Must cite specific person.
 
@@ -9612,7 +9612,7 @@ Every pick MUST cite a specific tracked institution and their actual 13F filing 
 
 1. TOP ACCUMULATION PICKS (up to 5): Only stocks where a SPECIFIC tracked institution INCREASED position. Must name the fund, share count or dollar change, and filing date. If fewer than 5 funds made notable buys, return fewer picks.
 
-2. TOP EXITS/REDUCTIONS (up to 5): Only stocks a SPECIFIC tracked institution SOLD or REDUCED. Must cite fund name and details.
+2. ALL EXITS/REDUCTIONS: Every stock a tracked institution SOLD, REDUCED, or fully EXITED. Do NOT limit to 5. Exits targeting stocks in MY PORTFOLIO must ALWAYS be included. Must cite fund name and details.
 
 3. RISK FLAGS: Exits/reductions targeting MY PORTFOLIO. Must cite specific fund.
 
@@ -9630,7 +9630,7 @@ Every pick MUST cite a specific insider (name and title) and their actual SEC Fo
 
 1. TOP INSIDER CONVICTION BUYS (up to 5): Only stocks where a SPECIFIC named insider filed a Form 4 purchase. Must cite name, title, dollar amount, date. If fewer than 5 insider buys found, return fewer picks.
 
-2. TOP INSIDER WARNING SELLS (up to 5): Only discretionary sells by named insiders. Exclude 10b5-1 pre-planned sales. Must cite name, title, amount.
+2. ALL INSIDER WARNING SELLS: Every significant discretionary sell by named insiders. Do NOT limit to 5. Sells on stocks in MY PORTFOLIO must ALWAYS be included. Exclude 10b5-1 pre-planned sales. Must cite name, title, amount.
 
 3. RISK FLAGS: Insider sells targeting MY PORTFOLIO. Must cite specific insider.
 
