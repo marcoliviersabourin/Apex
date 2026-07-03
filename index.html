@@ -2656,7 +2656,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.2.3';
+const APEX_VERSION = '5.2.4';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9500,10 +9500,18 @@ Report: person, ticker, buy/sell/call/put, dollar amount, disclosure date.
 Also search for RECENT NEWS (past ${days} days) about any tracked person's investment activity — interviews, public statements, new positions announced outside of 13F cycles.
 
 ═══ LAYER 3: TICKER-SPECIFIC CROSS-CHECK ═══
-For each of my key tickers, verify if ANY tracked person holds a position (long or short):
-${tickers.split(', ').slice(0, 12).join(', ')}${watchTickers ? ', ' + watchTickers.split(', ').slice(0, 8).join(', ') : ''}
+For each of my tickers below, verify if ANY tracked person holds a position (long or short).
+This covers my full Universe — portfolio, watchlist, and research candidates:
+${(() => {
+  const allT = new Set();
+  tickers.split(', ').forEach(t => allT.add(t.trim()));
+  (watchTickers || '').split(', ').filter(Boolean).forEach(t => allT.add(t.trim()));
+  (state.analysisData?.newIdeas || []).forEach(i => { if (i.ticker) allT.add(i.ticker.toUpperCase()); });
+  return [...allT].slice(0, 30).join(', ');
+})()}
 
 Search: "[person name] [ticker]" for each combination where a match is plausible.
+PRIORITY: Portfolio and watchlist tickers first, then research candidates.
 Minimum trade size: $${minSize}.
 Report ALL raw findings — completeness over brevity. Mark any unverified inferences as [UNVERIFIED].`;
   }
@@ -9554,8 +9562,13 @@ ${focus === 'portfolio' ? 'FOCUS: Only events affecting these tickers: ' + ticke
 Report each finding SEPARATELY — do not combine multiple events into one. Include timestamps and price moves.
 
 TICKER-SPECIFIC SEARCH (CRITICAL — do not skip):
-For each of these tickers, also search "[company name] Trump" or "[ticker] Trump statement" to catch rally mentions, interviews, and remarks that broader policy searches miss. Rally speeches often name companies that don't appear in executive order or trade deal coverage:
-${tickers.split(', ').slice(0, 12).join(', ')}${watchTickers ? ', ' + watchTickers.split(', ').slice(0, 8).join(', ') : ''}`;
+For each of these tickers, also search "[company name] Trump" or "[ticker] Trump statement" to catch rally mentions, interviews, and remarks that broader policy searches miss:
+${(() => {
+  const allT = new Set();
+  tickers.split(', ').forEach(t => allT.add(t.trim()));
+  (watchTickers || '').split(', ').filter(Boolean).forEach(t => allT.add(t.trim()));
+  return [...allT].slice(0, 25).join(', ');
+})()}`;
   }
   
   if (feedName === 'rotation') {
