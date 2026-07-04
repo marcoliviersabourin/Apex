@@ -2190,6 +2190,8 @@ input[type="range"]::-webkit-slider-thumb {
           <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.08-0.12 | Run monthly</span>
         </div>
         <div id="feedResults-political" style="margin-top:12px;"></div>
+        <!-- Stored Portfolios Viewer -->
+        <div id="notablePortfolioViewer" style="margin-top:12px;"></div>
       </div>
     </div>
 
@@ -2296,6 +2298,8 @@ input[type="range"]::-webkit-slider-thumb {
           <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.03-0.05 | Run daily or on-demand</span>
         </div>
         <div id="feedResults-trump" style="margin-top:12px;"></div>
+        <!-- Trump Intelligence Dashboard -->
+        <div id="trumpDashboard" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -2657,7 +2661,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.3.4';
+const APEX_VERSION = '5.4.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2739,6 +2743,8 @@ function loadState() {
       state.regime = parsed.regime || null;
       state.research = parsed.research || { config: {} };
       state.strategy = parsed.strategy || {};
+      state.notableTracker = parsed.notableTracker || { portfolios: {}, politicians: {}, lastFullScan: null };
+      state.trumpTracker = parsed.trumpTracker || { portfolio: [], mentions: [], policies: [], stats: {}, lastScan: null };
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
@@ -2784,6 +2790,8 @@ function saveState() {
       regime: state.regime,
       research: state.research,
       strategy: state.strategy,
+      notableTracker: state.notableTracker,
+      trumpTracker: state.trumpTracker,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -9347,6 +9355,9 @@ function showResearchFeed(name) {
   if (tab) tab.className = 'btn btn-sm btn-primary';
   // Show last results if available
   renderFeedResults(name);
+  // Render persistent tracker views
+  if (name === 'political') renderNotablePortfolioViewer();
+  if (name === 'trump') renderTrumpDashboard();
 }
 
 function refreshResearch() {
@@ -9381,6 +9392,90 @@ const FUND_CIK_MAP = {
   'Bill Ackman': { cik: '1336528', fund: 'Pershing Square Capital' },
   'Bill Gates': { cik: '1166559', fund: 'Bill & Melinda Gates Foundation Trust' },
 };
+
+// ═══ PERSISTENT TRACKER ENGINE ═══
+// 13F filing schedule: due 45 days after quarter end
+function getFilingSchedule() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const deadlines = [
+    { quarter: 'Q4 ' + (y-1), reportDate: (y-1) + '-12-31', dueDate: y + '-02-14' },
+    { quarter: 'Q1 ' + y, reportDate: y + '-03-31', dueDate: y + '-05-15' },
+    { quarter: 'Q2 ' + y, reportDate: y + '-06-30', dueDate: y + '-08-14' },
+    { quarter: 'Q3 ' + y, reportDate: y + '-09-30', dueDate: y + '-11-14' },
+    { quarter: 'Q4 ' + y, reportDate: y + '-12-31', dueDate: (y+1) + '-02-14' },
+  ];
+  const nowStr = now.toISOString().split('T')[0];
+  // Find the most recent filing that should be available
+  let latestAvailable = deadlines[0];
+  let nextExpected = deadlines[1];
+  for (let i = 0; i < deadlines.length; i++) {
+    if (nowStr >= deadlines[i].dueDate) {
+      latestAvailable = deadlines[i];
+      nextExpected = deadlines[i + 1] || deadlines[deadlines.length - 1];
+    }
+  }
+  return { latestAvailable, nextExpected, deadlines };
+}
+
+function needsFullRebuild() {
+  const schedule = getFilingSchedule();
+  const tracker = state.notableTracker;
+  if (!tracker?.lastFullScan) return true; // Never scanned
+  // Check if a new quarterly filing is expected since last scan
+  const lastScanDate = tracker.lastFullScan.split('T')[0];
+  return lastScanDate < schedule.latestAvailable.dueDate;
+}
+
+function crossReferencePortfolios() {
+  const myTickers = new Set(state.positions.map(p => p.symbol.toUpperCase()));
+  const watchTickers = new Set(state.watchlist.map(w => w.ticker.toUpperCase()));
+  const alerts = [];
+  
+  // Cross-reference Notable Tracker portfolios
+  if (state.notableTracker?.portfolios) {
+    Object.values(state.notableTracker.portfolios).forEach(fund => {
+      (fund.positions || []).forEach(pos => {
+        const ticker = pos.ticker?.toUpperCase();
+        if (!ticker) return;
+        const isHeld = myTickers.has(ticker);
+        const isWatch = watchTickers.has(ticker);
+        if (!isHeld && !isWatch) return;
+        
+        if (pos.putCall === 'PUT') {
+          alerts.push({ type: 'RISK', ticker, person: fund.person, fund: fund.fund,
+            text: `${fund.person} holds PUTS on ${ticker} ($${((pos.value||0)*1000).toLocaleString()})`,
+            held: isHeld, watchlist: isWatch, pts: 25 });
+        } else if (pos.putCall === 'CALL') {
+          alerts.push({ type: 'BULLISH', ticker, person: fund.person, fund: fund.fund,
+            text: `${fund.person} holds CALLS on ${ticker}`,
+            held: isHeld, watchlist: isWatch, pts: -15 });
+        } else {
+          alerts.push({ type: 'ALIGNED', ticker, person: fund.person, fund: fund.fund,
+            text: `${fund.person} holds ${pos.shares?.toLocaleString()} shares of ${ticker} ($${((pos.value||0)*1000).toLocaleString()})`,
+            held: isHeld, watchlist: isWatch, pts: -10 });
+        }
+      });
+    });
+  }
+  
+  // Cross-reference Trump portfolio
+  if (state.trumpTracker?.portfolio) {
+    state.trumpTracker.portfolio.forEach(pos => {
+      const ticker = pos.ticker?.toUpperCase();
+      if (!ticker) return;
+      const isHeld = myTickers.has(ticker);
+      const isWatch = watchTickers.has(ticker);
+      if (isHeld || isWatch) {
+        alerts.push({ type: 'TRUMP_ALIGNED', ticker, person: 'Donald Trump',
+          text: `Trump personally owns ${ticker} (${pos.amount}, ${pos.status})`,
+          held: isHeld, watchlist: isWatch, pts: -30 });
+      }
+    });
+  }
+  
+  return alerts;
+}
 
 async function fetchSEC13F(personName) {
   const entry = FUND_CIK_MAP[personName];
@@ -9628,7 +9723,7 @@ async function runResearchFeed(feedName) {
     if (btn) btn.textContent = '⏳ Step 2: Analyzing...';
     
     const analyzePrompt = buildAnalyzePrompt(feedName, step1.text);
-    const maxAnalyzeTokens = (feedName === 'political' || feedName === 'institutional' || feedName === 'insider') ? 3500 : 2500;
+    const maxAnalyzeTokens = (feedName === 'political' || feedName === 'institutional' || feedName === 'insider') ? 5000 : (feedName === 'trump') ? 4000 : 2500;
     const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, maxAnalyzeTokens);
     
     const u2 = step2.data?.usage || {};
@@ -9655,6 +9750,98 @@ async function runResearchFeed(feedName) {
         };
       }
       state.research[feedName] = parsed;
+      
+      // ═══ PERSISTENT TRACKER MERGE ═══
+      if (feedName === 'political' && parsed) {
+        if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
+        // Store structured positions from topPicks and topShorts into persistent tracker
+        const investorPicks = [...(parsed.topPicks || []), ...(parsed.topShorts || [])];
+        investorPicks.forEach(p => {
+          if (!p.trader) return;
+          // Find which fund this trader belongs to
+          const fundEntry = Object.entries(FUND_CIK_MAP).find(([name]) => p.trader.includes(name.split(' ').pop()));
+          if (fundEntry) {
+            const [personName, fundData] = fundEntry;
+            const key = fundData.cik;
+            if (!state.notableTracker.portfolios[key]) {
+              state.notableTracker.portfolios[key] = { fund: fundData.fund, person: personName, filingDate: '', positions: [], changes: {} };
+            }
+            const portfolio = state.notableTracker.portfolios[key];
+            // Merge position (update if exists, add if new)
+            const existing = portfolio.positions.find(pos => pos.ticker?.toUpperCase() === p.ticker?.toUpperCase());
+            if (existing) {
+              existing.value = p.size ? parseInt(p.size.replace(/[^0-9]/g, '')) || existing.value : existing.value;
+              existing.putCall = p.position === 'PUT' ? 'PUT' : p.position === 'CALL' ? 'CALL' : p.position === 'SHORT' ? 'PUT' : existing.putCall;
+              existing.lastSeen = new Date().toISOString();
+            } else {
+              portfolio.positions.push({
+                ticker: p.ticker?.toUpperCase(), issuer: p.ticker,
+                putCall: p.position === 'PUT' ? 'PUT' : p.position === 'CALL' ? 'CALL' : p.position === 'SHORT' ? 'PUT' : '',
+                value: p.size ? parseInt(p.size.replace(/[^0-9]/g, '')) || 0 : 0,
+                shares: 0, titleOfClass: p.position || 'COM',
+                source: 'research_scan', lastSeen: new Date().toISOString()
+              });
+            }
+            if (!portfolio.filingDate && parsed.runDate) portfolio.filingDate = parsed.runDate.split('T')[0];
+          } else {
+            // Politician trade — store in politicians section
+            const politicianName = p.trader;
+            if (!state.notableTracker.politicians[politicianName]) state.notableTracker.politicians[politicianName] = { trades: [] };
+            const existingTrade = state.notableTracker.politicians[politicianName].trades.find(t => t.ticker === p.ticker && t.type === (p.signal || p.position));
+            if (!existingTrade) {
+              state.notableTracker.politicians[politicianName].trades.push({
+                ticker: p.ticker, type: p.signal || p.position || 'BUY',
+                amount: p.size || p.reason?.match(/\$[\d.]+[MBK]*/)?.[0] || '',
+                date: new Date().toISOString().split('T')[0], source: p.reason?.substring(0, 60) || ''
+              });
+            }
+          }
+        });
+        state.notableTracker.lastFullScan = new Date().toISOString();
+        renderNotablePortfolioViewer();
+      }
+      
+      if (feedName === 'trump' && parsed) {
+        if (!state.trumpTracker) state.trumpTracker = { portfolio: [], mentions: [], policies: [], stats: {}, lastScan: null };
+        // Merge alerts into mention history
+        (parsed.alerts || []).forEach(a => {
+          (a.tickers || []).forEach(ticker => {
+            const existing = state.trumpTracker.mentions.find(m => m.ticker === ticker && m.event === a.event);
+            if (!existing) {
+              state.trumpTracker.mentions.push({
+                ticker, event: a.event, quote: a.quote,
+                date: a.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0],
+                priceAtMention: null, priceNow: null,
+                return: a.priceMove ? parseFloat(a.priceMove) || null : null,
+                urgency: a.urgency, direction: a.direction
+              });
+            }
+          });
+        });
+        // Merge sector impacts into policies
+        (parsed.sectorImpacts || []).forEach(s => {
+          const existing = state.trumpTracker.policies.find(p => p.name === s.reason);
+          if (!existing) {
+            state.trumpTracker.policies.push({
+              name: s.reason, date: new Date().toISOString().split('T')[0],
+              status: 'ACTIVE', sectors: [s.sector],
+              beneficiaries: s.affectedTickers || [], direction: s.direction
+            });
+          }
+        });
+        // Compute stats
+        const mentions = state.trumpTracker.mentions.filter(m => m.return !== null);
+        if (mentions.length > 0) {
+          state.trumpTracker.stats = {
+            mentionCount: state.trumpTracker.mentions.length,
+            avgReturn: mentions.reduce((s, m) => s + m.return, 0) / mentions.length,
+            hitRate: mentions.filter(m => m.return > 0).length / mentions.length,
+            avgHoldDays: 14
+          };
+        }
+        state.trumpTracker.lastScan = new Date().toISOString();
+        renderTrumpDashboard();
+      }
       saveState();
       renderFeedResults(feedName);
       const dateEl = document.getElementById('feedDate-' + feedName);
@@ -9964,6 +10151,181 @@ ${custom ? '\nUSER INSTRUCTIONS: ' + custom : ''}
 ${feedInstructions}
 
 ${feedSchema}`;
+}
+
+function renderNotablePortfolioViewer() {
+  const el = document.getElementById('notablePortfolioViewer');
+  if (!el) return;
+  const tracker = state.notableTracker;
+  if (!tracker?.portfolios || Object.keys(tracker.portfolios).length === 0) {
+    el.innerHTML = '<div class="card" style="margin-top:8px;"><div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:12px;">No stored portfolios. Run Notable Traders scan to build 13F database.</div></div>';
+    return;
+  }
+  
+  const schedule = getFilingSchedule();
+  const myTickers = new Set(state.positions.map(p => p.symbol.toUpperCase()));
+  const watchTickers = new Set(state.watchlist.map(w => w.ticker.toUpperCase()));
+  const rebuild = needsFullRebuild();
+  
+  let html = `<div class="card"><div class="card-header">
+    <span class="card-title">📂 Stored Portfolios</span>
+    <span style="font-size:10px;color:var(--text-tertiary);">
+      Last rebuilt: ${tracker.lastFullScan ? new Date(tracker.lastFullScan).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'Never'} | 
+      Latest available: ${schedule.latestAvailable.quarter} |
+      Next expected: ${schedule.nextExpected.quarter} (~${schedule.nextExpected.dueDate})
+      ${rebuild ? ' <span style="color:var(--amber);">⚠ New filing available — re-run to update</span>' : ' <span style="color:var(--green);">✓ Current</span>'}
+    </span>
+  </div>`;
+  
+  Object.values(tracker.portfolios).forEach(fund => {
+    const puts = (fund.positions || []).filter(p => p.putCall === 'PUT');
+    const calls = (fund.positions || []).filter(p => p.putCall === 'CALL');
+    const longs = (fund.positions || []).filter(p => !p.putCall);
+    const posCount = fund.positions?.length || 0;
+    
+    html += `<div style="border:1px solid var(--border-subtle);border-radius:var(--radius-sm);margin:8px 0;overflow:hidden;">
+      <div style="padding:8px 12px;background:var(--bg-secondary);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div>
+          <span style="font-weight:700;">${fund.person}</span>
+          <span style="font-size:10px;color:var(--text-tertiary);"> / ${fund.fund}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-tertiary);">
+          Filed: ${fund.filingDate || '?'} | ${posCount} positions
+          ${puts.length > 0 ? ` | <span style="color:var(--red);">${puts.length} puts</span>` : ''}
+          ${calls.length > 0 ? ` | <span style="color:var(--green);">${calls.length} calls</span>` : ''}
+        </div>
+      </div>
+      <div style="display:none;padding:8px 12px;">`;
+    
+    // Puts first (most interesting for risk)
+    if (puts.length > 0) {
+      html += `<div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:4px;">⚠ PUT POSITIONS (${puts.length})</div>
+      <table style="width:100%;margin-bottom:8px;"><thead><tr><th>Ticker</th><th>Contracts</th><th>Value ($K)</th><th>Class</th><th></th></tr></thead><tbody>`;
+      puts.forEach(p => {
+        const ticker = (p.ticker || p.issuer || '').toUpperCase();
+        const isHeld = myTickers.has(ticker);
+        const isWatch = watchTickers.has(ticker);
+        html += `<tr><td style="font-weight:700;">${p.issuer || ticker}</td><td class="num">${(p.shares||0).toLocaleString()}</td><td class="num">$${(p.value||0).toLocaleString()}K</td><td style="font-size:9px;">${p.titleOfClass || ''}</td>
+        <td style="font-size:9px;font-weight:700;color:${isHeld ? 'var(--red)' : isWatch ? 'var(--amber)' : 'var(--text-tertiary)'};">${isHeld ? '← YOU HOLD' : isWatch ? '← WATCHLIST' : ''}</td></tr>`;
+      });
+      html += '</tbody></table>';
+    }
+    
+    // Calls
+    if (calls.length > 0) {
+      html += `<div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:4px;">📈 CALL POSITIONS (${calls.length})</div>
+      <table style="width:100%;margin-bottom:8px;"><thead><tr><th>Ticker</th><th>Contracts</th><th>Value ($K)</th><th></th></tr></thead><tbody>`;
+      calls.forEach(p => {
+        const ticker = (p.ticker || p.issuer || '').toUpperCase();
+        const isHeld = myTickers.has(ticker);
+        html += `<tr><td style="font-weight:700;">${p.issuer || ticker}</td><td class="num">${(p.shares||0).toLocaleString()}</td><td class="num">$${(p.value||0).toLocaleString()}K</td>
+        <td style="font-size:9px;color:${isHeld ? 'var(--green)' : 'var(--text-tertiary)'};">${isHeld ? '← ALIGNED' : ''}</td></tr>`;
+      });
+      html += '</tbody></table>';
+    }
+    
+    // Top 10 longs
+    longs.sort((a, b) => (b.value||0) - (a.value||0));
+    html += `<div style="font-size:10px;font-weight:700;color:var(--text-tertiary);margin-bottom:4px;">📊 TOP LONG POSITIONS (${longs.length} total, showing top 10)</div>
+    <table style="width:100%;"><thead><tr><th>Ticker</th><th>Shares</th><th>Value ($K)</th><th></th></tr></thead><tbody>`;
+    longs.slice(0, 10).forEach(p => {
+      const ticker = (p.ticker || p.issuer || '').toUpperCase();
+      const isHeld = myTickers.has(ticker);
+      html += `<tr><td style="font-weight:700;">${p.issuer || ticker}</td><td class="num">${(p.shares||0).toLocaleString()}</td><td class="num">$${(p.value||0).toLocaleString()}K</td>
+      <td style="font-size:9px;color:${isHeld ? 'var(--green)' : 'var(--text-tertiary)'};">${isHeld ? '← YOU HOLD' : ''}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    
+    // Changes
+    if (fund.changes) {
+      const c = fund.changes;
+      html += '<div style="margin-top:6px;font-size:10px;"><strong>Δ Changes vs previous quarter:</strong> ';
+      if (c.newBuys?.length) html += `<span style="color:var(--green);">New: ${c.newBuys.join(', ')}</span> `;
+      if (c.exits?.length) html += `<span style="color:var(--red);">Exits: ${c.exits.join(', ')}</span> `;
+      if (c.increases?.length) html += `<span style="color:var(--green);">↑ ${c.increases.map(i => i.ticker || i).join(', ')}</span> `;
+      if (c.decreases?.length) html += `<span style="color:var(--red);">↓ ${c.decreases.map(d => d.ticker || d).join(', ')}</span>`;
+      html += '</div>';
+    }
+    
+    html += '</div></div>';
+  });
+  
+  // Politicians
+  if (tracker.politicians && Object.keys(tracker.politicians).length > 0) {
+    html += '<div style="font-size:10px;font-weight:700;color:var(--text-tertiary);margin:8px 0 4px;">🏛 Political Trades (cumulative)</div>';
+    Object.entries(tracker.politicians).forEach(([name, data]) => {
+      if (data.trades?.length > 0) {
+        html += `<div style="font-size:10px;margin-bottom:4px;"><strong>${name}:</strong> `;
+        html += data.trades.slice(0, 5).map(t => `${t.ticker} ${t.type} ${t.amount || ''} (${t.date || '?'})`).join(' | ');
+        if (data.trades.length > 5) html += ` +${data.trades.length - 5} more`;
+        html += '</div>';
+      }
+    });
+  }
+  
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderTrumpDashboard() {
+  const el = document.getElementById('trumpDashboard');
+  if (!el) return;
+  const t = state.trumpTracker;
+  if (!t || (!t.portfolio?.length && !t.mentions?.length && !t.policies?.length)) {
+    el.innerHTML = '<div class="card"><div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:12px;">No Trump intelligence data yet. Run Trump scan to start building history.</div></div>';
+    return;
+  }
+  
+  const myTickers = new Set(state.positions.map(p => p.symbol.toUpperCase()));
+  let html = '<div class="card"><div class="card-title" style="margin-bottom:8px;">🇺🇸 Trump Intelligence</div>';
+  
+  // Personal holdings
+  if (t.portfolio?.length > 0) {
+    html += `<div style="font-size:11px;font-weight:700;margin-bottom:6px;">💼 PERSONAL HOLDINGS (${t.portfolio.length})</div>
+    <table style="width:100%;margin-bottom:12px;"><thead><tr><th>Ticker</th><th>Amount</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>`;
+    t.portfolio.forEach(p => {
+      const isHeld = myTickers.has(p.ticker?.toUpperCase());
+      html += `<tr><td style="font-weight:700;">${p.ticker}</td><td>${p.amount || '?'}</td><td style="font-size:10px;">${p.date || '?'}</td>
+      <td style="color:${p.status === 'HELD' ? 'var(--green)' : 'var(--red)'};">${p.status || '?'}</td>
+      <td style="font-size:9px;color:${isHeld ? 'var(--green)' : 'var(--text-tertiary)'};">${isHeld ? '← YOU HOLD' : ''}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  
+  // Mention history with stats
+  if (t.mentions?.length > 0) {
+    const stats = t.stats || {};
+    html += `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">📊 MENTION HISTORY (${t.mentions.length} tracked)</div>`;
+    if (stats.avgReturn !== undefined) {
+      html += `<div style="display:flex;gap:8px;margin-bottom:6px;">
+        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Avg Return</div><div class="metric-value" style="font-size:14px;color:${stats.avgReturn >= 0 ? 'var(--green)' : 'var(--red)'};">${stats.avgReturn > 0 ? '+' : ''}${stats.avgReturn?.toFixed(1)}%</div></div>
+        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Hit Rate</div><div class="metric-value" style="font-size:14px;">${((stats.hitRate||0)*100).toFixed(0)}%</div></div>
+        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Avg Hold</div><div class="metric-value" style="font-size:14px;">${stats.avgHoldDays || '?'}d</div></div>
+      </div>`;
+    }
+    html += '<table style="width:100%;margin-bottom:12px;"><thead><tr><th>Date</th><th>Ticker</th><th>Event</th><th>Return</th></tr></thead><tbody>';
+    t.mentions.slice(-15).reverse().forEach(m => {
+      const ret = m.return;
+      html += `<tr><td style="font-size:10px;">${m.date || '?'}</td><td style="font-weight:700;">${m.ticker}</td>
+      <td style="font-size:10px;">${m.event?.substring(0, 50) || ''}</td>
+      <td style="font-weight:700;color:${ret >= 0 ? 'var(--green)' : 'var(--red)'};">${ret !== undefined ? (ret >= 0 ? '+' : '') + ret.toFixed(1) + '%' : '?'} ${ret >= 0 ? '✅' : '❌'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  
+  // Active policies
+  if (t.policies?.length > 0) {
+    html += `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">📜 ACTIVE POLICIES (${t.policies.length})</div>`;
+    t.policies.forEach(p => {
+      html += `<div style="padding:4px 8px;margin-bottom:4px;background:var(--bg-secondary);border-radius:var(--radius-sm);font-size:10px;">
+        <strong>${p.name}</strong> <span style="color:${p.status === 'ACTIVE' ? 'var(--green)' : p.status === 'PENDING' ? 'var(--amber)' : 'var(--text-tertiary)'};">[${p.status}]</span>
+        ${p.deadline ? ' Deadline: ' + p.deadline : ''} — ${(p.sectors || []).join(', ')} — ${(p.beneficiaries || []).join(', ')}
+      </div>`;
+    });
+  }
+  
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 function saveFeedConfig(feedName) {
