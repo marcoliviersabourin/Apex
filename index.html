@@ -2661,7 +2661,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.4.0';
+const APEX_VERSION = '5.4.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9753,6 +9753,7 @@ async function runResearchFeed(feedName) {
       
       // ═══ PERSISTENT TRACKER MERGE ═══
       if (feedName === 'political' && parsed) {
+        try {
         if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
         // Store structured positions from topPicks and topShorts into persistent tracker
         const investorPicks = [...(parsed.topPicks || []), ...(parsed.topShorts || [])];
@@ -9799,20 +9800,23 @@ async function runResearchFeed(feedName) {
         });
         state.notableTracker.lastFullScan = new Date().toISOString();
         renderNotablePortfolioViewer();
+        } catch(e) { apexLog('ERROR', `Notable tracker merge: ${e.message}`); }
       }
       
       if (feedName === 'trump' && parsed) {
+        try {
         if (!state.trumpTracker) state.trumpTracker = { portfolio: [], mentions: [], policies: [], stats: {}, lastScan: null };
         // Merge alerts into mention history
         (parsed.alerts || []).forEach(a => {
           (a.tickers || []).forEach(ticker => {
             const existing = state.trumpTracker.mentions.find(m => m.ticker === ticker && m.event === a.event);
             if (!existing) {
+              const retVal = a.priceMove ? parseFloat(String(a.priceMove).replace(/[^0-9.\-+]/g, '')) : null;
               state.trumpTracker.mentions.push({
                 ticker, event: a.event, quote: a.quote,
                 date: a.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0],
                 priceAtMention: null, priceNow: null,
-                return: a.priceMove ? parseFloat(a.priceMove) || null : null,
+                return: isNaN(retVal) ? null : retVal,
                 urgency: a.urgency, direction: a.direction
               });
             }
@@ -9820,6 +9824,7 @@ async function runResearchFeed(feedName) {
         });
         // Merge sector impacts into policies
         (parsed.sectorImpacts || []).forEach(s => {
+          if (!s.reason) return;
           const existing = state.trumpTracker.policies.find(p => p.name === s.reason);
           if (!existing) {
             state.trumpTracker.policies.push({
@@ -9829,18 +9834,19 @@ async function runResearchFeed(feedName) {
             });
           }
         });
-        // Compute stats
-        const mentions = state.trumpTracker.mentions.filter(m => m.return !== null);
+        // Compute stats (null-safe)
+        const mentions = state.trumpTracker.mentions.filter(m => m.return != null && !isNaN(m.return));
         if (mentions.length > 0) {
           state.trumpTracker.stats = {
             mentionCount: state.trumpTracker.mentions.length,
-            avgReturn: mentions.reduce((s, m) => s + m.return, 0) / mentions.length,
-            hitRate: mentions.filter(m => m.return > 0).length / mentions.length,
+            avgReturn: mentions.reduce((s, m) => s + Number(m.return), 0) / mentions.length,
+            hitRate: mentions.filter(m => Number(m.return) > 0).length / mentions.length,
             avgHoldDays: 14
           };
         }
         state.trumpTracker.lastScan = new Date().toISOString();
         renderTrumpDashboard();
+        } catch(e) { apexLog('ERROR', `Trump tracker merge: ${e.message}`); }
       }
       saveState();
       renderFeedResults(feedName);
@@ -10308,7 +10314,7 @@ function renderTrumpDashboard() {
       const ret = m.return;
       html += `<tr><td style="font-size:10px;">${m.date || '?'}</td><td style="font-weight:700;">${m.ticker}</td>
       <td style="font-size:10px;">${m.event?.substring(0, 50) || ''}</td>
-      <td style="font-weight:700;color:${ret >= 0 ? 'var(--green)' : 'var(--red)'};">${ret !== undefined ? (ret >= 0 ? '+' : '') + ret.toFixed(1) + '%' : '?'} ${ret >= 0 ? '✅' : '❌'}</td></tr>`;
+      <td style="font-weight:700;color:${ret > 0 ? 'var(--green)' : ret < 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${ret != null ? (ret >= 0 ? '+' : '') + Number(ret).toFixed(1) + '%' : '—'} ${ret > 0 ? '✅' : ret < 0 ? '❌' : ''}</td></tr>`;
     });
     html += '</tbody></table>';
   }
