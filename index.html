@@ -2597,6 +2597,20 @@ input[type="range"]::-webkit-slider-thumb {
         <div id="avTestResult" style="margin-top:8px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
         <div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;" id="avDataStatus"></div>
       </div>
+      
+      <!-- Finnhub API Key -->
+      <div class="card fade-in stagger-2" style="margin-top:12px;">
+        <div class="card-title" style="margin-bottom:8px;">📡 Finnhub API (13F Institutional Holdings)</div>
+        <div class="form-group">
+          <label class="form-label">Finnhub API Key (free — for complete 13F filing data)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" class="form-input" id="finnhubKeyInput" placeholder="Your Finnhub key..." style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;">
+            <button class="btn btn-sm" onclick="testFinnhub()">🔌 Test</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px;">Free key from <strong>finnhub.io</strong> — enables complete 13F filing data for all tracked investors (Burry, Buffett, Tepper, etc.)</div>
+        </div>
+        <div id="finnhubTestResult" style="margin-top:8px;font-size:12px;font-family:'IBM Plex Mono',monospace;display:none;padding:10px;border-radius:var(--radius-sm);"></div>
+      </div>
     </div>
 
     <!-- Display -->
@@ -2661,7 +2675,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.4.1';
+const APEX_VERSION = '5.5.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2693,7 +2707,7 @@ let state = {
   analysisData: null,
   watchlist: [],
   cashBalances: { USD: 0, CAD: 0, EUR: 0 },
-  settings: { apiKey:'', avKey:'', avDailyLimit:25, model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
+  settings: { apiKey:'', avKey:'', finnhubKey:'', avDailyLimit:25, model:'claude-sonnet-4-6', theme:'dark', ccyDisplay:'usd' },
   technicalData: {}, // per-ticker OHLC + computed indicators
   currentPage: 'dashboard',
   importBuffer: [],
@@ -2753,6 +2767,7 @@ function loadState() {
     // Restore API keys & model
     if (state.settings.apiKey) document.getElementById('apiKeyInput').value = state.settings.apiKey;
     if (state.settings.avKey) document.getElementById('avKeyInput').value = state.settings.avKey;
+    if (state.settings.finnhubKey) { const fk = document.getElementById('finnhubKeyInput'); if (fk) fk.value = state.settings.finnhubKey; }
     if (state.settings.avDailyLimit) document.getElementById('avDailyLimitInput').value = state.settings.avDailyLimit;
     if (state.settings.model) document.getElementById('modelSelect').value = state.settings.model;
   } catch(e) { console.error('Load error:', e); state.profile = getDefaultProfile(); }
@@ -3829,6 +3844,7 @@ function refreshAnalysisConfig() {
 function saveAPIKey() {
   state.settings.apiKey = document.getElementById('apiKeyInput').value.trim();
   state.settings.avKey = document.getElementById('avKeyInput').value.trim();
+  state.settings.finnhubKey = (document.getElementById('finnhubKeyInput')?.value || '').trim();
   state.settings.avDailyLimit = parseInt(document.getElementById('avDailyLimitInput').value) || 25;
   state.settings.model = document.getElementById('modelSelect').value;
   saveState();
@@ -9385,13 +9401,116 @@ function refreshResearch() {
 }
 
 // ═══ SEC EDGAR 13F DIRECT API ═══
-const FUND_CIK_MAP = {
+// Default CIK mappings — expanded. Users can add more via Settings.
+const DEFAULT_CIK_MAP = {
   'Michael Burry': { cik: '1649339', fund: 'Scion Asset Management' },
   'Warren Buffett': { cik: '1067983', fund: 'Berkshire Hathaway' },
   'David Tepper': { cik: '1656456', fund: 'Appaloosa Management' },
   'Bill Ackman': { cik: '1336528', fund: 'Pershing Square Capital' },
   'Bill Gates': { cik: '1166559', fund: 'Bill & Melinda Gates Foundation Trust' },
+  'Ray Dalio': { cik: '1350694', fund: 'Bridgewater Associates' },
+  'Ken Griffin': { cik: '1423053', fund: 'Citadel Advisors' },
+  'Stanley Druckenmiller': { cik: '1536411', fund: 'Duquesne Family Office' },
+  'George Soros': { cik: '1029160', fund: 'Soros Fund Management' },
+  'Carl Icahn': { cik: '921669', fund: 'Icahn Capital' },
+  'Seth Klarman': { cik: '44109', fund: 'Baupost Group' },
+  'David Einhorn': { cik: '1079114', fund: 'Greenlight Capital' },
+  'Daniel Loeb': { cik: '1040273', fund: 'Third Point' },
+  'Hindenburg Research': { cik: '1864163', fund: 'Hindenburg Research' },
 };
+// Dynamic map merges defaults with user-added CIKs from state
+function getFundCIKMap() {
+  return { ...DEFAULT_CIK_MAP, ...(state.notableTracker?.customCIKs || {}) };
+}
+const FUND_CIK_MAP = DEFAULT_CIK_MAP; // Initial reference, getFundCIKMap() used at runtime
+
+// ═══ FINNHUB 13F API INTEGRATION ═══
+async function fetchFinnhub13F(cik, apiKey) {
+  const now = new Date();
+  const fromDate = new Date(now.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
+  const toDate = now.toISOString().split('T')[0];
+  
+  try {
+    const resp = await fetch(`https://finnhub.io/api/v1/institutional/portfolio?cik=${cik}&from=${fromDate}&to=${toDate}&token=${apiKey}`);
+    if (!resp.ok) throw new Error(`Finnhub ${resp.status}`);
+    const data = await resp.json();
+    
+    if (!data?.data?.length) return { positions: [], error: 'No filing data found' };
+    
+    // Get the most recent filing
+    const latestFiler = data.data[0];
+    if (!latestFiler?.data?.length) return { positions: [], error: 'No position data' };
+    
+    const latestFiling = latestFiler.data[0]; // Most recent quarter
+    const positions = (latestFiling.positions || []).map(p => ({
+      ticker: p.symbol || '',
+      issuer: p.name || p.symbol || '',
+      cusip: p.cusip || '',
+      shares: p.share || 0,
+      value: p.value || 0, // In thousands ($K)
+      change: p.change || 0,
+      putCall: p.putCall ? p.putCall.toUpperCase() : '',
+      pctOfPortfolio: p.percentage || 0,
+      votingSole: p.sshPrnamtSole || 0,
+      votingShared: p.sshPrnamtShared || 0,
+      votingNone: p.sshPrnamtNone || 0,
+    }));
+    
+    return {
+      name: latestFiler.name || '',
+      cik: cik,
+      filingDate: latestFiling.filingDate || '',
+      reportDate: latestFiling.reportDate || '',
+      positions,
+      positionCount: positions.length,
+      source: 'Finnhub 13F API'
+    };
+  } catch(e) {
+    apexLog('INFO', `Finnhub 13F failed for CIK ${cik}: ${e.message}`);
+    return { positions: [], error: e.message };
+  }
+}
+
+async function fetchAll13FPortfolios() {
+  const finnhubKey = state.settings?.finnhubKey;
+  if (!finnhubKey) {
+    toast('Finnhub API key required. Add it in Settings.', 'error');
+    return null;
+  }
+  
+  const cikMap = getFundCIKMap();
+  const members = state.research?.config?.political?.members || DEFAULT_POLITICAL;
+  const results = {};
+  let fetched = 0, failed = 0;
+  
+  for (const person of members) {
+    const entry = cikMap[person];
+    if (!entry) continue; // Politicians, short sellers without 13F
+    
+    apexLog('INFO', `Finnhub: Fetching 13F for ${person} (CIK ${entry.cik})...`);
+    const result = await fetchFinnhub13F(entry.cik, finnhubKey);
+    
+    if (result.positions.length > 0) {
+      results[entry.cik] = {
+        fund: entry.fund, person, 
+        filingDate: result.filingDate, reportDate: result.reportDate,
+        positions: result.positions,
+        positionCount: result.positionCount,
+        source: result.source, lastFetched: new Date().toISOString()
+      };
+      fetched++;
+      apexLog('INFO', `Finnhub: ${person} — ${result.positionCount} positions (${result.positions.filter(p=>p.putCall==='PUT').length} puts)`);
+    } else {
+      failed++;
+      apexLog('INFO', `Finnhub: ${person} — ${result.error || 'no data'}`);
+    }
+    
+    await new Promise(r => setTimeout(r, 300)); // Rate limit courtesy
+  }
+  
+  toast(`📡 Finnhub: ${fetched} funds loaded (${Object.values(results).reduce((s,r) => s + r.positionCount, 0)} total positions)${failed ? ', ' + failed + ' failed' : ''}`);
+  return results;
+}
 
 // ═══ PERSISTENT TRACKER ENGINE ═══
 // 13F filing schedule: due 45 days after quarter end
@@ -9661,6 +9780,25 @@ function format13FForClaude(results) {
   return text;
 }
 
+async function testFinnhub() {
+  const key = (document.getElementById('finnhubKeyInput')?.value || '').trim();
+  const el = document.getElementById('finnhubTestResult');
+  if (!key) { el.style.display = 'block'; el.style.color = 'var(--red)'; el.textContent = '❌ Enter a Finnhub key first'; return; }
+  el.style.display = 'block'; el.style.color = 'var(--amber)'; el.textContent = '⏳ Testing...';
+  try {
+    const resp = await fetch(`https://finnhub.io/api/v1/institutional/portfolio?cik=1649339&from=2025-01-01&to=2026-06-30&token=${key}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const posCount = data?.data?.[0]?.data?.[0]?.positions?.length || 0;
+    el.style.color = 'var(--green)';
+    el.textContent = `✅ Connected! Scion (Burry) has ${posCount} positions in latest filing.`;
+    state.settings.finnhubKey = key; saveState();
+  } catch(e) {
+    el.style.color = 'var(--red)';
+    el.textContent = `❌ Failed: ${e.message}`;
+  }
+}
+
 async function runResearchFeed(feedName) {
   const key = state.settings.apiKey;
   if (!key) { toast('Set API key in Settings first', 'error'); return; }
@@ -9684,22 +9822,59 @@ async function runResearchFeed(feedName) {
   let totalCost = 0;
   
   try {
-    // ═══ STEP 0 (Political only): Build SEC EDGAR references for Haiku ═══
+    // ═══ STEP 0 (Political only): Fetch 13F via Finnhub API + build CIK refs ═══
     let sec13FData = '';
     if (feedName === 'political') {
-      // Browser can't access SEC EDGAR (CORS). Instead, give Haiku the exact
-      // CIK numbers and URLs so it can search with precision via server-side web access.
-      const members = state.research?.config?.political?.members || DEFAULT_POLITICAL;
-      const edgarRefs = [];
-      for (const person of members) {
-        if (FUND_CIK_MAP[person]) {
-          const e = FUND_CIK_MAP[person];
-          const paddedCIK = e.cik.padStart(10, '0');
-          edgarRefs.push(`${person} / ${e.fund}: CIK ${e.cik} — search "CIK${paddedCIK}" or "${e.fund} 13F" on WhaleWisdom, Fintel, or Dataroma`);
+      const finnhubKey = state.settings?.finnhubKey;
+      if (finnhubKey) {
+        if (btn) btn.textContent = '⏳ Step 0: Finnhub 13F...';
+        const portfolioResults = await fetchAll13FPortfolios();
+        if (portfolioResults && Object.keys(portfolioResults).length > 0) {
+          // Store in persistent tracker
+          if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
+          Object.entries(portfolioResults).forEach(([cik, data]) => {
+            state.notableTracker.portfolios[cik] = data;
+          });
+          state.notableTracker.lastFullScan = new Date().toISOString();
+          saveState();
+          renderNotablePortfolioViewer();
+          
+          // Build formatted text for Claude's analyze step
+          sec13FData = '\n═══ 13F FILING DATA (FROM FINNHUB API — VERIFIED, COMPLETE) ═══\n\n';
+          Object.values(portfolioResults).forEach(r => {
+            sec13FData += `${r.fund} (${r.person}) — Filed: ${r.filingDate}, Report: ${r.reportDate}\n`;
+            sec13FData += `Total: ${r.positionCount} positions | Source: ${r.source}\n`;
+            const puts = r.positions.filter(p => p.putCall === 'PUT');
+            const calls = r.positions.filter(p => p.putCall === 'CALL');
+            const longs = r.positions.filter(p => !p.putCall);
+            if (puts.length > 0) {
+              sec13FData += `ALL PUTS (${puts.length}):\n`;
+              puts.forEach(p => { sec13FData += `  ⚠ PUT: ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} contracts | $${p.value.toLocaleString()}K | chg: ${p.change.toLocaleString()}\n`; });
+            }
+            if (calls.length > 0) {
+              sec13FData += `CALLS (${calls.length}):\n`;
+              calls.forEach(p => { sec13FData += `  CALL: ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} | $${p.value.toLocaleString()}K\n`; });
+            }
+            longs.sort((a, b) => b.value - a.value);
+            sec13FData += `TOP LONGS (${longs.length}, showing top 15):\n`;
+            longs.slice(0, 15).forEach(p => { sec13FData += `  ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} shares | $${p.value.toLocaleString()}K | ${p.pctOfPortfolio?.toFixed(1)}% | chg: ${p.change.toLocaleString()}\n`; });
+            sec13FData += '\n';
+          });
         }
-      }
-      if (edgarRefs.length > 0) {
-        sec13FData = `\n\nSEC EDGAR CIK REFERENCES (use these for precise 13F searches):\n${edgarRefs.join('\n')}\n`;
+      } else {
+        // No Finnhub key — fall back to CIK-anchored search
+        const members = state.research?.config?.political?.members || DEFAULT_POLITICAL;
+        const cikMap = getFundCIKMap();
+        const edgarRefs = [];
+        for (const person of members) {
+          if (cikMap[person]) {
+            const e = cikMap[person];
+            edgarRefs.push(`${person} / ${e.fund}: CIK ${e.cik}`);
+          }
+        }
+        if (edgarRefs.length > 0) {
+          sec13FData = `\n\nNote: Add Finnhub API key in Settings for complete 13F data.\nCIK REFERENCES for search:\n${edgarRefs.join('\n')}\n`;
+        }
       }
     }
     
@@ -9722,7 +9897,7 @@ async function runResearchFeed(feedName) {
     // ═══ STEP 2: Sonnet WITHOUT web search — analyze and judge (smart) ═══
     if (btn) btn.textContent = '⏳ Step 2: Analyzing...';
     
-    const analyzePrompt = buildAnalyzePrompt(feedName, step1.text);
+    const analyzePrompt = buildAnalyzePrompt(feedName, sec13FData ? sec13FData + '\n═══ WEB SEARCH FINDINGS ═══\n' + step1.text : step1.text);
     const maxAnalyzeTokens = (feedName === 'political' || feedName === 'institutional' || feedName === 'insider') ? 5000 : (feedName === 'trump') ? 4000 : 2500;
     const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, maxAnalyzeTokens);
     
@@ -9755,12 +9930,52 @@ async function runResearchFeed(feedName) {
       if (feedName === 'political' && parsed) {
         try {
         if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
-        // Store structured positions from topPicks and topShorts into persistent tracker
+        
+        // Helper: parse dollar values like "$50M", "$2.85B", "$912K", "50000000"
+        const parseDollarValue = (str) => {
+          if (!str) return 0;
+          const s = String(str).replace(/[,$]/g, '').trim();
+          const m = s.match(/([\d.]+)\s*([BMKbmk])?/);
+          if (!m) return 0;
+          const num = parseFloat(m[1]) || 0;
+          const mult = { 'B': 1e9, 'b': 1e9, 'M': 1e6, 'm': 1e6, 'K': 1e3, 'k': 1e3 }[m[2]] || 1;
+          return Math.round(num * mult);
+        };
+        
+        // PRIMARY: Use fundPortfolios if available (complete position data)
+        if (parsed.fundPortfolios && typeof parsed.fundPortfolios === 'object') {
+          Object.entries(parsed.fundPortfolios).forEach(([personName, positions]) => {
+            const fundEntry = Object.entries(getFundCIKMap()).find(([name]) => personName.includes(name.split(' ').pop()) || name.includes(personName.split(' ').pop()));
+            if (!fundEntry || !Array.isArray(positions)) return;
+            const [fullName, fundData] = fundEntry;
+            const key = fundData.cik;
+            
+            // Build complete portfolio (replace, not merge — this is the full filing)
+            state.notableTracker.portfolios[key] = {
+              fund: fundData.fund, person: fullName,
+              filingDate: parsed.runDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+              positions: positions.map(p => ({
+                ticker: p.ticker?.toUpperCase(),
+                issuer: p.ticker,
+                shares: parseInt(p.shares) || 0,
+                value: Math.round(parseDollarValue(p.valueUSD) / 1000), // Store in $K
+                putCall: p.putCall === 'PUT' ? 'PUT' : p.putCall === 'CALL' ? 'CALL' : '',
+                titleOfClass: p.titleOfClass || (p.putCall || 'COM'),
+                pctOfPortfolio: parseFloat(p.pctOfPortfolio) || 0,
+                source: 'fund_portfolio', lastSeen: new Date().toISOString()
+              })),
+              changes: {},
+              lastSeen: new Date().toISOString()
+            };
+            apexLog('INFO', `Notable tracker: stored ${positions.length} positions for ${fullName}`);
+          });
+        }
+        
+        // SUPPLEMENT: Also merge topPicks/topShorts for funds not in fundPortfolios
         const investorPicks = [...(parsed.topPicks || []), ...(parsed.topShorts || [])];
         investorPicks.forEach(p => {
           if (!p.trader) return;
-          // Find which fund this trader belongs to
-          const fundEntry = Object.entries(FUND_CIK_MAP).find(([name]) => p.trader.includes(name.split(' ').pop()));
+          const fundEntry = Object.entries(getFundCIKMap()).find(([name]) => p.trader.includes(name.split(' ').pop()));
           if (fundEntry) {
             const [personName, fundData] = fundEntry;
             const key = fundData.cik;
@@ -9768,32 +9983,27 @@ async function runResearchFeed(feedName) {
               state.notableTracker.portfolios[key] = { fund: fundData.fund, person: personName, filingDate: '', positions: [], changes: {} };
             }
             const portfolio = state.notableTracker.portfolios[key];
-            // Merge position (update if exists, add if new)
-            const existing = portfolio.positions.find(pos => pos.ticker?.toUpperCase() === p.ticker?.toUpperCase());
-            if (existing) {
-              existing.value = p.size ? parseInt(p.size.replace(/[^0-9]/g, '')) || existing.value : existing.value;
-              existing.putCall = p.position === 'PUT' ? 'PUT' : p.position === 'CALL' ? 'CALL' : p.position === 'SHORT' ? 'PUT' : existing.putCall;
-              existing.lastSeen = new Date().toISOString();
-            } else {
+            const ticker = p.ticker?.toUpperCase();
+            const existing = portfolio.positions.find(pos => pos.ticker === ticker);
+            if (!existing) {
               portfolio.positions.push({
-                ticker: p.ticker?.toUpperCase(), issuer: p.ticker,
-                putCall: p.position === 'PUT' ? 'PUT' : p.position === 'CALL' ? 'CALL' : p.position === 'SHORT' ? 'PUT' : '',
-                value: p.size ? parseInt(p.size.replace(/[^0-9]/g, '')) || 0 : 0,
+                ticker, issuer: p.ticker,
+                putCall: (p.position === 'PUT' || p.position === 'SHORT') ? 'PUT' : p.position === 'CALL' ? 'CALL' : '',
+                value: Math.round(parseDollarValue(p.size) / 1000),
                 shares: 0, titleOfClass: p.position || 'COM',
-                source: 'research_scan', lastSeen: new Date().toISOString()
+                source: 'top_picks', lastSeen: new Date().toISOString()
               });
             }
-            if (!portfolio.filingDate && parsed.runDate) portfolio.filingDate = parsed.runDate.split('T')[0];
           } else {
-            // Politician trade — store in politicians section
+            // Politician trade
             const politicianName = p.trader;
             if (!state.notableTracker.politicians[politicianName]) state.notableTracker.politicians[politicianName] = { trades: [] };
             const existingTrade = state.notableTracker.politicians[politicianName].trades.find(t => t.ticker === p.ticker && t.type === (p.signal || p.position));
             if (!existingTrade) {
               state.notableTracker.politicians[politicianName].trades.push({
                 ticker: p.ticker, type: p.signal || p.position || 'BUY',
-                amount: p.size || p.reason?.match(/\$[\d.]+[MBK]*/)?.[0] || '',
-                date: new Date().toISOString().split('T')[0], source: p.reason?.substring(0, 60) || ''
+                amount: p.size || '', date: new Date().toISOString().split('T')[0],
+                source: p.reason?.substring(0, 60) || ''
               });
             }
           }
@@ -9806,7 +10016,16 @@ async function runResearchFeed(feedName) {
       if (feedName === 'trump' && parsed) {
         try {
         if (!state.trumpTracker) state.trumpTracker = { portfolio: [], mentions: [], policies: [], stats: {}, lastScan: null };
-        // Merge alerts into mention history
+        
+        // Merge confirmed holdings (replace, not accumulate — latest filing is truth)
+        if (parsed.confirmedHoldings?.length > 0) {
+          state.trumpTracker.portfolio = parsed.confirmedHoldings.map(h => ({
+            ticker: h.ticker?.toUpperCase(), amount: h.amount || '?',
+            date: h.date || '', status: h.status || 'HELD', source: h.source || 'OGE 278e'
+          }));
+        }
+        
+        // Merge alerts into typed mention history
         (parsed.alerts || []).forEach(a => {
           (a.tickers || []).forEach(ticker => {
             const existing = state.trumpTracker.mentions.find(m => m.ticker === ticker && m.event === a.event);
@@ -9814,14 +10033,15 @@ async function runResearchFeed(feedName) {
               const retVal = a.priceMove ? parseFloat(String(a.priceMove).replace(/[^0-9.\-+]/g, '')) : null;
               state.trumpTracker.mentions.push({
                 ticker, event: a.event, quote: a.quote,
+                type: a.type || 'MENTION', // HOLDING, MENTION, POLICY, BUSINESS
                 date: a.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0],
-                priceAtMention: null, priceNow: null,
                 return: isNaN(retVal) ? null : retVal,
                 urgency: a.urgency, direction: a.direction
               });
             }
           });
         });
+        
         // Merge sector impacts into policies
         (parsed.sectorImpacts || []).forEach(s => {
           if (!s.reason) return;
@@ -9834,13 +10054,14 @@ async function runResearchFeed(feedName) {
             });
           }
         });
-        // Compute stats (null-safe)
-        const mentions = state.trumpTracker.mentions.filter(m => m.return != null && !isNaN(m.return));
-        if (mentions.length > 0) {
+        
+        // Compute stats — ONLY on MENTION type (not POLICY, BUSINESS, HOLDING)
+        const mentionOnly = state.trumpTracker.mentions.filter(m => (m.type === 'MENTION' || !m.type) && m.return != null && !isNaN(m.return));
+        if (mentionOnly.length > 0) {
           state.trumpTracker.stats = {
-            mentionCount: state.trumpTracker.mentions.length,
-            avgReturn: mentions.reduce((s, m) => s + Number(m.return), 0) / mentions.length,
-            hitRate: mentions.filter(m => Number(m.return) > 0).length / mentions.length,
+            mentionCount: state.trumpTracker.mentions.filter(m => m.type === 'MENTION' || !m.type).length,
+            avgReturn: mentionOnly.reduce((s, m) => s + Number(m.return), 0) / mentionOnly.length,
+            hitRate: mentionOnly.filter(m => Number(m.return) > 0).length / mentionOnly.length,
             avgHoldDays: 14
           };
         }
@@ -9927,7 +10148,7 @@ INVESTOR 13F FILINGS — USE CIK NUMBERS FOR PRECISE SEARCHES:
 For each investor below, search using their fund name AND CIK number on WhaleWisdom, Fintel, Dataroma, or SEC EDGAR. The CIK ensures you find the EXACT filing, not news articles about it.
 
 ${investorMembers.map(m => {
-  const e = FUND_CIK_MAP[m];
+  const e = getFundCIKMap()[m];
   return e ? `→ ${m} / ${e.fund} (CIK ${e.cik}): Search "${e.fund} 13F" or "CIK ${e.cik} 13F holdings". Report ALL positions including puts and calls.` : `→ ${m}: Search for recent trades.`;
 }).join('\n')}
 
@@ -10062,9 +10283,11 @@ COVERAGE CHECK: Your output MUST include findings from EACH tracked person for w
 
 5. PORTFOLIO OVERLAP: Any tracked person activity on my positions.
 
-CRITICAL: If the research data found few actual trades from tracked persons, return fewer picks (even 0-2 is fine). Quality and accuracy over quantity. Say "Only 2 notable trades found in this period" rather than padding with generic stock analysis.`;
+CRITICAL: If the research data found few actual trades from tracked persons, return fewer picks (even 0-2 is fine). Quality and accuracy over quantity. Say "Only 2 notable trades found in this period" rather than padding with generic stock analysis.
+
+6. FUND PORTFOLIOS: For each INVESTOR (not politicians), extract their COMPLETE position list from the 13F data found. Include ALL positions — longs, puts, calls. This is stored persistently and only needs to be rebuilt when a new filing is available.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"[Person Name] bought $X on [date]. [1 sentence context]","sector":"Sector","suggestedTag":"Core|Tactical","trader":"Person Name"}],"topShorts":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"[Person Name] [action] on [date]. [thesis]","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"risk detail","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Person Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"summary":"X trades found from Y tracked persons this period"}`;
+{"feedName":"political","topPicks":[{"ticker":"XYZ","signal":"BUY","confidence":"High|Medium|Low","reason":"[Person Name] bought $X on [date]. [context]","sector":"Sector","suggestedTag":"Core|Tactical","trader":"Person Name"}],"topShorts":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"[Person Name] [action] on [date]. [thesis]","heldByUser":false}],"riskFlags":[{"ticker":"XYZ","trader":"Person Name","position":"SHORT|PUT|EXIT","size":"$50M","reason":"risk detail","riskLevel":"HIGH|MEDIUM"}],"bullishConviction":[{"ticker":"XYZ","trader":"Person Name","position":"CALL","size":"$10M","reason":"1 sentence"}],"portfolioOverlap":[{"ticker":"XYZ","signal":"HOLD|BUY|SELL","note":"brief"}],"fundPortfolios":{"Person Name":[{"ticker":"XYZ","shares":1000000,"valueUSD":50000000,"putCall":"PUT|CALL|","titleOfClass":"COM|PUT|CALL","pctOfPortfolio":5.2}]},"summary":"X trades found from Y tracked persons this period"}`;
   } else if (feedName === 'institutional') {
     feedInstructions = `
 REQUIRED ANALYSIS — STRICT ATTRIBUTION RULES:
@@ -10135,13 +10358,22 @@ CRITICAL FORMATTING RULES:
 - ONE EVENT PER ALERT: Each distinct event is its own alert.
 
 REQUIRED SECTIONS:
-1. ACTIONABLE (< 7 days old, not fully priced in): Events with still-open opportunity.
-2. RECENT MOVERS (< 14 days, partially/fully priced in): What already moved — for awareness, not action.
-3. HISTORICAL (> 14 days): Context only. Do NOT suggest action on these.
-4. PORTFOLIO IMPACT: Which of my positions benefit or suffer from ACTIONABLE events only.
-5. SECTOR SHIFTS: Broader policy signals still in effect.`;
+1. CONFIRMED HOLDINGS: Only positions where a specific filing (OGE 278e, ethics disclosure) names a SPECIFIC TICKER with a dollar amount or share count. Do NOT speculate. "Crypto income" or "crypto-related" is NOT a stock holding — it could be licensing royalties, NFT income, or coin holdings. Only include if the filing says "owns X shares of TICKER."
+2. ACTIONABLE (< 7 days old, not fully priced in): Events with still-open opportunity.
+3. RECENT MOVERS (< 14 days, partially/fully priced in): What already moved — for awareness, not action.
+4. HISTORICAL (> 14 days): Context only. Do NOT suggest action on these.
+5. PORTFOLIO IMPACT: Which of my positions benefit or suffer from ACTIONABLE events only.
+6. SECTOR SHIFTS: Broader policy signals still in effect.
+
+EVERY ALERT MUST HAVE A TYPE:
+- HOLDING: Trump personally owns shares (from official filing with specific ticker + amount)
+- MENTION: Trump named a company in speech/post (the signal we track for price impact)
+- POLICY: Government action/executive order (not Trump personally but his administration)
+- BUSINESS: Commercial relationship (e.g. Trump Accounts with JPM/SOFI — not holdings)
+
+DO NOT speculate on holdings. "Trump disclosed $1.4B in crypto-related income" does NOT mean he holds MARA, WULF, IREN stock. It likely means licensing/royalty income. Do not list crypto miners as confirmed holdings unless the filing specifically names those tickers.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"trump","alerts":[{"event":"ONE specific event","quote":"exact words","timestamp":"ISO or approx date","hoursAgo":14,"daysAgo":0,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR|HISTORICAL","portfolioImpact":"effect","priceMove":"+20% since event"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found: Y actionable, Z historical"}`;
+{"feedName":"trump","confirmedHoldings":[{"ticker":"AMD","amount":"$740K+","date":"2026-01-06","status":"HELD","source":"OGE 278e filing"}],"alerts":[{"event":"description","quote":"exact words","timestamp":"ISO date","hoursAgo":14,"daysAgo":0,"tickers":["MU"],"type":"MENTION|POLICY|BUSINESS|HOLDING","direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR|HISTORICAL","portfolioImpact":"effect","priceMove":"+20%"}],"sectorImpacts":[{"sector":"Sector","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals: Y actionable, Z historical"}`;
   }
 
   return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
@@ -10285,47 +10517,73 @@ function renderTrumpDashboard() {
   const myTickers = new Set(state.positions.map(p => p.symbol.toUpperCase()));
   let html = '<div class="card"><div class="card-title" style="margin-bottom:8px;">🇺🇸 Trump Intelligence</div>';
   
-  // Personal holdings
+  // Section 1: Confirmed Holdings
   if (t.portfolio?.length > 0) {
-    html += `<div style="font-size:11px;font-weight:700;margin-bottom:6px;">💼 PERSONAL HOLDINGS (${t.portfolio.length})</div>
-    <table style="width:100%;margin-bottom:12px;"><thead><tr><th>Ticker</th><th>Amount</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>`;
+    html += `<div style="margin-bottom:12px;padding:8px;background:rgba(59,130,246,0.08);border:1px solid var(--blue);border-radius:var(--radius-sm);">
+    <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">💼 CONFIRMED HOLDINGS (from official filings only)</div>
+    <table style="width:100%;"><thead><tr><th>Ticker</th><th>Amount</th><th>Date</th><th>Status</th><th>Source</th><th></th></tr></thead><tbody>`;
     t.portfolio.forEach(p => {
       const isHeld = myTickers.has(p.ticker?.toUpperCase());
       html += `<tr><td style="font-weight:700;">${p.ticker}</td><td>${p.amount || '?'}</td><td style="font-size:10px;">${p.date || '?'}</td>
       <td style="color:${p.status === 'HELD' ? 'var(--green)' : 'var(--red)'};">${p.status || '?'}</td>
-      <td style="font-size:9px;color:${isHeld ? 'var(--green)' : 'var(--text-tertiary)'};">${isHeld ? '← YOU HOLD' : ''}</td></tr>`;
+      <td style="font-size:9px;color:var(--text-tertiary);">${p.source || ''}</td>
+      <td style="font-size:9px;font-weight:700;color:${isHeld ? 'var(--green)' : 'var(--text-tertiary)'};">${isHeld ? '← YOU HOLD' : ''}</td></tr>`;
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   
-  // Mention history with stats
-  if (t.mentions?.length > 0) {
+  // Section 2: Company Mentions (MENTION type only) with stats
+  const mentionsOnly = (t.mentions || []).filter(m => m.type === 'MENTION' || !m.type);
+  if (mentionsOnly.length > 0) {
     const stats = t.stats || {};
-    html += `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">📊 MENTION HISTORY (${t.mentions.length} tracked)</div>`;
-    if (stats.avgReturn !== undefined) {
+    html += `<div style="margin-bottom:12px;">
+    <div style="font-size:11px;font-weight:700;margin-bottom:4px;">📊 COMPANY MENTIONS — Trump Named These (${mentionsOnly.length} tracked)</div>
+    <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:6px;">Only tracks price moves after Trump specifically named a company. Excludes policy events, business deals, and holdings.</div>`;
+    if (stats.mentionCount > 0) {
       html += `<div style="display:flex;gap:8px;margin-bottom:6px;">
-        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Avg Return</div><div class="metric-value" style="font-size:14px;color:${stats.avgReturn >= 0 ? 'var(--green)' : 'var(--red)'};">${stats.avgReturn > 0 ? '+' : ''}${stats.avgReturn?.toFixed(1)}%</div></div>
+        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Avg Return</div><div class="metric-value" style="font-size:14px;color:${(stats.avgReturn||0) >= 0 ? 'var(--green)' : 'var(--red)'};">${stats.avgReturn > 0 ? '+' : ''}${Number(stats.avgReturn||0).toFixed(1)}%</div></div>
         <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Hit Rate</div><div class="metric-value" style="font-size:14px;">${((stats.hitRate||0)*100).toFixed(0)}%</div></div>
-        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Avg Hold</div><div class="metric-value" style="font-size:14px;">${stats.avgHoldDays || '?'}d</div></div>
+        <div class="metric-card" style="flex:1;padding:6px;"><div class="metric-label">Tracked</div><div class="metric-value" style="font-size:14px;">${stats.mentionCount || 0}</div></div>
       </div>`;
     }
-    html += '<table style="width:100%;margin-bottom:12px;"><thead><tr><th>Date</th><th>Ticker</th><th>Event</th><th>Return</th></tr></thead><tbody>';
-    t.mentions.slice(-15).reverse().forEach(m => {
+    html += '<table style="width:100%;"><thead><tr><th>Date</th><th>Ticker</th><th>Event</th><th>Return</th></tr></thead><tbody>';
+    mentionsOnly.slice(-15).reverse().forEach(m => {
       const ret = m.return;
       html += `<tr><td style="font-size:10px;">${m.date || '?'}</td><td style="font-weight:700;">${m.ticker}</td>
-      <td style="font-size:10px;">${m.event?.substring(0, 50) || ''}</td>
+      <td style="font-size:10px;">${m.event?.substring(0, 60) || ''}</td>
       <td style="font-weight:700;color:${ret > 0 ? 'var(--green)' : ret < 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${ret != null ? (ret >= 0 ? '+' : '') + Number(ret).toFixed(1) + '%' : '—'} ${ret > 0 ? '✅' : ret < 0 ? '❌' : ''}</td></tr>`;
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   
-  // Active policies
+  // Section 3: Policy Events
+  const policyEvents = (t.mentions || []).filter(m => m.type === 'POLICY');
+  if (policyEvents.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;margin-bottom:4px;">📜 POLICY EVENTS (${policyEvents.length})</div>`;
+    policyEvents.slice(-8).reverse().forEach(m => {
+      html += `<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--border-subtle);">
+        <span style="color:var(--text-tertiary);">${m.date}</span> <strong>${m.ticker}</strong> — ${m.event?.substring(0, 70) || ''}</div>`;
+    });
+    html += '</div>';
+  }
+  
+  // Section 4: Business Relationships
+  const bizEvents = (t.mentions || []).filter(m => m.type === 'BUSINESS');
+  if (bizEvents.length > 0) {
+    html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;margin-bottom:4px;">🤝 BUSINESS RELATIONSHIPS (${bizEvents.length})</div>`;
+    bizEvents.slice(-5).reverse().forEach(m => {
+      html += `<div style="font-size:10px;padding:3px 0;">${m.date} — <strong>${m.ticker}</strong> — ${m.event?.substring(0, 70) || ''}</div>`;
+    });
+    html += '</div>';
+  }
+  
+  // Section 5: Active Policies
   if (t.policies?.length > 0) {
-    html += `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">📜 ACTIVE POLICIES (${t.policies.length})</div>`;
+    html += `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">📋 ACTIVE POLICY TAILWINDS (${t.policies.length})</div>`;
     t.policies.forEach(p => {
       html += `<div style="padding:4px 8px;margin-bottom:4px;background:var(--bg-secondary);border-radius:var(--radius-sm);font-size:10px;">
-        <strong>${p.name}</strong> <span style="color:${p.status === 'ACTIVE' ? 'var(--green)' : p.status === 'PENDING' ? 'var(--amber)' : 'var(--text-tertiary)'};">[${p.status}]</span>
-        ${p.deadline ? ' Deadline: ' + p.deadline : ''} — ${(p.sectors || []).join(', ')} — ${(p.beneficiaries || []).join(', ')}
+        <strong>${p.name}</strong> <span style="color:${p.status === 'ACTIVE' ? 'var(--green)' : 'var(--amber)'};">[${p.status}]</span>
+        — ${(p.sectors || []).join(', ')} — ${(p.beneficiaries || []).join(', ')}
       </div>`;
     });
   }
