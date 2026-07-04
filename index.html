@@ -2657,7 +2657,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.3.2';
+const APEX_VERSION = '5.3.4';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9628,7 +9628,8 @@ async function runResearchFeed(feedName) {
     if (btn) btn.textContent = '⏳ Step 2: Analyzing...';
     
     const analyzePrompt = buildAnalyzePrompt(feedName, step1.text);
-    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, 2000);
+    const maxAnalyzeTokens = (feedName === 'political' || feedName === 'institutional' || feedName === 'insider') ? 3500 : 2500;
+    const step2 = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyzePrompt}], false, maxAnalyzeTokens);
     
     const u2 = step2.data?.usage || {};
     const cost2 = (u2.input_tokens || 0) * 3 / 1000000 + (u2.output_tokens || 0) * 15 / 1000000;
@@ -9921,23 +9922,33 @@ Be selective — only recommend stocks with genuine edge from this data. Generic
   }
   
   if (feedName === 'trump') {
+    const today = new Date().toISOString().split('T')[0];
     feedInstructions = `
 REQUIRED ANALYSIS — TRUMP SIGNAL TRACKER (TIME-SENSITIVE):
+TODAY'S DATE: ${today}. Calculate hoursAgo accurately from this date.
+
+CRITICAL URGENCY RULES (based on age):
+- Event < 24 hours old: Can be ACT_NOW (if not priced in) or ACT_TODAY
+- Event 1-3 days old: Maximum urgency is ACT_TODAY
+- Event 3-7 days old: Maximum urgency is MONITOR
+- Event > 7 days old: Must be marked HISTORICAL — NOT actionable. The move has already happened.
+- If a stock already moved >10% since the event, mark pricedIn as "Fully" regardless of age.
+
+DO NOT present a 3-week-old rally speech as ACT_TODAY. If Trump praised Micron 3 weeks ago and the stock already moved +20%, that is HISTORICAL and FULLY PRICED IN.
 
 CRITICAL FORMATTING RULES:
-- HEADLINE MOVERS FIRST: Any stock that moved >10% following a Trump event gets its OWN separate alert at the top, marked ACT_NOW. Do not bury a 20% mover inside a group of 6 tickers.
-- COMPANY-SPECIFIC vs SECTOR-WIDE: If Trump named a specific company, that is a separate alert from any broader sector signal. "Trump praises Micron" ≠ "China summit helps semiconductors."
-- ONE EVENT PER ALERT: Do not combine "Boeing deal + Jensen Huang meeting + Tim Cook meeting" into one alert. Each distinct event is its own alert.
+- HEADLINE MOVERS FIRST: Any stock that moved >10% following a Trump event gets its OWN separate alert. If the event is >7 days old AND the move already happened, mark it HISTORICAL not ACT_NOW.
+- COMPANY-SPECIFIC vs SECTOR-WIDE: If Trump named a specific company, that is a separate alert from any broader sector signal.
+- ONE EVENT PER ALERT: Each distinct event is its own alert.
 
 REQUIRED SECTIONS:
-1. HEADLINE MOVERS: Stocks that moved >10% on Trump signals. Each its own alert with the specific trigger and price move.
-2. ACTIONABLE ALERTS: Other events with still-open opportunity. Each cites specific Trump statement with timestamp.
-3. AFFECTED TICKERS: Direction and magnitude per ticker.
-4. PORTFOLIO IMPACT: Which of my positions benefit or suffer?
-5. SECTOR SHIFTS: Broader policy signals.
-6. PRICED IN: Events already fully reflected in prices.`;
+1. ACTIONABLE (< 7 days old, not fully priced in): Events with still-open opportunity.
+2. RECENT MOVERS (< 14 days, partially/fully priced in): What already moved — for awareness, not action.
+3. HISTORICAL (> 14 days): Context only. Do NOT suggest action on these.
+4. PORTFOLIO IMPACT: Which of my positions benefit or suffer from ACTIONABLE events only.
+5. SECTOR SHIFTS: Broader policy signals still in effect.`;
     feedSchema = `Return ONLY JSON:
-{"feedName":"trump","alerts":[{"event":"ONE specific event","quote":"exact words","timestamp":"ISO or approx","hoursAgo":14,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR","portfolioImpact":"effect","priceMove":"+20% since event"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found, Y headline movers"}`;
+{"feedName":"trump","alerts":[{"event":"ONE specific event","quote":"exact words","timestamp":"ISO or approx date","hoursAgo":14,"daysAgo":0,"tickers":["MU"],"direction":"Bullish|Bearish","magnitude":"High|Medium|Low","pricedIn":"Not yet|Partially|Fully","urgency":"ACT_NOW|ACT_TODAY|MONITOR|HISTORICAL","portfolioImpact":"effect","priceMove":"+20% since event"}],"sectorImpacts":[{"sector":"Semiconductors","direction":"Bullish","reason":"brief","affectedTickers":["MU"]}],"portfolioFlags":[{"ticker":"MU","held":false,"watchlist":true,"action":"what to do"}],"topPicks":[],"portfolioOverlap":[],"summary":"X signals found: Y actionable, Z historical"}`;
   }
 
   return `You are the APEX Analyst Panel. Analyze these raw research findings and produce actionable investment recommendations.
@@ -10270,9 +10281,10 @@ function renderFeedResults(feedName) {
   if (data.alerts?.length > 0) {
     html += `<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">🇺🇸 TRUMP SIGNALS (${data.alerts.length})</div>` +
     data.alerts.map(a => {
-      const urgColor = a.urgency === 'ACT_NOW' ? 'var(--red)' : a.urgency === 'ACT_TODAY' ? 'var(--amber)' : 'var(--text-tertiary)';
+      const urgColor = a.urgency === 'ACT_NOW' ? 'var(--red)' : a.urgency === 'ACT_TODAY' ? 'var(--amber)' : a.urgency === 'HISTORICAL' ? 'var(--text-tertiary)' : 'var(--text-tertiary)';
       const pricedColor = a.pricedIn === 'Fully' ? 'var(--text-tertiary)' : a.pricedIn === 'Partially' ? 'var(--amber)' : 'var(--green)';
-      return `<div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${urgColor};">
+      const isOld = a.urgency === 'HISTORICAL' || a.pricedIn === 'Fully';
+      return `<div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-secondary);border-radius:var(--radius-sm);border-left:3px solid ${urgColor};${isOld ? 'opacity:0.5;' : ''}">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:700;">${(a.tickers||[]).join(', ')}</span>
           <span style="font-size:10px;color:${urgColor};font-weight:700;">${a.urgency}</span>
