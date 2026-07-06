@@ -1,0 +1,9 @@
+{
+  "generated": null,
+  "source": "SEC EDGAR",
+  "funds": {},
+  "problems": [],
+  "fundCount": 0,
+  "totalPositions": 0,
+  "note": "Placeholder. Run the 'Fetch 13F Holdings' GitHub Action to populate real data."
+}
