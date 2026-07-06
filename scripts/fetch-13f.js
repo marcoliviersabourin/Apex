@@ -5,6 +5,8 @@
 // SEC requires a User-Agent header with a real contact email.
 const USER_AGENT = 'APEX Portfolio App marc.olivier.sabourin@gmail.com';
 
+// Verified CIKs. Klarman/Baupost corrected. Hindenburg removed (defunct, no 13F — CIK 1864163
+// was wrong entity "Inter & Co"). Short-sellers rarely file 13F (they hold puts, not $100M+ longs).
 const FUNDS = {
   '1649339': 'Michael Burry / Scion Asset Management',
   '1067983': 'Warren Buffett / Berkshire Hathaway',
@@ -16,11 +18,16 @@ const FUNDS = {
   '1536411': 'Stanley Druckenmiller / Duquesne Family Office',
   '1029160': 'George Soros / Soros Fund Management',
   '921669':  'Carl Icahn / Icahn Capital',
-  '44109':   'Seth Klarman / Baupost Group',
+  '1061768': 'Seth Klarman / Baupost Group',
   '1079114': 'David Einhorn / Greenlight Capital',
   '1040273': 'Daniel Loeb / Third Point',
-  '1864163': 'Hindenburg Research',
 };
+
+// Keep only meaningful positions. Mega-funds (Citadel, Bridgewater) file thousands of
+// tiny market-making/hedging stakes that are pure noise. Keep positions worth >= this ($K).
+// $5,000K = $5M minimum. Also always keep ALL puts/calls regardless of size (they're signals).
+const MIN_POSITION_VALUE_K = 5000;
+const MAX_POSITIONS_PER_FUND = 100; // top N by value after filtering
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -116,15 +123,37 @@ async function main() {
         continue;
       }
 
-      const positions = await fetchPositions(cik, filing.accession);
+      const rawPositions = await fetchPositions(cik, filing.accession);
       await sleep(250);
 
-      const puts = positions.filter(p => p.putCall === 'PUT').length;
-      const calls = positions.filter(p => p.putCall === 'CALL').length;
-      console.log(`  → ${entityName}: ${positions.length} positions (${puts} puts, ${calls} calls), report ${filing.reportDate}`);
+      // Dedupe by CUSIP+putCall (voting-authority rows can split one holding into 3)
+      const byKey = {};
+      for (const p of rawPositions) {
+        const k = (p.cusip || p.issuer) + '|' + (p.putCall || '');
+        if (byKey[k]) {
+          byKey[k].shares += p.shares;
+          byKey[k].value += p.value;
+        } else {
+          byKey[k] = { ...p };
+        }
+      }
+      let deduped = Object.values(byKey);
+      const rawCount = rawPositions.length;
+      const dedupCount = deduped.length;
+
+      // Keep ALL puts/calls (signals), filter longs by min value, then cap at top N
+      const options = deduped.filter(p => p.putCall === 'PUT' || p.putCall === 'CALL');
+      let longs = deduped.filter(p => !p.putCall);
+      longs.sort((a, b) => b.value - a.value);
+      const bigLongs = longs.filter(p => p.value >= MIN_POSITION_VALUE_K).slice(0, MAX_POSITIONS_PER_FUND);
+      const positions = [...options, ...bigLongs];
+
+      const puts = options.filter(p => p.putCall === 'PUT').length;
+      const calls = options.filter(p => p.putCall === 'CALL').length;
+      console.log(`  → ${entityName}: raw ${rawCount} → dedup ${dedupCount} → kept ${positions.length} (${puts}p/${calls}c/${bigLongs.length} longs≥$5M), report ${filing.reportDate}`);
 
       if (positions.length === 0) {
-        problems.push(`${label} (CIK ${cik}): filing found but 0 positions parsed — check XML structure`);
+        problems.push(`${label} (CIK ${cik}): filing found but 0 positions after filtering (raw was ${rawCount})`);
       }
 
       output.funds[cik] = {
@@ -132,6 +161,7 @@ async function main() {
         filingDate: filing.filingDate,
         reportDate: filing.reportDate,
         form: filing.form,
+        rawPositionCount: rawCount,
         positionCount: positions.length,
         positions,
       };
