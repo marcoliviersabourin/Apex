@@ -1,0 +1,58 @@
+APEX 13F FETCH SUMMARY
+Generated: 2026-07-06T09:51:24.945Z
+Funds: 13 | Total kept positions: 634
+File size: 79 KB
+==================================================
+
+Carl Icahn / Icahn Capital
+  CIK 921669 | ICAHN CARL C
+  Report: 2026-03-31 | raw 18 → kept 12 (0 puts, 0 calls)
+
+George Soros / Soros Fund Management
+  CIK 1029160 | SOROS FUND MANAGEMENT LLC
+  Report: 2026-03-31 | raw 263 → kept 113 (7 puts, 6 calls)
+
+Daniel Loeb / Third Point
+  CIK 1040273 | Third Point LLC
+  Report: 2026-03-31 | raw 33 → kept 33 (0 puts, 0 calls)
+
+Seth Klarman / Baupost Group
+  CIK 1061768 | BAUPOST GROUP LLC/MA
+  Report: 2026-03-31 | raw 22 → kept 22 (0 puts, 0 calls)
+
+Warren Buffett / Berkshire Hathaway
+  CIK 1067983 | BERKSHIRE HATHAWAY INC
+  Report: 2026-03-31 | raw 90 → kept 29 (0 puts, 0 calls)
+
+David Einhorn / Greenlight Capital
+  CIK 1079114 | GREENLIGHT CAPITAL INC
+  Report: 2023-12-31 | raw 116 → kept 39 (0 puts, 0 calls)
+
+Bill Gates / Gates Foundation Trust
+  CIK 1166559 | GATES FOUNDATION TRUST
+  Report: 2026-03-31 | raw 22 → kept 22 (0 puts, 0 calls)
+
+Bill Ackman / Pershing Square Capital
+  CIK 1336528 | Pershing Square Capital Management, L.P.
+  Report: 2026-03-31 | raw 11 → kept 11 (0 puts, 0 calls)
+
+Ray Dalio / Bridgewater Associates
+  CIK 1350694 | Bridgewater Associates, LP
+  Report: 2026-03-31 | raw 993 → kept 100 (0 puts, 0 calls)
+
+Ken Griffin / Citadel Advisors
+  CIK 1423053 | CITADEL ADVISORS LLC
+  Report: 2026-03-31 | raw 15589 → kept 150 (24 puts, 26 calls)
+
+Stanley Druckenmiller / Duquesne Family Office
+  CIK 1536411 | Duquesne Family Office LLC
+  Report: 2026-03-31 | raw 70 → kept 64 (0 puts, 5 calls)
+
+Michael Burry / Scion Asset Management
+  CIK 1649339 | Scion Asset Management, LLC
+  Report: 2025-09-30 | raw 8 → kept 8 (2 puts, 2 calls)
+
+David Tepper / Appaloosa Management
+  CIK 1656456 | Appaloosa LP
+  Report: 2026-03-31 | raw 31 → kept 31 (0 puts, 0 calls)
+
