@@ -29,6 +29,6 @@ jobs:
         run: |
           git config user.name "APEX Bot"
           git config user.email "actions@github.com"
-          git add data/13f-holdings.json
+          git add data/13f-holdings.json data/13f-summary.txt
           git diff --staged --quiet || git commit -m "Update 13F holdings $(date -u +%Y-%m-%d)"
           git push
