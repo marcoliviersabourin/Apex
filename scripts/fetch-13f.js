@@ -141,8 +141,13 @@ async function main() {
       const rawCount = rawPositions.length;
       const dedupCount = deduped.length;
 
-      // Keep ALL puts/calls (signals), filter longs by min value, then cap at top N
-      const options = deduped.filter(p => p.putCall === 'PUT' || p.putCall === 'CALL');
+      // Keep meaningful options (real conviction bets, not market-maker hedge noise)
+      // and longs above threshold. Burry's MU puts are millions; Citadel's hedges are tiny.
+      const MIN_OPTION_VALUE_K = 1000; // $1M floor for puts/calls
+      const options = deduped
+        .filter(p => (p.putCall === 'PUT' || p.putCall === 'CALL') && p.value >= MIN_OPTION_VALUE_K)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 50); // cap options per fund
       let longs = deduped.filter(p => !p.putCall);
       longs.sort((a, b) => b.value - a.value);
       const bigLongs = longs.filter(p => p.value >= MIN_POSITION_VALUE_K).slice(0, MAX_POSITIONS_PER_FUND);
