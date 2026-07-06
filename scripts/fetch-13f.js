@@ -180,10 +180,32 @@ async function main() {
   fs.mkdirSync('data', { recursive: true });
   fs.writeFileSync('data/13f-holdings.json', JSON.stringify(output, null, 2));
 
-  console.log('\n=== SUMMARY ===');
-  console.log(`Funds: ${output.fundCount} | Total positions: ${output.totalPositions}`);
+  // Also write a TINY human-readable summary that GitHub can always render
+  // (the main JSON may be too big for GitHub's web viewer).
+  let summary = `APEX 13F FETCH SUMMARY\n`;
+  summary += `Generated: ${output.generated}\n`;
+  summary += `Funds: ${output.fundCount} | Total kept positions: ${output.totalPositions}\n`;
+  summary += `File size: ${(JSON.stringify(output).length / 1024).toFixed(0)} KB\n`;
+  summary += `${'='.repeat(50)}\n\n`;
+  Object.values(output.funds).forEach(f => {
+    if (f.error) { summary += `${f.label}: ERROR — ${f.error}\n`; return; }
+    const puts = (f.positions || []).filter(p => p.putCall === 'PUT').length;
+    const calls = (f.positions || []).filter(p => p.putCall === 'CALL').length;
+    summary += `${f.label}\n`;
+    summary += `  CIK ${f.cik} | ${f.entityName}\n`;
+    summary += `  Report: ${f.reportDate} | raw ${f.rawPositionCount || '?'} → kept ${f.positionCount} (${puts} puts, ${calls} calls)\n\n`;
+  });
   if (problems.length) {
-    console.log('\n⚠ PROBLEMS (fix these CIKs):');
+    summary += `PROBLEMS:\n`;
+    problems.forEach(p => summary += `  - ${p}\n`);
+  }
+  fs.writeFileSync('data/13f-summary.txt', summary);
+
+  console.log('\n=== SUMMARY ===');
+  console.log(`Funds: ${output.fundCount} | Total positions: ${output.totalPositions} | Size: ${(JSON.stringify(output).length/1024).toFixed(0)}KB`);
+  console.log(summary);
+  if (problems.length) {
+    console.log('⚠ PROBLEMS (fix these CIKs):');
     problems.forEach(p => console.log('  ' + p));
   } else {
     console.log('✓ All funds fetched cleanly');
