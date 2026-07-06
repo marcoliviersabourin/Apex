@@ -38,27 +38,35 @@ async function secFetch(url, asJson = true) {
   return asJson ? resp.json() : resp.text();
 }
 
-// Find the most recent 13F-HR filing for a CIK
+// Find the most recent 13F-HR filing for a CIK — by REPORT DATE, not array order.
+// (Amended filings 13F-HR/A can be interleaved; array order isn't reliably newest-first.)
 async function findLatest13F(cik) {
   const padded = cik.padStart(10, '0');
   const sub = await secFetch(`https://data.sec.gov/submissions/CIK${padded}.json`);
   const recent = sub.filings?.recent;
   if (!recent?.form) return { entityName: sub.name || '?', filing: null };
 
+  // Collect ALL 13F filings, then pick the one with the latest reportDate
+  const candidates = [];
   for (let i = 0; i < recent.form.length; i++) {
     if (recent.form[i] === '13F-HR' || recent.form[i] === '13F-HR/A') {
-      return {
-        entityName: sub.name || '?',
-        filing: {
-          accession: recent.accessionNumber[i].replace(/-/g, ''),
-          filingDate: recent.filingDate[i],
-          reportDate: recent.reportDate?.[i] || recent.filingDate[i],
-          form: recent.form[i],
-        }
-      };
+      candidates.push({
+        accession: recent.accessionNumber[i].replace(/-/g, ''),
+        filingDate: recent.filingDate[i],
+        reportDate: recent.reportDate?.[i] || recent.filingDate[i],
+        form: recent.form[i],
+      });
     }
   }
-  return { entityName: sub.name || '?', filing: null };
+  if (candidates.length === 0) return { entityName: sub.name || '?', filing: null };
+
+  // Sort by reportDate descending (newest first), then filingDate as tiebreak
+  candidates.sort((a, b) => {
+    if (b.reportDate !== a.reportDate) return b.reportDate.localeCompare(a.reportDate);
+    return b.filingDate.localeCompare(a.filingDate);
+  });
+
+  return { entityName: sub.name || '?', filing: candidates[0] };
 }
 
 // Locate the information-table XML inside a filing and parse positions
