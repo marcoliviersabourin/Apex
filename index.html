@@ -2675,7 +2675,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.6.0';
+const APEX_VERSION = '5.6.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -9475,6 +9475,10 @@ async function fetchFinnhub13F(cik, apiKey) {
 // ═══ STATIC 13F LOADER (from GitHub Action output) ═══
 // Reads data/13f-holdings.json committed by the scheduled GitHub Action.
 // Same-origin fetch — no CORS, no API key, no cost.
+// Parametric: 13F filings older than this are considered stale and excluded
+// from the working view + scoring. Tune if needed (quarterly filing timing).
+const STALE_13F_MONTHS = 6;
+
 async function loadStatic13F() {
   try {
     const resp = await fetch('./data/13f-holdings.json?t=' + Date.now()); // cache-bust
@@ -9486,9 +9490,14 @@ async function loadStatic13F() {
     }
     // Map into notableTracker.portfolios keyed by CIK
     if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
-    let loaded = 0;
+    const staleCutoff = new Date();
+    staleCutoff.setMonth(staleCutoff.getMonth() - STALE_13F_MONTHS);
+    let loaded = 0, staleSkipped = [];
     Object.values(data.funds).forEach(f => {
       if (!f.positions || f.positions.length === 0) return;
+      // Staleness gate: exclude filings older than cutoff from working view
+      const reportDate = f.reportDate ? new Date(f.reportDate) : null;
+      const isStale = reportDate && reportDate < staleCutoff;
       const [person, fund] = (f.label || '').includes(' / ')
         ? f.label.split(' / ')
         : [f.label || f.entityName, f.entityName || ''];
@@ -9496,6 +9505,7 @@ async function loadStatic13F() {
         fund: fund || f.entityName, person, cik: f.cik,
         filingDate: f.filingDate, reportDate: f.reportDate,
         entityName: f.entityName,
+        stale: isStale, // flag for viewer + scoring exclusion
         positions: f.positions.map(p => ({
           ticker: (p.ticker || '').toUpperCase(),
           issuer: p.issuer,
@@ -9509,12 +9519,13 @@ async function loadStatic13F() {
         source: 'SEC EDGAR (GitHub Action)',
         dataGenerated: data.generated,
       };
+      if (isStale) staleSkipped.push(`${person} (${f.reportDate})`);
       loaded++;
     });
     state.notableTracker.staticDataGenerated = data.generated;
     state.notableTracker.staticProblems = data.problems || [];
     saveState();
-    apexLog('INFO', `13F static data loaded: ${loaded} funds, ${data.totalPositions} positions (generated ${data.generated})`);
+    apexLog('INFO', `13F loaded: ${loaded} funds, ${data.totalPositions} positions${staleSkipped.length ? ' | STALE (excluded from view/scoring): ' + staleSkipped.join(', ') : ''}`);
     return data;
   } catch (e) {
     apexLog('INFO', `13F static load failed: ${e.message} (data/13f-holdings.json may not exist yet)`);
@@ -9602,9 +9613,10 @@ function crossReferencePortfolios() {
   const watchTickers = new Set(state.watchlist.map(w => w.ticker.toUpperCase()));
   const alerts = [];
   
-  // Cross-reference Notable Tracker portfolios
+  // Cross-reference Notable Tracker portfolios (SKIP stale funds — no live signal)
   if (state.notableTracker?.portfolios) {
     Object.values(state.notableTracker.portfolios).forEach(fund => {
+      if (fund.stale) return; // deregistered/frozen funds don't feed live scoring
       (fund.positions || []).forEach(pos => {
         const ticker = pos.ticker?.toUpperCase();
         if (!ticker) return;
@@ -10466,7 +10478,12 @@ function renderNotablePortfolioViewer() {
     </div>`;
   }
   
-  Object.values(tracker.portfolios).forEach(fund => {
+  const allFunds = Object.values(tracker.portfolios);
+  const currentFunds = allFunds.filter(f => !f.stale);
+  const staleFunds = allFunds.filter(f => f.stale);
+  
+  // Render current (SEC-verified, fresh) funds first
+  currentFunds.forEach(fund => {
     const puts = (fund.positions || []).filter(p => p.putCall === 'PUT');
     const calls = (fund.positions || []).filter(p => p.putCall === 'CALL');
     const longs = (fund.positions || []).filter(p => !p.putCall);
@@ -10540,6 +10557,37 @@ function renderNotablePortfolioViewer() {
     
     html += '</div></div>';
   });
+  
+  // Stale/deregistered funds — visually quarantined, excluded from scoring
+  if (staleFunds.length > 0) {
+    html += `<div style="margin-top:16px;padding-top:8px;border-top:1px solid var(--border-subtle);">
+      <div style="font-size:10px;font-weight:700;color:var(--text-tertiary);margin-bottom:6px;">
+        🕐 STALE / INACTIVE (>6 months old — excluded from scoring & cross-reference)
+      </div>`;
+    staleFunds.forEach(fund => {
+      const cikLink = fund.cik ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${fund.cik}&type=13F` : null;
+      const puts = (fund.positions || []).filter(p => p.putCall === 'PUT');
+      const calls = (fund.positions || []).filter(p => p.putCall === 'CALL');
+      html += `<div style="border:1px solid var(--border-subtle);border-radius:var(--radius-sm);margin:6px 0;overflow:hidden;opacity:0.55;">
+        <div style="padding:8px 12px;background:var(--bg-secondary);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div>
+            <span style="font-weight:700;text-decoration:line-through;">${fund.person}</span>
+            <span style="font-size:10px;color:var(--text-tertiary);"> / ${fund.fund}</span>
+            ${cikLink ? ` <a href="${cikLink}" target="_blank" onclick="event.stopPropagation();" style="font-size:9px;color:var(--blue);">CIK ${fund.cik} ↗</a>` : ''}
+            <span style="font-size:9px;color:var(--amber);font-weight:700;"> ⚠ FROZEN — last filing ${fund.reportDate}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-tertiary);">${fund.positionCount} positions${puts.length ? ` | ${puts.length}p` : ''}${calls.length ? ` | ${calls.length}c` : ''}</div>
+        </div>
+        <div style="display:none;padding:8px 12px;">
+          <div style="font-size:9px;color:var(--text-tertiary);margin-bottom:6px;">This fund's data is frozen (deregistered or no recent filing). Shown for historical reference only — it does NOT feed the RR score, short conviction, or cross-reference alerts.</div>`;
+      // Show positions for reference
+      [...puts, ...calls, ...fund.positions.filter(p => !p.putCall)].slice(0, 30).forEach(p => {
+        html += `<div style="font-size:10px;padding:1px 0;">${p.putCall ? `<span style="color:${p.putCall==='PUT'?'var(--red)':'var(--green)'};">${p.putCall}</span> ` : ''}${p.issuer} | $${(p.value||0).toLocaleString()}K</div>`;
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+  }
   
   // Politicians
   if (tracker.politicians && Object.keys(tracker.politicians).length > 0) {
