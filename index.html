@@ -2675,7 +2675,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.5.0';
+const APEX_VERSION = '5.6.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2729,6 +2729,7 @@ function init() {
   console.log('APEX v' + APEX_VERSION + ' build ' + APEX_BUILD);
   
   loadState();
+  loadStatic13F().then(() => { if (document.getElementById('notablePortfolioViewer')) renderNotablePortfolioViewer(); });
   renderSectorPills();
   renderSectorMaxSliders();
   applyProfile();
@@ -9471,6 +9472,56 @@ async function fetchFinnhub13F(cik, apiKey) {
   }
 }
 
+// ═══ STATIC 13F LOADER (from GitHub Action output) ═══
+// Reads data/13f-holdings.json committed by the scheduled GitHub Action.
+// Same-origin fetch — no CORS, no API key, no cost.
+async function loadStatic13F() {
+  try {
+    const resp = await fetch('./data/13f-holdings.json?t=' + Date.now()); // cache-bust
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.funds || Object.keys(data.funds).length === 0) {
+      apexLog('INFO', '13F static data is empty — run the GitHub Action to populate it');
+      return null;
+    }
+    // Map into notableTracker.portfolios keyed by CIK
+    if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
+    let loaded = 0;
+    Object.values(data.funds).forEach(f => {
+      if (!f.positions || f.positions.length === 0) return;
+      const [person, fund] = (f.label || '').includes(' / ')
+        ? f.label.split(' / ')
+        : [f.label || f.entityName, f.entityName || ''];
+      state.notableTracker.portfolios[f.cik] = {
+        fund: fund || f.entityName, person, cik: f.cik,
+        filingDate: f.filingDate, reportDate: f.reportDate,
+        entityName: f.entityName,
+        positions: f.positions.map(p => ({
+          ticker: (p.ticker || '').toUpperCase(),
+          issuer: p.issuer,
+          cusip: p.cusip,
+          shares: p.shares || 0,
+          value: p.value || 0, // already in $K from SEC
+          putCall: p.putCall || '',
+          titleOfClass: p.titleOfClass || '',
+        })),
+        positionCount: f.positionCount || f.positions.length,
+        source: 'SEC EDGAR (GitHub Action)',
+        dataGenerated: data.generated,
+      };
+      loaded++;
+    });
+    state.notableTracker.staticDataGenerated = data.generated;
+    state.notableTracker.staticProblems = data.problems || [];
+    saveState();
+    apexLog('INFO', `13F static data loaded: ${loaded} funds, ${data.totalPositions} positions (generated ${data.generated})`);
+    return data;
+  } catch (e) {
+    apexLog('INFO', `13F static load failed: ${e.message} (data/13f-holdings.json may not exist yet)`);
+    return null;
+  }
+}
+
 async function fetchAll13FPortfolios() {
   const finnhubKey = state.settings?.finnhubKey;
   if (!finnhubKey) {
@@ -9825,55 +9876,44 @@ async function runResearchFeed(feedName) {
     // ═══ STEP 0 (Political only): Fetch 13F via Finnhub API + build CIK refs ═══
     let sec13FData = '';
     if (feedName === 'political') {
-      const finnhubKey = state.settings?.finnhubKey;
-      if (finnhubKey) {
-        if (btn) btn.textContent = '⏳ Step 0: Finnhub 13F...';
-        const portfolioResults = await fetchAll13FPortfolios();
-        if (portfolioResults && Object.keys(portfolioResults).length > 0) {
-          // Store in persistent tracker
-          if (!state.notableTracker) state.notableTracker = { portfolios: {}, politicians: {}, lastFullScan: null };
-          Object.entries(portfolioResults).forEach(([cik, data]) => {
-            state.notableTracker.portfolios[cik] = data;
-          });
-          state.notableTracker.lastFullScan = new Date().toISOString();
-          saveState();
-          renderNotablePortfolioViewer();
-          
-          // Build formatted text for Claude's analyze step
-          sec13FData = '\n═══ 13F FILING DATA (FROM FINNHUB API — VERIFIED, COMPLETE) ═══\n\n';
-          Object.values(portfolioResults).forEach(r => {
-            sec13FData += `${r.fund} (${r.person}) — Filed: ${r.filingDate}, Report: ${r.reportDate}\n`;
-            sec13FData += `Total: ${r.positionCount} positions | Source: ${r.source}\n`;
-            const puts = r.positions.filter(p => p.putCall === 'PUT');
-            const calls = r.positions.filter(p => p.putCall === 'CALL');
-            const longs = r.positions.filter(p => !p.putCall);
-            if (puts.length > 0) {
-              sec13FData += `ALL PUTS (${puts.length}):\n`;
-              puts.forEach(p => { sec13FData += `  ⚠ PUT: ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} contracts | $${p.value.toLocaleString()}K | chg: ${p.change.toLocaleString()}\n`; });
-            }
-            if (calls.length > 0) {
-              sec13FData += `CALLS (${calls.length}):\n`;
-              calls.forEach(p => { sec13FData += `  CALL: ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} | $${p.value.toLocaleString()}K\n`; });
-            }
-            longs.sort((a, b) => b.value - a.value);
-            sec13FData += `TOP LONGS (${longs.length}, showing top 15):\n`;
-            longs.slice(0, 15).forEach(p => { sec13FData += `  ${p.ticker || p.issuer} | ${p.shares.toLocaleString()} shares | $${p.value.toLocaleString()}K | ${p.pctOfPortfolio?.toFixed(1)}% | chg: ${p.change.toLocaleString()}\n`; });
-            sec13FData += '\n';
-          });
-        }
+      if (btn) btn.textContent = '⏳ Step 0: Loading 13F data...';
+      const staticData = await loadStatic13F();
+      if (staticData && staticData.funds && Object.keys(staticData.funds).length > 0) {
+        renderNotablePortfolioViewer();
+        // Build formatted text for Claude's analyze step
+        sec13FData = '\n═══ 13F FILING DATA (FROM SEC EDGAR VIA GITHUB ACTION — VERIFIED, COMPLETE) ═══\n\n';
+        Object.values(staticData.funds).forEach(r => {
+          if (!r.positions || r.positions.length === 0) return;
+          sec13FData += `${r.label} — Filed: ${r.filingDate}, Report: ${r.reportDate}, CIK ${r.cik}\n`;
+          sec13FData += `Total: ${r.positionCount} positions\n`;
+          const puts = r.positions.filter(p => p.putCall === 'PUT');
+          const calls = r.positions.filter(p => p.putCall === 'CALL');
+          const longs = r.positions.filter(p => !p.putCall);
+          if (puts.length > 0) {
+            sec13FData += `ALL PUTS (${puts.length}):\n`;
+            puts.forEach(p => { sec13FData += `  ⚠ PUT: ${p.issuer} | ${(p.shares||0).toLocaleString()} | $${(p.value||0).toLocaleString()}K\n`; });
+          }
+          if (calls.length > 0) {
+            sec13FData += `CALLS (${calls.length}):\n`;
+            calls.forEach(p => { sec13FData += `  CALL: ${p.issuer} | ${(p.shares||0).toLocaleString()} | $${(p.value||0).toLocaleString()}K\n`; });
+          }
+          longs.sort((a, b) => (b.value||0) - (a.value||0));
+          sec13FData += `TOP LONGS (${longs.length}, top 15):\n`;
+          longs.slice(0, 15).forEach(p => { sec13FData += `  ${p.issuer} | ${(p.shares||0).toLocaleString()} sh | $${(p.value||0).toLocaleString()}K\n`; });
+          sec13FData += '\n';
+        });
+        const gen = staticData.generated ? new Date(staticData.generated).toLocaleDateString() : 'unknown';
+        toast(`📁 Loaded ${staticData.totalPositions} positions from ${staticData.fundCount} funds (SEC data, ${gen})`);
       } else {
-        // No Finnhub key — fall back to CIK-anchored search
+        // No static data yet — inform, fall back to search
         const members = state.research?.config?.political?.members || DEFAULT_POLITICAL;
         const cikMap = getFundCIKMap();
         const edgarRefs = [];
         for (const person of members) {
-          if (cikMap[person]) {
-            const e = cikMap[person];
-            edgarRefs.push(`${person} / ${e.fund}: CIK ${e.cik}`);
-          }
+          if (cikMap[person]) edgarRefs.push(`${person} / ${cikMap[person].fund}: CIK ${cikMap[person].cik}`);
         }
         if (edgarRefs.length > 0) {
-          sec13FData = `\n\nNote: Add Finnhub API key in Settings for complete 13F data.\nCIK REFERENCES for search:\n${edgarRefs.join('\n')}\n`;
+          sec13FData = `\n\nNote: Run the '13F Holdings' GitHub Action for complete data.\nCIK REFERENCES:\n${edgarRefs.join('\n')}\n`;
         }
       }
     }
@@ -10405,30 +10445,43 @@ function renderNotablePortfolioViewer() {
   const watchTickers = new Set(state.watchlist.map(w => w.ticker.toUpperCase()));
   const rebuild = needsFullRebuild();
   
+  const staticGen = tracker.staticDataGenerated ? new Date(tracker.staticDataGenerated) : null;
+  const staticAgeDays = staticGen ? Math.floor((Date.now() - staticGen.getTime()) / 86400000) : null;
+  const isStale = rebuild || (staticAgeDays !== null && staticAgeDays > 14);
+  
   let html = `<div class="card"><div class="card-header">
-    <span class="card-title">📂 Stored Portfolios</span>
+    <span class="card-title">📂 Stored Portfolios <span style="font-size:9px;color:var(--text-tertiary);font-weight:400;">STATIC — from SEC EDGAR via scheduled GitHub Action</span></span>
     <span style="font-size:10px;color:var(--text-tertiary);">
-      Last rebuilt: ${tracker.lastFullScan ? new Date(tracker.lastFullScan).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'Never'} | 
-      Latest available: ${schedule.latestAvailable.quarter} |
-      Next expected: ${schedule.nextExpected.quarter} (~${schedule.nextExpected.dueDate})
-      ${rebuild ? ' <span style="color:var(--amber);">⚠ New filing available — re-run to update</span>' : ' <span style="color:var(--green);">✓ Current</span>'}
+      SEC data as of: ${staticGen ? staticGen.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'not loaded yet'}${staticAgeDays !== null ? ` (${staticAgeDays}d ago)` : ''} |
+      Latest filing: ${schedule.latestAvailable.quarter} |
+      Next: ${schedule.nextExpected.quarter} ~${schedule.nextExpected.dueDate}
+      ${isStale ? ' <span style="color:var(--amber);">⚠ New filing may be available — re-run the GitHub Action</span>' : ' <span style="color:var(--green);">✓ Current</span>'}
     </span>
   </div>`;
+  
+  // Show any CIK problems reported by the Action
+  if (tracker.staticProblems?.length > 0) {
+    html += `<div style="padding:6px 10px;margin-bottom:8px;background:rgba(245,158,11,0.1);border:1px solid var(--amber);border-radius:var(--radius-sm);font-size:9px;">
+      <strong style="color:var(--amber);">⚠ Data issues from last fetch:</strong> ${tracker.staticProblems.slice(0,5).join(' · ')}
+    </div>`;
+  }
   
   Object.values(tracker.portfolios).forEach(fund => {
     const puts = (fund.positions || []).filter(p => p.putCall === 'PUT');
     const calls = (fund.positions || []).filter(p => p.putCall === 'CALL');
     const longs = (fund.positions || []).filter(p => !p.putCall);
     const posCount = fund.positions?.length || 0;
+    const cikLink = fund.cik ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${fund.cik}&type=13F` : null;
     
     html += `<div style="border:1px solid var(--border-subtle);border-radius:var(--radius-sm);margin:8px 0;overflow:hidden;">
       <div style="padding:8px 12px;background:var(--bg-secondary);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
         <div>
           <span style="font-weight:700;">${fund.person}</span>
           <span style="font-size:10px;color:var(--text-tertiary);"> / ${fund.fund}</span>
+          ${cikLink ? ` <a href="${cikLink}" target="_blank" onclick="event.stopPropagation();" style="font-size:9px;color:var(--blue);text-decoration:none;">CIK ${fund.cik} ↗</a>` : ''}
         </div>
         <div style="font-size:10px;color:var(--text-tertiary);">
-          Filed: ${fund.filingDate || '?'} | ${posCount} positions
+          Report: ${fund.reportDate || fund.filingDate || '?'} | ${posCount} positions
           ${puts.length > 0 ? ` | <span style="color:var(--red);">${puts.length} puts</span>` : ''}
           ${calls.length > 0 ? ` | <span style="color:var(--green);">${calls.length} calls</span>` : ''}
         </div>
