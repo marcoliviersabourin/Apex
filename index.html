@@ -2052,10 +2052,10 @@ input[type="range"]::-webkit-slider-thumb {
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;" id="researchTabs">
       <button class="btn btn-sm btn-primary" onclick="showResearchFeed('analysis')" data-feed="analysis">🤖 Weekly</button>
       <button class="btn btn-sm" onclick="showResearchFeed('earnings')" data-feed="earnings">📊 Earnings</button>
-      <button class="btn btn-sm" onclick="showResearchFeed('institutional')" data-feed="institutional">🏛 Institutional</button>
-      <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">🏛 Notable</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('political')" data-feed="political">📋 Funds</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('insider')" data-feed="insider">💎 Insiders</button>
+      <button class="btn btn-sm" onclick="showResearchFeed('politicians')" data-feed="politicians">🏛 Politicians</button>
       <button class="btn btn-sm" onclick="showResearchFeed('rotation')" data-feed="rotation">🔄 Rotation</button>
-      <button class="btn btn-sm" onclick="showResearchFeed('insider')" data-feed="insider">💎 Insider</button>
       <button class="btn btn-sm" onclick="showResearchFeed('trump')" data-feed="trump">🇺🇸 Trump</button>
     </div>
 
@@ -2110,7 +2110,7 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
 
     <!-- Feed: Institutional Tracker -->
-    <div class="research-feed" id="feed-institutional" style="display:none;">
+    <div class="research-feed" id="feed-institutional" style="display:none;" data-deprecated="true"><!-- DEPRECATED: replaced by SEC-verified Funds tab. Plumbing retained for scoring/freshness deps; UI inaccessible. -->
       <div class="card fade-in">
         <div class="card-header">
           <span class="card-title">🏛 Institutional Tracker</span>
@@ -2151,47 +2151,62 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
     </div>
 
-    <!-- Feed: Political Traders -->
+    <!-- Feed: Fund Holdings (SEC 13F, verified) -->
     <div class="research-feed" id="feed-political" style="display:none;">
       <div class="card fade-in">
         <div class="card-header">
-          <span class="card-title">🏛 Notable Traders</span>
+          <span class="card-title">📋 Fund Holdings</span>
           <span id="feedDate-political" style="font-size:10px;color:var(--text-tertiary);"></span>
         </div>
-        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">Tracks disclosed trades by Congressional members, prominent investors, and executives. Combines political disclosure data with public filings.</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin:8px 0;">SEC-verified 13F holdings for tracked funds. Data is fetched server-side from SEC EDGAR by a scheduled GitHub Action, refreshed quarterly when new filings post. <span style="color:var(--green);">Every position is auditable via the CIK link.</span></div>
+        <div style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+          <button class="btn btn-sm" onclick="loadStatic13F().then(()=>renderNotablePortfolioViewer())">🔄 Reload SEC Data</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Free · reads the latest GitHub Action output</span>
+        </div>
+        <!-- Stored Portfolios Viewer (SEC 13F) -->
+        <div id="notablePortfolioViewer" style="margin-top:12px;"></div>
+        <!-- Fund-derived research signals (from scan, if any) -->
+        <div id="feedResults-political" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Feed: Politicians (STOCK Act — least reliable, display-only) -->
+    <div class="research-feed" id="feed-politicians" style="display:none;">
+      <div class="card fade-in">
+        <div class="card-header">
+          <span class="card-title">🏛 Politicians</span>
+          <span id="feedDate-politicians" style="font-size:10px;color:var(--text-tertiary);"></span>
+        </div>
+        <div style="padding:8px 10px;margin:8px 0;background:rgba(245,158,11,0.08);border:1px solid var(--amber);border-radius:var(--radius-sm);font-size:10px;color:var(--amber);">
+          ⚠ LEAST RELIABLE FEED. Congressional trades (STOCK Act) are self-reported, filed up to 45 days late, disclosed as dollar <em>ranges</em> not exact amounts, and frequently amended. This data is <strong>display-only</strong> — it does NOT feed the composite score, RR score, or Strategy engine.
+        </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
           <div class="form-group" style="margin:0;min-width:120px;">
             <label class="form-label" style="font-size:9px;">Lookback</label>
-            <select class="form-select" id="pol-lookback" style="font-size:11px;">
+            <select class="form-select" id="poltrack-lookback" style="font-size:11px;">
               <option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option>
             </select>
           </div>
           <div class="form-group" style="margin:0;min-width:120px;">
             <label class="form-label" style="font-size:9px;">Min Trade Size</label>
-            <select class="form-select" id="pol-minsize" style="font-size:11px;">
+            <select class="form-select" id="poltrack-minsize" style="font-size:11px;">
               <option value="any">Any</option><option value="50K">$50K+</option><option value="100K" selected>$100K+</option><option value="500K">$500K+</option>
             </select>
           </div>
         </div>
         <div class="form-group" style="margin:8px 0;">
-          <label class="form-label" style="font-size:9px;">People to Track <span style="color:var(--text-tertiary);">(politicians, investors, executives)</span></label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;" id="pol-checkboxes"></div>
+          <label class="form-label" style="font-size:9px;">Politicians to Track</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;" id="poltrack-checkboxes"></div>
           <div style="display:flex;gap:4px;margin-top:6px;">
-            <input type="text" class="form-input" id="pol-add-input" placeholder="Add name (e.g. Bill Ackman)" style="font-size:11px;flex:1;padding:4px 8px;">
-            <button class="btn btn-sm" onclick="addTrackablePerson('pol')">+ Add</button>
+            <input type="text" class="form-input" id="poltrack-add-input" placeholder="Add name (e.g. Nancy Pelosi)" style="font-size:11px;flex:1;padding:4px 8px;">
+            <button class="btn btn-sm" onclick="addTrackablePerson('poltrack')">+ Add</button>
           </div>
         </div>
-        <div class="form-group" style="margin:8px 0;">
-          <label class="form-label" style="font-size:9px;">💡 Custom Instructions</label>
-          <textarea class="form-input" id="pol-instructions" rows="2" placeholder="e.g. Focus on trades preceding legislation..." style="font-size:11px;resize:vertical;"></textarea>
-        </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-sm btn-primary" onclick="runResearchFeed('political')">▶ Run Political Scan</button>
-          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.08-0.12 | Run monthly</span>
+          <button class="btn btn-sm btn-primary" onclick="runPoliticianScan()">▶ Run Politician Scan</button>
+          <span style="font-size:10px;color:var(--text-tertiary);">Est. ~$0.05 | STOCK Act via web search</span>
         </div>
-        <div id="feedResults-political" style="margin-top:12px;"></div>
-        <!-- Stored Portfolios Viewer -->
-        <div id="notablePortfolioViewer" style="margin-top:12px;"></div>
+        <div id="feedResults-politicians" style="margin-top:12px;"></div>
       </div>
     </div>
 
@@ -2675,7 +2690,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.6.1';
+const APEX_VERSION = '5.7.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2729,7 +2744,9 @@ function init() {
   console.log('APEX v' + APEX_VERSION + ' build ' + APEX_BUILD);
   
   loadState();
+  migratePoliticianDataV1();
   loadStatic13F().then(() => { if (document.getElementById('notablePortfolioViewer')) renderNotablePortfolioViewer(); });
+  if (document.getElementById('poltrack-checkboxes')) renderTrackableList('poltrack');
   renderSectorPills();
   renderSectorMaxSliders();
   applyProfile();
@@ -2760,6 +2777,7 @@ function loadState() {
       state.strategy = parsed.strategy || {};
       state.notableTracker = parsed.notableTracker || { portfolios: {}, politicians: {}, lastFullScan: null };
       state.trumpTracker = parsed.trumpTracker || { portfolio: [], mentions: [], policies: [], stats: {}, lastScan: null };
+      state.migrations = parsed.migrations || {};
     }
     const prof = localStorage.getItem('apex_profile');
     if (prof) state.profile = JSON.parse(prof);
@@ -2808,6 +2826,7 @@ function saveState() {
       strategy: state.strategy,
       notableTracker: state.notableTracker,
       trumpTracker: state.trumpTracker,
+      migrations: state.migrations,
       settings: state.settings
     }));
     localStorage.setItem('apex_profile', JSON.stringify(state.profile));
@@ -9303,6 +9322,22 @@ const DEFAULT_INSTITUTIONAL = ['Berkshire Hathaway', 'Bridgewater', 'Renaissance
 function renderTrackableList(type) {
   const el = document.getElementById(type + '-checkboxes');
   if (!el) return;
+  // poltrack = new dedicated Politicians tab (STOCK Act filers only)
+  if (type === 'poltrack') {
+    const cfg = state.research?.config?.politicians || {};
+    let names = cfg.trackList || [...DEFAULT_POLITICIANS];
+    DEFAULT_POLITICIANS.forEach(d => { if (!names.includes(d)) names.push(d); });
+    const active = new Set(cfg.members || names);
+    el.innerHTML = names.map(name => {
+      const shortName = name.split(' ').pop();
+      const checked = active.has(name) ? 'checked' : '';
+      return `<label style="display:inline-flex;align-items:center;gap:3px;padding:3px 6px;background:var(--bg-secondary);border-radius:4px;cursor:pointer;">
+        <input type="checkbox" ${checked} data-poltrack="${name}"> ${shortName}
+        <span style="cursor:pointer;color:var(--text-tertiary);font-size:9px;margin-left:2px;" onclick="event.preventDefault();event.stopPropagation();removeTrackablePerson('poltrack','${name.replace(/'/g, "\\'")}')">✕</span>
+      </label>`;
+    }).join('');
+    return;
+  }
   const feedKey = type === 'pol' ? 'political' : 'institutional';
   const cfg = state.research?.config?.[feedKey] || {};
   const dataAttr = type === 'pol' ? 'pol' : 'inst';
@@ -9329,6 +9364,22 @@ function addTrackablePerson(type) {
   const name = input?.value?.trim();
   if (!name) return;
   
+  if (type === 'poltrack') {
+    if (!state.research) state.research = { config: {} };
+    if (!state.research.config) state.research.config = {};
+    if (!state.research.config.politicians) state.research.config.politicians = {};
+    const cfg = state.research.config.politicians;
+    if (!cfg.trackList) cfg.trackList = [...DEFAULT_POLITICIANS];
+    if (cfg.trackList.includes(name)) { toast(name + ' already in list'); return; }
+    cfg.trackList.push(name);
+    if (!cfg.members) cfg.members = [...cfg.trackList]; else cfg.members.push(name);
+    saveState();
+    renderTrackableList('poltrack');
+    input.value = '';
+    toast('Added ' + name);
+    return;
+  }
+  
   const feedKey = type === 'pol' ? 'political' : 'institutional';
   if (!state.research) state.research = { config: {} };
   if (!state.research.config) state.research.config = {};
@@ -9352,6 +9403,16 @@ function addTrackablePerson(type) {
 }
 
 function removeTrackablePerson(type, name) {
+  if (type === 'poltrack') {
+    const cfg = state.research?.config?.politicians;
+    if (!cfg?.trackList) return;
+    cfg.trackList = cfg.trackList.filter(n => n !== name);
+    if (cfg.members) cfg.members = cfg.members.filter(n => n !== name);
+    saveState();
+    renderTrackableList('poltrack');
+    toast('Removed ' + name);
+    return;
+  }
   const feedKey = type === 'pol' ? 'political' : 'institutional';
   const cfg = state.research?.config?.[feedKey];
   if (!cfg?.trackList) return;
@@ -9374,6 +9435,7 @@ function showResearchFeed(name) {
   renderFeedResults(name);
   // Render persistent tracker views
   if (name === 'political') renderNotablePortfolioViewer();
+  if (name === 'politicians') renderPoliticiansViewer();
   if (name === 'trump') renderTrumpDashboard();
 }
 
@@ -9417,6 +9479,7 @@ const DEFAULT_CIK_MAP = {
   'Seth Klarman': { cik: '44109', fund: 'Baupost Group' },
   'David Einhorn': { cik: '1079114', fund: 'Greenlight Capital' },
   'Daniel Loeb': { cik: '1040273', fund: 'Third Point' },
+  'Leopold Aschenbrenner': { cik: '2045724', fund: 'Situational Awareness LP' },
   'Hindenburg Research': { cik: '1864163', fund: 'Hindenburg Research' },
 };
 // Dynamic map merges defaults with user-added CIKs from state
@@ -9859,6 +9922,120 @@ async function testFinnhub() {
   } catch(e) {
     el.style.color = 'var(--red)';
     el.textContent = `❌ Failed: ${e.message}`;
+  }
+}
+
+// Dedicated politician list (STOCK Act filers only — separate from fund CIK map)
+const DEFAULT_POLITICIANS = ['Nancy Pelosi', 'Ted Cruz', 'Tim Moore', 'Marjorie Taylor Greene'];
+
+// One-time wipe of legacy politician history (they were tangled in the old Notable feed).
+// Versioned so it runs exactly once, not on every load.
+function migratePoliticianDataV1() {
+  try {
+    if (state.migrations?.politicianWipeV1) return;
+    if (!state.migrations) state.migrations = {};
+    if (state.notableTracker?.politicians) {
+      const hadData = Object.keys(state.notableTracker.politicians).length > 0;
+      state.notableTracker.politicians = {};
+      if (hadData) apexLog('INFO', 'Migration: cleared legacy politician history (fresh start, funds untouched)');
+    }
+    state.migrations.politicianWipeV1 = true;
+    saveState();
+  } catch(e) { apexLog('ERROR', `Politician migration: ${e.message}`); }
+}
+
+function renderPoliticiansViewer() {
+  const el = document.getElementById('feedResults-politicians');
+  if (!el) return;
+  const pols = state.notableTracker?.politicians || {};
+  const names = Object.keys(pols).filter(n => (pols[n].trades || []).length > 0);
+  if (names.length === 0) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);text-align:center;padding:12px;">No politician trades tracked yet. Run the scan above to fetch STOCK Act disclosures.</div>';
+    return;
+  }
+  const myTickers = new Set(state.positions.map(p => p.symbol.toUpperCase()));
+  const watchTickers = new Set(state.watchlist.map(w => w.ticker.toUpperCase()));
+  let html = '<div class="card" style="margin-top:8px;"><div style="font-size:11px;font-weight:700;margin-bottom:6px;">🏛 Tracked Congressional Trades (display-only)</div>';
+  names.forEach(name => {
+    const trades = pols[name].trades || [];
+    html += `<div style="border:1px solid var(--border-subtle);border-radius:var(--radius-sm);margin:6px 0;padding:8px 10px;">
+      <div style="font-weight:700;font-size:12px;margin-bottom:4px;">${name} <span style="font-size:9px;color:var(--text-tertiary);font-weight:400;">${trades.length} disclosed</span></div>`;
+    trades.slice(-12).reverse().forEach(t => {
+      const tk = (t.ticker || '').toUpperCase();
+      const held = myTickers.has(tk), watch = watchTickers.has(tk);
+      const dirColor = /BUY|CALL/i.test(t.type) ? 'var(--green)' : /SELL|PUT/i.test(t.type) ? 'var(--red)' : 'var(--text-secondary)';
+      html += `<div style="font-size:10px;padding:2px 0;display:flex;justify-content:space-between;">
+        <span><span style="font-weight:700;">${t.ticker}</span> <span style="color:${dirColor};">${t.type}</span> ${t.amount ? '· ' + t.amount : ''} <span style="color:var(--text-tertiary);">${t.date || ''}</span></span>
+        <span style="font-size:9px;color:${held ? 'var(--green)' : watch ? 'var(--amber)' : 'var(--text-tertiary)'};">${held ? '← YOU HOLD' : watch ? '← WATCH' : ''}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function runPoliticianScan() {
+  const key = state.settings?.apiKey;
+  if (!key) { toast('Set your API key in Settings first', 'error'); return; }
+  const lookback = document.getElementById('poltrack-lookback')?.value || '60';
+  const minSize = document.getElementById('poltrack-minsize')?.value || '100K';
+  const cfg = state.research?.config?.politicians;
+  const members = (cfg?.trackList?.length ? cfg.trackList : DEFAULT_POLITICIANS);
+  const btn = event?.target;
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Searching STOCK Act...'; }
+  apexLog('INFO', `Politician scan starting: ${members.join(', ')}`);
+
+  try {
+    const myTickers = state.positions.map(p => p.symbol).join(', ');
+    const gather = `Search Capitol Trades, Quiver Quantitative, or Congressional STOCK Act disclosure databases for stock trades in the past ${lookback} days by: ${members.join(', ')}.
+Also cross-check these specific tickers I hold: ${myTickers}
+For each disclosed trade report: politician name, ticker, BUY/SELL, dollar range, disclosure date, transaction date. STOCK Act data is self-reported with up to 45-day lag — report only what you find, mark uncertain items [UNVERIFIED]. Min size: $${minSize}.`;
+
+    const g = await callClaude(key, 'claude-haiku-4-5-20251001', [{role:'user', content: gather}], true, 3000);
+    const gu = g.data?.usage || {};
+    const gcost = (gu.input_tokens||0)*0.25/1e6 + (gu.output_tokens||0)*1.25/1e6;
+    apexLog('API', `Politician gather (Haiku) — $${gcost.toFixed(3)}`);
+
+    const analyze = `From this research data, extract disclosed Congressional trades. Return ONLY JSON, no markdown:
+{"trades":[{"politician":"Name","ticker":"XYZ","type":"BUY|SELL","amount":"$50K-100K","date":"2026-06-01","unverified":false}]}
+Only include trades with a specific named politician AND ticker. Discard vague/unattributed items.
+
+RESEARCH DATA:
+${g.text}`;
+
+    const a = await callClaude(key, 'claude-sonnet-4-6', [{role:'user', content: analyze}], false, 2500);
+    const au = a.data?.usage || {};
+    const acost = (au.input_tokens||0)*3/1e6 + (au.output_tokens||0)*15/1e6;
+    apexLog('API', `Politician analyze (Sonnet) — $${acost.toFixed(3)}`);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(a.text.replace(/```json|```/g,'').trim());
+    } catch(e) { apexLog('ERROR', `Politician JSON parse failed: ${e.message}`); toast('Parse error — see log', 'error'); return; }
+
+    // Merge into notableTracker.politicians (display-only store)
+    if (!state.notableTracker) state.notableTracker = { portfolios:{}, politicians:{}, lastFullScan:null };
+    let added = 0;
+    (parsed.trades || []).forEach(t => {
+      if (!t.politician || !t.ticker) return;
+      if (!state.notableTracker.politicians[t.politician]) state.notableTracker.politicians[t.politician] = { trades: [] };
+      const arr = state.notableTracker.politicians[t.politician].trades;
+      const dup = arr.find(x => x.ticker === t.ticker && x.type === t.type && x.date === t.date);
+      if (!dup) { arr.push({ ticker: t.ticker.toUpperCase(), type: t.type||'BUY', amount: t.amount||'', date: t.date||'', unverified: !!t.unverified }); added++; }
+    });
+    state.notableTracker.politiciansLastScan = new Date().toISOString();
+    saveState();
+    const dateEl = document.getElementById('feedDate-politicians');
+    if (dateEl) dateEl.textContent = `Last scan: just now · $${(gcost+acost).toFixed(2)}`;
+    renderPoliticiansViewer();
+    toast(`🏛 ${added} new politician trades (total cost $${(gcost+acost).toFixed(2)})`);
+  } catch(e) {
+    apexLog('ERROR', `Politician scan: ${e.message}`);
+    toast('Scan failed — see log', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
 }
 
