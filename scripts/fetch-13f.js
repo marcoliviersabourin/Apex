@@ -21,6 +21,7 @@ const FUNDS = {
   '1061768': 'Seth Klarman / Baupost Group',
   '1079114': 'David Einhorn / Greenlight Capital',
   '1040273': 'Daniel Loeb / Third Point',
+  '2045724': 'Leopold Aschenbrenner / Situational Awareness LP',
 };
 
 // Keep only meaningful positions. Mega-funds (Citadel, Bridgewater) file thousands of
@@ -92,6 +93,52 @@ async function fetchPositions(cik, accession) {
   return parseInfoTable(xml);
 }
 
+// ── CUSIP/NAME → TICKER RESOLUTION (free, via SEC's company_tickers.json) ──
+// SEC has no free CUSIP→ticker file, but company_tickers.json maps
+// company NAME → ticker for every US-listed company. 13F gives us nameOfIssuer,
+// so we resolve name → ticker. Normalized to survive punctuation/suffix differences.
+function normalizeName(name) {
+  return (name || '')
+    .toUpperCase()
+    .replace(/[.,'"]/g, '')
+    .replace(/\b(INC|CORP|CORPORATION|CO|LTD|LLC|LP|PLC|SA|NV|AG|CLASS [A-C]|CL [A-C]|COM|COMMON STOCK|HOLDINGS|GROUP|THE)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function buildTickerIndex() {
+  try {
+    const data = await secFetch('https://www.sec.gov/files/company_tickers.json');
+    // Format: { "0": {cik_str, ticker, title}, "1": {...}, ... }
+    const index = {};
+    for (const k of Object.keys(data)) {
+      const row = data[k];
+      if (!row?.ticker || !row?.title) continue;
+      const norm = normalizeName(row.title);
+      // First ticker wins for a given normalized name (usually the common/primary listing)
+      if (!index[norm]) index[norm] = row.ticker;
+    }
+    console.log(`Ticker index built: ${Object.keys(index).length} name→ticker entries`);
+    return index;
+  } catch (e) {
+    console.log(`⚠ Ticker index failed: ${e.message} — positions will have empty tickers`);
+    return {};
+  }
+}
+
+function resolveTicker(issuer, index) {
+  if (!issuer || !index) return '';
+  const norm = normalizeName(issuer);
+  if (index[norm]) return index[norm];
+  // Fallback: try first two words (handles "MICRON TECHNOLOGY INC DEL" → "MICRON TECHNOLOGY")
+  const words = norm.split(' ');
+  if (words.length > 2) {
+    const short = words.slice(0, 2).join(' ');
+    if (index[short]) return index[short];
+  }
+  return '';
+}
+
 // Parse the 13F information table XML into structured positions
 function parseInfoTable(xml) {
   const positions = [];
@@ -118,6 +165,12 @@ function parseInfoTable(xml) {
 async function main() {
   const output = { generated: new Date().toISOString(), source: 'SEC EDGAR', funds: {} };
   const problems = [];
+
+  // Build name→ticker index once (free, from SEC company_tickers.json)
+  console.log('Building ticker index from SEC...');
+  const tickerIndex = await buildTickerIndex();
+  await sleep(250);
+  let totalResolved = 0, totalPositions = 0;
 
   for (const [cik, label] of Object.entries(FUNDS)) {
     try {
@@ -161,9 +214,18 @@ async function main() {
       const bigLongs = longs.filter(p => p.value >= MIN_POSITION_VALUE_K).slice(0, MAX_POSITIONS_PER_FUND);
       const positions = [...options, ...bigLongs];
 
+      // Resolve ticker for each kept position (name → ticker via SEC index)
+      let resolved = 0;
+      for (const p of positions) {
+        p.ticker = resolveTicker(p.issuer, tickerIndex);
+        if (p.ticker) resolved++;
+      }
+      totalResolved += resolved;
+      totalPositions += positions.length;
+
       const puts = options.filter(p => p.putCall === 'PUT').length;
       const calls = options.filter(p => p.putCall === 'CALL').length;
-      console.log(`  → ${entityName}: raw ${rawCount} → dedup ${dedupCount} → kept ${positions.length} (${puts}p/${calls}c/${bigLongs.length} longs≥$5M), report ${filing.reportDate}`);
+      console.log(`  → ${entityName}: raw ${rawCount} → dedup ${dedupCount} → kept ${positions.length} (${puts}p/${calls}c/${bigLongs.length} longs≥$5M) | tickers ${resolved}/${positions.length}, report ${filing.reportDate}`);
 
       if (positions.length === 0) {
         problems.push(`${label} (CIK ${cik}): filing found but 0 positions after filtering (raw was ${rawCount})`);
@@ -198,6 +260,7 @@ async function main() {
   let summary = `APEX 13F FETCH SUMMARY\n`;
   summary += `Generated: ${output.generated}\n`;
   summary += `Funds: ${output.fundCount} | Total kept positions: ${output.totalPositions}\n`;
+  summary += `Tickers resolved: ${totalResolved}/${totalPositions} (${totalPositions ? (100*totalResolved/totalPositions).toFixed(0) : 0}%)\n`;
   summary += `File size: ${(JSON.stringify(output).length / 1024).toFixed(0)} KB\n`;
   summary += `${'='.repeat(50)}\n\n`;
   Object.values(output.funds).forEach(f => {
