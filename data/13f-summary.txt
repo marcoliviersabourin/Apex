@@ -1,7 +1,8 @@
 APEX 13F FETCH SUMMARY
-Generated: 2026-07-06T09:51:24.945Z
-Funds: 13 | Total kept positions: 634
-File size: 79 KB
+Generated: 2026-07-07T13:04:07.848Z
+Funds: 14 | Total kept positions: 676
+Tickers resolved: 428/676 (63%)
+File size: 94 KB
 ==================================================
 
 Carl Icahn / Icahn Capital
@@ -55,4 +56,8 @@ Michael Burry / Scion Asset Management
 David Tepper / Appaloosa Management
   CIK 1656456 | Appaloosa LP
   Report: 2026-03-31 | raw 31 → kept 31 (0 puts, 0 calls)
+
+Leopold Aschenbrenner / Situational Awareness LP
+  CIK 2045724 | Situational Awareness LP
+  Report: 2026-03-31 | raw 42 → kept 42 (11 puts, 5 calls)
 

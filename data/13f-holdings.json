@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-06T09:51:24.945Z",
+  "generated": "2026-07-07T13:04:07.848Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -18,7 +18,8 @@
           "value": 4147974070,
           "shares": 549400539,
           "putCall": "",
-          "titleOfClass": "DEPOSITARY UNIT"
+          "titleOfClass": "DEPOSITARY UNIT",
+          "ticker": "IEP"
         },
         {
           "issuer": "CVR Energy Inc",
@@ -26,7 +27,8 @@
           "value": 2395943093,
           "shares": 71201875,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CVI"
         },
         {
           "issuer": "CVR Partners, LP",
@@ -34,7 +36,8 @@
           "value": 527488588,
           "shares": 4164274,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UAN"
         },
         {
           "issuer": "Centuri Holdings, Inc.",
@@ -42,7 +45,8 @@
           "value": 418755845,
           "shares": 14336044,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "CTRI"
         },
         {
           "issuer": "International Flavors and Fragrances Inc.",
@@ -50,7 +54,8 @@
           "value": 310151250,
           "shares": 4275000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "EchoStar Corporation",
@@ -58,7 +63,8 @@
           "value": 164429732,
           "shares": 1404542,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "ECHO"
         },
         {
           "issuer": "American Electric Power Company",
@@ -66,7 +72,8 @@
           "value": 157990724,
           "shares": 1205300,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "JetBlue Airways Corp.",
@@ -74,7 +81,8 @@
           "value": 148608069,
           "shares": 33621735,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "JBLU"
         },
         {
           "issuer": "Monro, Inc.",
@@ -82,7 +90,8 @@
           "value": 81460311,
           "shares": 5078573,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MNRO"
         },
         {
           "issuer": "SandRidge Energy, Inc.",
@@ -90,7 +99,8 @@
           "value": 80697003,
           "shares": 4947701,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "SD"
         },
         {
           "issuer": "Caesars Entertainment, Inc.",
@@ -98,7 +108,8 @@
           "value": 64492081,
           "shares": 2440109,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CZR"
         },
         {
           "issuer": "Bausch Plus Lomb Corp.",
@@ -106,7 +117,8 @@
           "value": 55650000,
           "shares": 3500000,
           "putCall": "",
-          "titleOfClass": "COMMON SHARES"
+          "titleOfClass": "COMMON SHARES",
+          "ticker": ""
         }
       ]
     },
@@ -126,7 +138,8 @@
           "value": 772864056,
           "shares": 1188400,
           "putCall": "PUT",
-          "titleOfClass": "TR UNIT"
+          "titleOfClass": "TR UNIT",
+          "ticker": ""
         },
         {
           "issuer": "SELECT SECTOR SPDR TR",
@@ -134,7 +147,8 @@
           "value": 303138984,
           "shares": 4948400,
           "putCall": "PUT",
-          "titleOfClass": "STATE STREET ENE"
+          "titleOfClass": "STATE STREET ENE",
+          "ticker": ""
         },
         {
           "issuer": "COREWEAVE INC",
@@ -142,7 +156,8 @@
           "value": 220022547,
           "shares": 2840100,
           "putCall": "PUT",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "CRWV"
         },
         {
           "issuer": "SPDR SERIES TRUST",
@@ -150,7 +165,8 @@
           "value": 217632327,
           "shares": 1196900,
           "putCall": "PUT",
-          "titleOfClass": "STATE STREET SPD"
+          "titleOfClass": "STATE STREET SPD",
+          "ticker": ""
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -158,7 +174,8 @@
           "value": 126731250,
           "shares": 375000,
           "putCall": "PUT",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "ELASTIC N V",
@@ -166,7 +183,8 @@
           "value": 38042390,
           "shares": 761000,
           "putCall": "CALL",
-          "titleOfClass": "ORD SHS"
+          "titleOfClass": "ORD SHS",
+          "ticker": ""
         },
         {
           "issuer": "IRON MTN INC DEL",
@@ -174,7 +192,8 @@
           "value": 31663400,
           "shares": 310000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ITRON INC",
@@ -182,7 +201,8 @@
           "value": 28457525,
           "shares": 317500,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ITRI"
         },
         {
           "issuer": "WIX COM LTD",
@@ -190,7 +210,8 @@
           "value": 28065812,
           "shares": 311600,
           "putCall": "PUT",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": ""
         },
         {
           "issuer": "VANECK ETF TRUST",
@@ -198,7 +219,8 @@
           "value": 25036020,
           "shares": 65300,
           "putCall": "PUT",
-          "titleOfClass": "SEMICONDUCTR ETF"
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
         },
         {
           "issuer": "PONY AI INC",
@@ -206,7 +228,8 @@
           "value": 21054976,
           "shares": 2230400,
           "putCall": "CALL",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": "PONY"
         },
         {
           "issuer": "HUNTSMAN CORP",
@@ -214,7 +237,8 @@
           "value": 12211925,
           "shares": 917500,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HUN"
         },
         {
           "issuer": "WOLFSPEED INC",
@@ -222,7 +246,8 @@
           "value": 1135872,
           "shares": 69600,
           "putCall": "CALL",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": "WOLF"
         },
         {
           "issuer": "AMAZON COM INC",
@@ -230,7 +255,8 @@
           "value": 405249475,
           "shares": 1945789,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "GLOBAL PMTS INC",
@@ -238,7 +264,8 @@
           "value": 218206755,
           "shares": 247500000,
           "putCall": "",
-          "titleOfClass": "NOTE 1.500% 3/0"
+          "titleOfClass": "NOTE 1.500% 3/0",
+          "ticker": ""
         },
         {
           "issuer": "ELECTRONIC ARTS INC",
@@ -246,7 +273,8 @@
           "value": 196896219,
           "shares": 965793,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "EA"
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -254,7 +282,8 @@
           "value": 187167126,
           "shares": 1073206,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "BILL HOLDINGS INC",
@@ -262,7 +291,8 @@
           "value": 186562193,
           "shares": 209679000,
           "putCall": "",
-          "titleOfClass": "NOTE 4/0"
+          "titleOfClass": "NOTE 4/0",
+          "ticker": "BILL"
         },
         {
           "issuer": "PG&amp;E CORP",
@@ -270,7 +300,8 @@
           "value": 181580349,
           "shares": 175000000,
           "putCall": "",
-          "titleOfClass": "NOTE 4.250%12/0"
+          "titleOfClass": "NOTE 4.250%12/0",
+          "ticker": ""
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -278,7 +309,8 @@
           "value": 176517368,
           "shares": 522318,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -286,7 +318,8 @@
           "value": 165039023,
           "shares": 573929,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "JAZZ INVESTMENTS I LTD",
@@ -294,7 +327,8 @@
           "value": 158441825,
           "shares": 130399000,
           "putCall": "",
-          "titleOfClass": "NOTE 2.000% 6/1"
+          "titleOfClass": "NOTE 2.000% 6/1",
+          "ticker": ""
         },
         {
           "issuer": "RIVIAN AUTOMOTIVE INC",
@@ -302,7 +336,8 @@
           "value": 153674058,
           "shares": 143436000,
           "putCall": "",
-          "titleOfClass": "NOTE 4.625% 3/1"
+          "titleOfClass": "NOTE 4.625% 3/1",
+          "ticker": ""
         },
         {
           "issuer": "JD.COM INC",
@@ -310,7 +345,8 @@
           "value": 149880473,
           "shares": 150158000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.250% 6/0"
+          "titleOfClass": "NOTE 0.250% 6/0",
+          "ticker": "JD"
         },
         {
           "issuer": "LINDE PLC",
@@ -318,7 +354,8 @@
           "value": 128860914,
           "shares": 259926,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "LIN"
         },
         {
           "issuer": "APPLE INC",
@@ -326,7 +363,8 @@
           "value": 127030524,
           "shares": 500534,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "TKO GROUP HOLDINGS INC",
@@ -334,7 +372,8 @@
           "value": 121845399,
           "shares": 604242,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "TKO"
         },
         {
           "issuer": "SEALED AIR CORP NEW",
@@ -342,7 +381,8 @@
           "value": 115713148,
           "shares": 2751799,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "LUMENTUM HLDGS INC",
@@ -350,7 +390,8 @@
           "value": 114451142,
           "shares": 21378000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.500% 6/1"
+          "titleOfClass": "NOTE 0.500% 6/1",
+          "ticker": ""
         },
         {
           "issuer": "SMURFIT WESTROCK PLC",
@@ -358,7 +399,8 @@
           "value": 100431405,
           "shares": 2520236,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "SW"
         },
         {
           "issuer": "DROPBOX INC",
@@ -366,7 +408,8 @@
           "value": 98239953,
           "shares": 103500000,
           "putCall": "",
-          "titleOfClass": "NOTE 3/0"
+          "titleOfClass": "NOTE 3/0",
+          "ticker": "DBX"
         },
         {
           "issuer": "CHART INDS INC",
@@ -374,7 +417,8 @@
           "value": 97192141,
           "shares": 470095,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BLACKLINE INC",
@@ -382,7 +426,8 @@
           "value": 94857888,
           "shares": 101000000,
           "putCall": "",
-          "titleOfClass": "NOTE 1.000% 6/0"
+          "titleOfClass": "NOTE 1.000% 6/0",
+          "ticker": "BL"
         },
         {
           "issuer": "AMICUS THERAPEUTIC",
@@ -390,7 +435,8 @@
           "value": 83191070,
           "shares": 5753186,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "IDACORP INC",
@@ -398,7 +444,8 @@
           "value": 82535151,
           "shares": 577290,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "IDA"
         },
         {
           "issuer": "HONEYWELL INTL INC",
@@ -406,7 +453,8 @@
           "value": 80930494,
           "shares": 358052,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CMS ENERGY CORP",
@@ -414,7 +462,8 @@
           "value": 80248519,
           "shares": 1034397,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CMS"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -422,7 +471,8 @@
           "value": 78463454,
           "shares": 211966,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "HOLOGIC INC",
@@ -430,7 +480,8 @@
           "value": 76614396,
           "shares": 1013552,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "LUMENTUM HLDGS INC",
@@ -438,7 +489,8 @@
           "value": 72345624,
           "shares": 10250000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.500%12/1"
+          "titleOfClass": "NOTE 0.500%12/1",
+          "ticker": ""
         },
         {
           "issuer": "H2O AMERICA",
@@ -446,7 +498,8 @@
           "value": 72090586,
           "shares": 1228747,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HTO"
         },
         {
           "issuer": "SNAP INC",
@@ -454,7 +507,8 @@
           "value": 71149774,
           "shares": 88000000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.500% 5/0"
+          "titleOfClass": "NOTE 0.500% 5/0",
+          "ticker": "SNAP"
         },
         {
           "issuer": "ITRON INC",
@@ -462,7 +516,8 @@
           "value": 69672536,
           "shares": 777335,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ITRI"
         },
         {
           "issuer": "CLEARWATER ANALYTICS HLDGS I",
@@ -470,7 +525,8 @@
           "value": 69564228,
           "shares": 2941405,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "CWAN"
         },
         {
           "issuer": "KODIAK AI INC.",
@@ -478,7 +534,8 @@
           "value": 67783237,
           "shares": 9767037,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KDK"
         },
         {
           "issuer": "SALESFORCE INC",
@@ -486,7 +543,8 @@
           "value": 67442191,
           "shares": 361291,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CRM"
         },
         {
           "issuer": "PENUMBRA INC",
@@ -494,7 +552,8 @@
           "value": 66801623,
           "shares": 203434,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PEN"
         },
         {
           "issuer": "BERKSHIRE HATHAWAY INC DEL",
@@ -502,7 +561,8 @@
           "value": 63866338,
           "shares": 133277,
           "putCall": "",
-          "titleOfClass": "CL B NEW"
+          "titleOfClass": "CL B NEW",
+          "ticker": "BRK-B"
         },
         {
           "issuer": "NEXTERA ENERGY INC",
@@ -510,7 +570,8 @@
           "value": 60430906,
           "shares": 1200703,
           "putCall": "",
-          "titleOfClass": "UNIT 02/15/2029"
+          "titleOfClass": "UNIT 02/15/2029",
+          "ticker": "NEE"
         },
         {
           "issuer": "VARONIS SYS INC",
@@ -518,7 +579,8 @@
           "value": 59454300,
           "shares": 68055000,
           "putCall": "",
-          "titleOfClass": "NOTE 1.000% 9/1"
+          "titleOfClass": "NOTE 1.000% 9/1",
+          "ticker": ""
         },
         {
           "issuer": "WEC ENERGY GROUP INC",
@@ -526,7 +588,8 @@
           "value": 59361531,
           "shares": 512754,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WEC"
         },
         {
           "issuer": "DEXCOM INC",
@@ -534,7 +597,8 @@
           "value": 58165989,
           "shares": 62977000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.375% 5/1"
+          "titleOfClass": "NOTE 0.375% 5/1",
+          "ticker": "DXCM"
         },
         {
           "issuer": "MEDLINE INC",
@@ -542,7 +606,8 @@
           "value": 57246313,
           "shares": 1286434,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "MDLN"
         },
         {
           "issuer": "KENVUE INC",
@@ -550,7 +615,8 @@
           "value": 54431266,
           "shares": 3157266,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KVUE"
         },
         {
           "issuer": "COREBRIDGE FINL INC",
@@ -558,7 +624,8 @@
           "value": 50908817,
           "shares": 2133647,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BRIGHTHOUSE FINL INC",
@@ -566,7 +633,8 @@
           "value": 50706025,
           "shares": 846794,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WEBSTER FINL CORP",
@@ -574,7 +642,8 @@
           "value": 49412462,
           "shares": 711790,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "TRI POINTE HOMES INC",
@@ -582,7 +651,8 @@
           "value": 48665837,
           "shares": 1041426,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BROADCOM INC",
@@ -590,7 +660,8 @@
           "value": 48007168,
           "shares": 155107,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "ONESTREAM INC",
@@ -598,7 +669,8 @@
           "value": 43925328,
           "shares": 1830222,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "INTERACTIVE BROKERS GROUP IN",
@@ -606,7 +678,8 @@
           "value": 43283222,
           "shares": 645344,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "IBKR"
         },
         {
           "issuer": "APELLIS PHARMACEUTICALS INC",
@@ -614,7 +687,8 @@
           "value": 42482880,
           "shares": 1056000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BGC GROUP INC",
@@ -622,7 +696,8 @@
           "value": 41073193,
           "shares": 4199713,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "BGC"
         },
         {
           "issuer": "XCEL ENERGY INC",
@@ -630,7 +705,8 @@
           "value": 40390474,
           "shares": 508440,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "XEL"
         },
         {
           "issuer": "NCL CORP LTD",
@@ -638,7 +714,8 @@
           "value": 39494469,
           "shares": 40175000,
           "putCall": "",
-          "titleOfClass": "NOTE 1.125% 2/1"
+          "titleOfClass": "NOTE 1.125% 2/1",
+          "ticker": ""
         },
         {
           "issuer": "MCDONALDS CORP",
@@ -646,7 +723,8 @@
           "value": 38401834,
           "shares": 123562,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MCD"
         },
         {
           "issuer": "VISTRA CORP",
@@ -654,7 +732,8 @@
           "value": 36727724,
           "shares": 244314,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VST"
         },
         {
           "issuer": "ETSY INC",
@@ -662,7 +741,8 @@
           "value": 36698779,
           "shares": 37500000,
           "putCall": "",
-          "titleOfClass": "NOTE 0.125%10/0"
+          "titleOfClass": "NOTE 0.125%10/0",
+          "ticker": "ETSY"
         },
         {
           "issuer": "ATLASSIAN CORPORATION",
@@ -670,7 +750,8 @@
           "value": 36548899,
           "shares": 535515,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "TEAM"
         },
         {
           "issuer": "WOODWARD INC",
@@ -678,7 +759,8 @@
           "value": 35731154,
           "shares": 99830,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WWD"
         },
         {
           "issuer": "SUNBELT RENTALS HOLDINGS INC",
@@ -686,7 +768,8 @@
           "value": 35546560,
           "shares": 546114,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "SUNB"
         },
         {
           "issuer": "ACADIAN ASSET MANAGEMENT INC",
@@ -694,7 +777,8 @@
           "value": 35308077,
           "shares": 648807,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAMI"
         },
         {
           "issuer": "JPMORGAN CHASE &amp; CO",
@@ -702,7 +786,8 @@
           "value": 34816189,
           "shares": 118358,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CEMEX SA EURO MTN BE 144A",
@@ -710,7 +795,8 @@
           "value": 34228148,
           "shares": 2991971,
           "putCall": "",
-          "titleOfClass": "SPON ADR NEW"
+          "titleOfClass": "SPON ADR NEW",
+          "ticker": ""
         },
         {
           "issuer": "COREWEAVE INC",
@@ -718,7 +804,8 @@
           "value": 34037219,
           "shares": 439360,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "CRWV"
         },
         {
           "issuer": "FIGURE TECHNOLOGY SOLUTIO",
@@ -726,7 +813,8 @@
           "value": 33950000,
           "shares": 1000000,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": ""
         },
         {
           "issuer": "UL SOLUTIONS INC",
@@ -734,7 +822,8 @@
           "value": 33855450,
           "shares": 395000,
           "putCall": "",
-          "titleOfClass": "CLASS A COM SHS"
+          "titleOfClass": "CLASS A COM SHS",
+          "ticker": "ULS"
         },
         {
           "issuer": "DAY ONE BIOPHARMACEUTICALS I",
@@ -742,7 +831,8 @@
           "value": 32998304,
           "shares": 1539100,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CAPITAL ONE FINL CORP",
@@ -750,7 +840,8 @@
           "value": 32856555,
           "shares": 180105,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "NCR ATLEOS CORPORATION",
@@ -758,7 +849,8 @@
           "value": 31828609,
           "shares": 730349,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "NATL"
         },
         {
           "issuer": "WARNER BROS DISCOVERY INC",
@@ -766,7 +858,8 @@
           "value": 30003071,
           "shares": 1092610,
           "putCall": "",
-          "titleOfClass": "COM SER A"
+          "titleOfClass": "COM SER A",
+          "ticker": "WBD"
         },
         {
           "issuer": "SELECT MED HLDGS CORP",
@@ -774,7 +867,8 @@
           "value": 29867275,
           "shares": 1833473,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "VSE CORP",
@@ -782,7 +876,8 @@
           "value": 28987864,
           "shares": 157201,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VSEC"
         },
         {
           "issuer": "VERIS RESIDENTIAL INC",
@@ -790,7 +885,8 @@
           "value": 28943561,
           "shares": 1533840,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALLY FINL INC",
@@ -798,7 +894,8 @@
           "value": 28452224,
           "shares": 725267,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES INC",
@@ -806,7 +903,8 @@
           "value": 27899601,
           "shares": 354686,
           "putCall": "",
-          "titleOfClass": "MSCI EMRG CHN"
+          "titleOfClass": "MSCI EMRG CHN",
+          "ticker": ""
         },
         {
           "issuer": "BLUE OWL CAPITAL CORPORATION",
@@ -814,7 +912,8 @@
           "value": 27109564,
           "shares": 2451136,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "OWL"
         },
         {
           "issuer": "PORTLAND GEN ELEC CO",
@@ -822,7 +921,8 @@
           "value": 26718929,
           "shares": 506328,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "ACCENTURE PLC IRELAND",
@@ -830,7 +930,8 @@
           "value": 26697766,
           "shares": 134640,
           "putCall": "",
-          "titleOfClass": "SHS CLASS A"
+          "titleOfClass": "SHS CLASS A",
+          "ticker": ""
         },
         {
           "issuer": "ORACLE CORP",
@@ -838,7 +939,8 @@
           "value": 26057044,
           "shares": 569360,
           "putCall": "",
-          "titleOfClass": "6.5 DEP CUM SR D"
+          "titleOfClass": "6.5 DEP CUM SR D",
+          "ticker": "ORCL"
         },
         {
           "issuer": "ISHARES TR",
@@ -846,7 +948,8 @@
           "value": 25624610,
           "shares": 241400,
           "putCall": "",
-          "titleOfClass": "NATIONAL MUN ETF"
+          "titleOfClass": "NATIONAL MUN ETF",
+          "ticker": ""
         },
         {
           "issuer": "DOORDASH INC",
@@ -854,7 +957,8 @@
           "value": 25549524,
           "shares": 170160,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "DASH"
         },
         {
           "issuer": "RADNET INC",
@@ -862,7 +966,8 @@
           "value": 24504971,
           "shares": 438450,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "RDNT"
         },
         {
           "issuer": "ARCELLX INC",
@@ -870,7 +975,8 @@
           "value": 22964000,
           "shares": 200000,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": ""
         },
         {
           "issuer": "KKR &amp; CO INC",
@@ -878,7 +984,8 @@
           "value": 22633918,
           "shares": 244691,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "DIGITALOCEAN HLDGS INC",
@@ -886,7 +993,8 @@
           "value": 22602070,
           "shares": 23095000,
           "putCall": "",
-          "titleOfClass": "NOTE 12/0"
+          "titleOfClass": "NOTE 12/0",
+          "ticker": ""
         },
         {
           "issuer": "UBER TECHNOLOGIES INC",
@@ -894,7 +1002,8 @@
           "value": 22601053,
           "shares": 314209,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UBER"
         },
         {
           "issuer": "THERMON GROUP HLDGS INC",
@@ -902,7 +1011,8 @@
           "value": 22583635,
           "shares": 448088,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WIX COM LTD",
@@ -910,7 +1020,8 @@
           "value": 22517500,
           "shares": 250000,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": ""
         },
         {
           "issuer": "GFL ENVIRONMENTAL INC",
@@ -918,7 +1029,8 @@
           "value": 22119276,
           "shares": 530184,
           "putCall": "",
-          "titleOfClass": "SUB VTG SHS"
+          "titleOfClass": "SUB VTG SHS",
+          "ticker": "GFL"
         },
         {
           "issuer": "AES CORP",
@@ -926,7 +1038,8 @@
           "value": 21938130,
           "shares": 1557000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AES"
         },
         {
           "issuer": "MIDCAP FINANCIAL INVSTMNT CO",
@@ -934,7 +1047,8 @@
           "value": 21856180,
           "shares": 1944500,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "ARES MANAGEMENT CORPORATION",
@@ -942,7 +1056,8 @@
           "value": 21389491,
           "shares": 196054,
           "putCall": "",
-          "titleOfClass": "CL A COM STK"
+          "titleOfClass": "CL A COM STK",
+          "ticker": "ARES"
         },
         {
           "issuer": "LIBERTY MEDIA CORP DEL",
@@ -950,7 +1065,8 @@
           "value": 20994244,
           "shares": 246933,
           "putCall": "",
-          "titleOfClass": "COM LBTY ONE S C"
+          "titleOfClass": "COM LBTY ONE S C",
+          "ticker": "FWONA"
         },
         {
           "issuer": "BLACKSTONE SECD LENDING FD",
@@ -958,7 +1074,8 @@
           "value": 20551075,
           "shares": 867500,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": ""
         },
         {
           "issuer": "ELI LILLY &amp; CO",
@@ -966,7 +1083,8 @@
           "value": 20417974,
           "shares": 22199,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BLACKSTONE INC",
@@ -974,7 +1092,8 @@
           "value": 19949500,
           "shares": 173489,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BX"
         },
         {
           "issuer": "ISHARES TR",
@@ -982,7 +1101,8 @@
           "value": 19890000,
           "shares": 250000,
           "putCall": "",
-          "titleOfClass": "IBOXX HI YD ETF"
+          "titleOfClass": "IBOXX HI YD ETF",
+          "ticker": ""
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -990,7 +1110,8 @@
           "value": 19799703,
           "shares": 34607,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "GLOBALFOUNDRIES INC",
@@ -998,7 +1119,8 @@
           "value": 19765222,
           "shares": 444362,
           "putCall": "",
-          "titleOfClass": "ORDINARY SHARES"
+          "titleOfClass": "ORDINARY SHARES",
+          "ticker": "GFS"
         },
         {
           "issuer": "TESLA INC",
@@ -1006,7 +1128,8 @@
           "value": 19737323,
           "shares": 53093,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TSLA"
         },
         {
           "issuer": "PHILIP MORRIS INTL INC",
@@ -1014,7 +1137,8 @@
           "value": 18566690,
           "shares": 112294,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BLUE OWL CAPITAL INC",
@@ -1022,7 +1146,8 @@
           "value": 18421017,
           "shares": 2017636,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "OWL"
         }
       ]
     },
@@ -1042,7 +1167,8 @@
           "value": 404043800,
           "shares": 1940000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "TELEPHONE &amp; DATA SYS INC",
@@ -1050,7 +1176,8 @@
           "value": 277860000,
           "shares": 6600000,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "CRH PLC",
@@ -1058,7 +1185,8 @@
           "value": 199728000,
           "shares": 1900000,
           "putCall": "",
-          "titleOfClass": "ORD"
+          "titleOfClass": "ORD",
+          "ticker": ""
         },
         {
           "issuer": "SOMNIGROUP INTERNATIONAL INC",
@@ -1066,7 +1194,8 @@
           "value": 167855244,
           "shares": 2270769,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SGI"
         },
         {
           "issuer": "CARPENTER TECHNOLOGY CORP",
@@ -1074,7 +1203,8 @@
           "value": 122186500,
           "shares": 310000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CRS"
         },
         {
           "issuer": "MASTEC INC",
@@ -1082,7 +1212,8 @@
           "value": 102956800,
           "shares": 320000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MTZ"
         },
         {
           "issuer": "DANAHER CORP DEL",
@@ -1090,7 +1221,8 @@
           "value": 99540000,
           "shares": 525000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -1098,7 +1230,8 @@
           "value": 92936250,
           "shares": 275000,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "API GROUP CORP",
@@ -1106,7 +1239,8 @@
           "value": 82255600,
           "shares": 2030000,
           "putCall": "",
-          "titleOfClass": "COM STK"
+          "titleOfClass": "COM STK",
+          "ticker": "APG"
         },
         {
           "issuer": "LIVE NATION ENTERTAINMENT IN",
@@ -1114,7 +1248,8 @@
           "value": 70917150,
           "shares": 465000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -1122,7 +1257,8 @@
           "value": 51491700,
           "shares": 90000,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "ALPHABET INC",
@@ -1130,7 +1266,8 @@
           "value": 50323000,
           "shares": 175000,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "SPDR GOLD TR",
@@ -1138,7 +1275,8 @@
           "value": 40877550,
           "shares": 95000,
           "putCall": "",
-          "titleOfClass": "GOLD SHS"
+          "titleOfClass": "GOLD SHS",
+          "ticker": ""
         },
         {
           "issuer": "HUT 8 CORP",
@@ -1146,7 +1284,8 @@
           "value": 40791200,
           "shares": 869563,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HUT"
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -1154,7 +1293,8 @@
           "value": 33136000,
           "shares": 190000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "TRANSDIGM GROUP INC",
@@ -1162,7 +1302,8 @@
           "value": 28974000,
           "shares": 25000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TDG"
         },
         {
           "issuer": "NORFOLK SOUTHN CORP",
@@ -1170,7 +1311,8 @@
           "value": 28700000,
           "shares": 100000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CAPITAL ONE FINL CORP",
@@ -1178,7 +1320,8 @@
           "value": 25540200,
           "shares": 140000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "UNION PAC CORP",
@@ -1186,7 +1329,8 @@
           "value": 24262000,
           "shares": 100000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "STRATA CRITICAL MEDICAL INC",
@@ -1194,7 +1338,8 @@
           "value": 20900000,
           "shares": 5000000,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "SRTA"
         },
         {
           "issuer": "KLA CORP",
@@ -1202,7 +1347,8 @@
           "value": 16196510,
           "shares": 11000,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "KLAC"
         },
         {
           "issuer": "LAM RESEARCH CORP",
@@ -1210,7 +1356,8 @@
           "value": 16024500,
           "shares": 75000,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "LRCX"
         },
         {
           "issuer": "ASML HLDG NV",
@@ -1218,7 +1365,8 @@
           "value": 15849960,
           "shares": 12000,
           "putCall": "",
-          "titleOfClass": "N Y REGISTRY SHS"
+          "titleOfClass": "N Y REGISTRY SHS",
+          "ticker": ""
         },
         {
           "issuer": "BROADCOM INC",
@@ -1226,7 +1374,8 @@
           "value": 15475500,
           "shares": 50000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "VANECK ETF TRUST",
@@ -1234,7 +1383,8 @@
           "value": 15336000,
           "shares": 40000,
           "putCall": "",
-          "titleOfClass": "SEMICONDUCTR ETF"
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
         },
         {
           "issuer": "SHARKNINJA INC",
@@ -1242,7 +1392,8 @@
           "value": 13820903,
           "shares": 130509,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "SN"
         },
         {
           "issuer": "HERTZ GLOBAL HLDGS INC",
@@ -1250,7 +1401,8 @@
           "value": 9051600,
           "shares": 3970000,
           "putCall": "",
-          "titleOfClass": "*W EXP 06/30/205"
+          "titleOfClass": "*W EXP 06/30/205",
+          "ticker": "HTZ"
         },
         {
           "issuer": "ARS PHARMACEUTICALS INC",
@@ -1258,7 +1410,8 @@
           "value": 8030000,
           "shares": 1000000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SPRY"
         },
         {
           "issuer": "AURORA INNOVATION INC",
@@ -1266,7 +1419,8 @@
           "value": 4253748,
           "shares": 1032463,
           "putCall": "",
-          "titleOfClass": "CLASS A COM"
+          "titleOfClass": "CLASS A COM",
+          "ticker": "AUR"
         },
         {
           "issuer": "FLYEXCLUSIVE INC",
@@ -1274,7 +1428,8 @@
           "value": 2309720,
           "shares": 1022000,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "FLYX"
         },
         {
           "issuer": "CLARITEV CORPORATION",
@@ -1282,7 +1437,8 @@
           "value": 718960,
           "shares": 44000,
           "putCall": "",
-          "titleOfClass": "CL A NEW"
+          "titleOfClass": "CL A NEW",
+          "ticker": "CTEV"
         },
         {
           "issuer": "AURORA INNOVATION INC",
@@ -1290,7 +1446,8 @@
           "value": 365165,
           "shares": 1835000,
           "putCall": "",
-          "titleOfClass": "*W EXP 11/03/202"
+          "titleOfClass": "*W EXP 11/03/202",
+          "ticker": "AUR"
         },
         {
           "issuer": "FLYEXCLUSIVE INC",
@@ -1298,7 +1455,8 @@
           "value": 88200,
           "shares": 367499,
           "putCall": "",
-          "titleOfClass": "*W EXP 99/99/999"
+          "titleOfClass": "*W EXP 99/99/999",
+          "ticker": "FLYX"
         }
       ]
     },
@@ -1318,7 +1476,8 @@
           "value": 649543,
           "shares": 3118754,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "RESTAURANT BRANDS INTL INC",
@@ -1326,7 +1485,8 @@
           "value": 597208,
           "shares": 8080112,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WESCO INTL INC",
@@ -1334,7 +1494,8 @@
           "value": 393159,
           "shares": 1436881,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "UNION PAC CORP",
@@ -1342,7 +1503,8 @@
           "value": 373876,
           "shares": 1540995,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ELEVANCE HEALTH INC FORMERLY",
@@ -1350,7 +1512,8 @@
           "value": 373301,
           "shares": 1275154,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ELV"
         },
         {
           "issuer": "ALPHABET INC",
@@ -1358,7 +1521,8 @@
           "value": 338819,
           "shares": 1181131,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "FERGUSON ENTERPRISES INC",
@@ -1366,7 +1530,8 @@
           "value": 336457,
           "shares": 1442411,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK NEW"
+          "titleOfClass": "COMMON STOCK NEW",
+          "ticker": ""
         },
         {
           "issuer": "WILLIS TOWERS WATSON PLC LTD",
@@ -1374,7 +1539,8 @@
           "value": 259632,
           "shares": 893126,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "WTW"
         },
         {
           "issuer": "AON PLC",
@@ -1382,7 +1548,8 @@
           "value": 248218,
           "shares": 769000,
           "putCall": "",
-          "titleOfClass": "SHS CL A"
+          "titleOfClass": "SHS CL A",
+          "ticker": "AON"
         },
         {
           "issuer": "VISA INC",
@@ -1390,7 +1557,8 @@
           "value": 211978,
           "shares": 701355,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "V"
         },
         {
           "issuer": "TELEFLEX INCORPORATED",
@@ -1398,7 +1566,8 @@
           "value": 190778,
           "shares": 1595000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "EAGLE MATLS INC",
@@ -1406,7 +1575,8 @@
           "value": 169134,
           "shares": 892763,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "GENUINE PARTS CO",
@@ -1414,7 +1584,8 @@
           "value": 157604,
           "shares": 1490348,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GPC"
         },
         {
           "issuer": "LIBERTY GLOBAL LTD",
@@ -1422,7 +1593,8 @@
           "value": 157150,
           "shares": 13397247,
           "putCall": "",
-          "titleOfClass": "COM CL C"
+          "titleOfClass": "COM CL C",
+          "ticker": "LBTYA"
         },
         {
           "issuer": "HERBALIFE LTD",
@@ -1430,7 +1602,8 @@
           "value": 136305,
           "shares": 9259844,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "HLF"
         },
         {
           "issuer": "GDS HLDGS LTD",
@@ -1438,7 +1611,8 @@
           "value": 122676,
           "shares": 3044818,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "AMERICOLD REALTY TRUST INC",
@@ -1446,7 +1620,8 @@
           "value": 89168,
           "shares": 7780800,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "COLD"
         },
         {
           "issuer": "MOLINA HEALTHCARE INC",
@@ -1454,7 +1629,8 @@
           "value": 84460,
           "shares": 633609,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MOH"
         },
         {
           "issuer": "GRUPO AEROMEXICO SAB DE CV",
@@ -1462,7 +1638,8 @@
           "value": 68371,
           "shares": 4880188,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": "AERO"
         },
         {
           "issuer": "NORWEGIAN CRUISE LINE HLDGS",
@@ -1470,7 +1647,8 @@
           "value": 67881,
           "shares": 3630000,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": ""
         },
         {
           "issuer": "VAXCYTE INC",
@@ -1478,7 +1656,8 @@
           "value": 46488,
           "shares": 800000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PCVX"
         },
         {
           "issuer": "DNOW INC",
@@ -1486,7 +1665,8 @@
           "value": 43174,
           "shares": 3625000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "DNOW"
         }
       ]
     },
@@ -1506,7 +1686,8 @@
           "value": 57843260493,
           "shares": 227917808,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "AMERICAN EXPRESS CO",
@@ -1514,7 +1695,8 @@
           "value": 45859204536,
           "shares": 151610700,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AXP"
         },
         {
           "issuer": "COCA COLA CO",
@@ -1522,7 +1704,8 @@
           "value": 30420000000,
           "shares": 400000000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KO"
         },
         {
           "issuer": "BANK AMERICA CORP",
@@ -1530,7 +1713,8 @@
           "value": 25039178044,
           "shares": 513624165,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CHEVRON CORPORATION",
@@ -1538,7 +1722,8 @@
           "value": 17457364606,
           "shares": 84375856,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CVX"
         },
         {
           "issuer": "OCCIDENTAL PETE CORP",
@@ -1546,7 +1731,8 @@
           "value": 17221193015,
           "shares": 264941431,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -1554,7 +1740,8 @@
           "value": 15600071913,
           "shares": 54249798,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "CHUBB LTD SWITZ",
@@ -1562,7 +1749,8 @@
           "value": 11162836215,
           "shares": 34249183,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "MOODYS CORP",
@@ -1570,7 +1758,8 @@
           "value": 10762190653,
           "shares": 24669778,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "KRAFT HEINZ CO",
@@ -1578,7 +1767,8 @@
           "value": 7323527057,
           "shares": 325634818,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KHC"
         },
         {
           "issuer": "DAVITA INC",
@@ -1586,7 +1776,8 @@
           "value": 4626158909,
           "shares": 30100585,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "DVA"
         },
         {
           "issuer": "KROGER CO",
@@ -1594,7 +1785,8 @@
           "value": 3618000000,
           "shares": 50000000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KR"
         },
         {
           "issuer": "SIRIUSXM HOLDINGS INC",
@@ -1602,7 +1794,8 @@
           "value": 2880548260,
           "shares": 124807117,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": ""
         },
         {
           "issuer": "DELTA AIR LINES INC",
@@ -1610,7 +1803,8 @@
           "value": 2646532635,
           "shares": 39809456,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "DAL"
         },
         {
           "issuer": "VERISIGN INC",
@@ -1618,7 +1812,8 @@
           "value": 2232726597,
           "shares": 8989880,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CAPITAL ONE FINL CORP",
@@ -1626,7 +1821,8 @@
           "value": 1304374500,
           "shares": 7150000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "NEW YORK TIMES CO MTN BE",
@@ -1634,7 +1830,8 @@
           "value": 1268219376,
           "shares": 15146535,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "ALLY FINL INC",
@@ -1642,7 +1839,8 @@
           "value": 1137670000,
           "shares": 29000000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -1650,7 +1848,8 @@
           "value": 1028454775,
           "shares": 3585215,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "LIBERTY LIVE HOLDINGS INC",
@@ -1658,7 +1857,8 @@
           "value": 996356028,
           "shares": 10587143,
           "putCall": "",
-          "titleOfClass": "COM SHS SER C"
+          "titleOfClass": "COM SHS SER C",
+          "ticker": "LLYVA"
         },
         {
           "issuer": "LENNAR CORP",
@@ -1666,7 +1866,8 @@
           "value": 877052911,
           "shares": 10099642,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "NUCOR CORP",
@@ -1674,7 +1875,8 @@
           "value": 660686383,
           "shares": 3907075,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NUE"
         },
         {
           "issuer": "LIBERTY LIVE HOLDINGS INC",
@@ -1682,7 +1884,8 @@
           "value": 456970925,
           "shares": 4986588,
           "putCall": "",
-          "titleOfClass": "COM SER A"
+          "titleOfClass": "COM SER A",
+          "ticker": "LLYVA"
         },
         {
           "issuer": "LOUISIANA PAC CORP",
@@ -1690,7 +1893,8 @@
           "value": 412113691,
           "shares": 5664793,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CONSTELLATION BRANDS INC",
@@ -1698,7 +1902,8 @@
           "value": 94933500,
           "shares": 632890,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "STZ"
         },
         {
           "issuer": "NVR INC",
@@ -1706,7 +1911,8 @@
           "value": 73226191,
           "shares": 11112,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVR"
         },
         {
           "issuer": "MACYS INC",
@@ -1714,7 +1920,8 @@
           "value": 54963842,
           "shares": 3038355,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "M"
         },
         {
           "issuer": "LENNAR CORP",
@@ -1722,7 +1929,8 @@
           "value": 19995576,
           "shares": 237703,
           "putCall": "",
-          "titleOfClass": "CL B"
+          "titleOfClass": "CL B",
+          "ticker": ""
         },
         {
           "issuer": "JEFFERIES FINANCIAL GROUP IN",
@@ -1730,7 +1938,8 @@
           "value": 17892939,
           "shares": 433558,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "JEF"
         }
       ]
     },
@@ -1750,7 +1959,8 @@
           "value": 592369623,
           "shares": 11404883,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GRBK"
         },
         {
           "issuer": "CONSOL ENERGY INC NEW",
@@ -1758,7 +1968,8 @@
           "value": 211673655,
           "shares": 2105577,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BRIGHTHOUSE FINL INC",
@@ -1766,7 +1977,8 @@
           "value": 161068530,
           "shares": 3043623,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "KYNDRYL HLDGS INC",
@@ -1774,7 +1986,8 @@
           "value": 132079115,
           "shares": 6356069,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": ""
         },
         {
           "issuer": "TENET HEALTHCARE CORP",
@@ -1782,7 +1995,8 @@
           "value": 99447853,
           "shares": 1315970,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "THC"
         },
         {
           "issuer": "THE ODP CORP",
@@ -1790,7 +2004,8 @@
           "value": 98418030,
           "shares": 1748100,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALIGHT INC",
@@ -1798,7 +2013,8 @@
           "value": 78831446,
           "shares": 9241670,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": ""
         },
         {
           "issuer": "SPDR GOLD TR",
@@ -1806,7 +2022,8 @@
           "value": 73972084,
           "shares": 386944,
           "putCall": "",
-          "titleOfClass": "GOLD SHS"
+          "titleOfClass": "GOLD SHS",
+          "ticker": ""
         },
         {
           "issuer": "TECK RESOURCES LTD",
@@ -1814,7 +2031,8 @@
           "value": 65605702,
           "shares": 1552063,
           "putCall": "",
-          "titleOfClass": "CL B"
+          "titleOfClass": "CL B",
+          "ticker": "TECK"
         },
         {
           "issuer": "LIVANOVA PLC",
@@ -1822,7 +2040,8 @@
           "value": 63604811,
           "shares": 1229316,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "LIVN"
         },
         {
           "issuer": "GRAPHIC PACKAGING HLDG CO",
@@ -1830,7 +2049,8 @@
           "value": 62514865,
           "shares": 2536100,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WEATHERFORD INTL PLC",
@@ -1838,7 +2058,8 @@
           "value": 44669667,
           "shares": 456605,
           "putCall": "",
-          "titleOfClass": "ORD SHS"
+          "titleOfClass": "ORD SHS",
+          "ticker": ""
         },
         {
           "issuer": "DHT HOLDINGS INC",
@@ -1846,7 +2067,8 @@
           "value": 37080623,
           "shares": 3779880,
           "putCall": "",
-          "titleOfClass": "SHS NEW"
+          "titleOfClass": "SHS NEW",
+          "ticker": "DHT"
         },
         {
           "issuer": "VIATRIS INC",
@@ -1854,7 +2076,8 @@
           "value": 36342990,
           "shares": 3355770,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VTRS"
         },
         {
           "issuer": "FIRST CTZNS BANCSHARES INC N",
@@ -1862,7 +2085,8 @@
           "value": 35218836,
           "shares": 24820,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "NET POWER INC",
@@ -1870,7 +2094,8 @@
           "value": 30220311,
           "shares": 2992110,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "NPWR"
         },
         {
           "issuer": "GULFPORT ENERGY CORP",
@@ -1878,7 +2103,8 @@
           "value": 29699604,
           "shares": 222970,
           "putCall": "",
-          "titleOfClass": "COMMON SHARES"
+          "titleOfClass": "COMMON SHARES",
+          "ticker": "GPOR"
         },
         {
           "issuer": "SEADRILL 2021 LTD",
@@ -1886,7 +2112,8 @@
           "value": 25717246,
           "shares": 543935,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "HERC HLDGS INC",
@@ -1894,7 +2121,8 @@
           "value": 20190973,
           "shares": 135610,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "FIRST HORIZON CORPORATION",
@@ -1902,7 +2130,8 @@
           "value": 19499594,
           "shares": 1377090,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "FHN"
         },
         {
           "issuer": "NEW YORK CMNTY BANCORP INC",
@@ -1910,7 +2139,8 @@
           "value": 18707908,
           "shares": 1828730,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "AERCAP HOLDINGS NV",
@@ -1918,7 +2148,8 @@
           "value": 18580000,
           "shares": 250000,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "AER"
         },
         {
           "issuer": "SPDR SER TR",
@@ -1926,7 +2157,8 @@
           "value": 17559506,
           "shares": 129667,
           "putCall": "",
-          "titleOfClass": "AEROSPACE DEF"
+          "titleOfClass": "AEROSPACE DEF",
+          "ticker": ""
         },
         {
           "issuer": "INVESCO EXCHANGE TRADED FD T",
@@ -1934,7 +2166,8 @@
           "value": 17097615,
           "shares": 185521,
           "putCall": "",
-          "titleOfClass": "AEROSPACE DEFN"
+          "titleOfClass": "AEROSPACE DEFN",
+          "ticker": ""
         },
         {
           "issuer": "KENVUE INC",
@@ -1942,7 +2175,8 @@
           "value": 11938170,
           "shares": 554490,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KVUE"
         },
         {
           "issuer": "GOPRO INC",
@@ -1950,7 +2184,8 @@
           "value": 9796156,
           "shares": 2823100,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "GPRO"
         },
         {
           "issuer": "COYA THERAPEUTICS INC",
@@ -1958,7 +2193,8 @@
           "value": 9440533,
           "shares": 1274026,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": "COYA"
         },
         {
           "issuer": "GALAPAGOS NV",
@@ -1966,7 +2202,8 @@
           "value": 6608796,
           "shares": 162578,
           "putCall": "",
-          "titleOfClass": "SPON ADR"
+          "titleOfClass": "SPON ADR",
+          "ticker": ""
         },
         {
           "issuer": "SOTERA HEALTH CO",
@@ -1974,7 +2211,8 @@
           "value": 5677944,
           "shares": 336970,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SHC"
         },
         {
           "issuer": "VANECK ETF TRUST",
@@ -1982,7 +2220,8 @@
           "value": 2869251,
           "shares": 9270,
           "putCall": "",
-          "titleOfClass": "OIL SERVICES ETF"
+          "titleOfClass": "OIL SERVICES ETF",
+          "ticker": ""
         },
         {
           "issuer": "TEVA PHARMACEUTICAL INDS LTD",
@@ -1990,7 +2229,8 @@
           "value": 2802826,
           "shares": 268470,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "DANIMER SCIENTIFIC INC",
@@ -1998,7 +2238,8 @@
           "value": 2789272,
           "shares": 2734580,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": ""
         },
         {
           "issuer": "GAIN THERAPEUTICS INC",
@@ -2006,7 +2247,8 @@
           "value": 1921158,
           "shares": 588410,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GANX"
         },
         {
           "issuer": "FIRST TR EXCHANGE-TRADED FD",
@@ -2014,7 +2256,8 @@
           "value": 1421936,
           "shares": 58540,
           "putCall": "",
-          "titleOfClass": "NAT GAS ETF"
+          "titleOfClass": "NAT GAS ETF",
+          "ticker": ""
         },
         {
           "issuer": "INVESCO ACTVELY MNGD ETC FD",
@@ -2022,7 +2265,8 @@
           "value": 1289967,
           "shares": 96990,
           "putCall": "",
-          "titleOfClass": "OPTIMUM YIELD"
+          "titleOfClass": "OPTIMUM YIELD",
+          "ticker": ""
         },
         {
           "issuer": "TALIS BIOMEDICAL CORP",
@@ -2030,7 +2274,8 @@
           "value": 1110437,
           "shares": 149052,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "NEUBASE THERAPEUTICS INC",
@@ -2038,7 +2283,8 @@
           "value": 100912,
           "shares": 136350,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "NUVATION BIO INC",
@@ -2046,7 +2292,8 @@
           "value": 52842,
           "shares": 34995,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "NUVB"
         },
         {
           "issuer": "NUVATION BIO INC",
@@ -2054,7 +2301,8 @@
           "value": 6000,
           "shares": 100000,
           "putCall": "",
-          "titleOfClass": "*W EXP 07/07/202"
+          "titleOfClass": "*W EXP 07/07/202",
+          "ticker": "NUVB"
         }
       ]
     },
@@ -2074,7 +2322,8 @@
           "value": 8169547277,
           "shares": 17048304,
           "putCall": "",
-          "titleOfClass": "CL B NEW"
+          "titleOfClass": "CL B NEW",
+          "ticker": "BRK-B"
         },
         {
           "issuer": "WASTE MGMT INC DEL",
@@ -2082,7 +2331,8 @@
           "value": 6351934228,
           "shares": 27642344,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CANADIAN NATL RY CO",
@@ -2090,7 +2340,8 @@
           "value": 5326238797,
           "shares": 51826786,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CATERPILLAR INC",
@@ -2098,7 +2349,8 @@
           "value": 4501281374,
           "shares": 6353614,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CAT"
         },
         {
           "issuer": "DEERE &amp; CO",
@@ -2106,7 +2358,8 @@
           "value": 2003871027,
           "shares": 3557378,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ECOLAB INC",
@@ -2114,7 +2367,8 @@
           "value": 1388104065,
           "shares": 5218044,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ECL"
         },
         {
           "issuer": "WALMART INC",
@@ -2122,7 +2376,8 @@
           "value": 1042768482,
           "shares": 8390477,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WMT"
         },
         {
           "issuer": "FEDEX CORP",
@@ -2130,7 +2385,8 @@
           "value": 849262057,
           "shares": 2384362,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "FDX"
         },
         {
           "issuer": "COCA-COLA FEMSA SAB DE CV",
@@ -2138,7 +2394,8 @@
           "value": 606245838,
           "shares": 6214719,
           "putCall": "",
-          "titleOfClass": "SPONS ADS REP"
+          "titleOfClass": "SPONS ADS REP",
+          "ticker": ""
         },
         {
           "issuer": "WASTE CONNECTIONS INC",
@@ -2146,7 +2403,8 @@
           "value": 331243587,
           "shares": 2039175,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WCN"
         },
         {
           "issuer": "MADISON SQUARE GRDN SPRT COR",
@@ -2154,7 +2412,8 @@
           "value": 190399288,
           "shares": 592406,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "COUPANG INC",
@@ -2162,7 +2421,8 @@
           "value": 174603090,
           "shares": 9248045,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "CPNG"
         },
         {
           "issuer": "ANHEUSER BUSCH INBEV SA NV",
@@ -2170,7 +2430,8 @@
           "value": 118137110,
           "shares": 1703000,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADR"
+          "titleOfClass": "SPONSORED ADR",
+          "ticker": ""
         },
         {
           "issuer": "PACCAR INC",
@@ -2178,7 +2439,8 @@
           "value": 115500000,
           "shares": 1000000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PCAR"
         },
         {
           "issuer": "WEST PHARMACEUTICAL SVSC INC",
@@ -2186,7 +2448,8 @@
           "value": 111409480,
           "shares": 444500,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "MCDONALDS CORP",
@@ -2194,7 +2457,8 @@
           "value": 104083571,
           "shares": 334900,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MCD"
         },
         {
           "issuer": "SCHRODINGER INC",
@@ -2202,7 +2466,8 @@
           "value": 79311703,
           "shares": 6981664,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SDGR"
         },
         {
           "issuer": "DANAHER CORP DEL",
@@ -2210,7 +2475,8 @@
           "value": 70720800,
           "shares": 373000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "KRAFT HEINZ CO",
@@ -2218,7 +2484,8 @@
           "value": 55608774,
           "shares": 2472600,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KHC"
         },
         {
           "issuer": "HORMEL FOODS CORP",
@@ -2226,7 +2493,8 @@
           "value": 47231819,
           "shares": 2085290,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ON HLDG AG",
@@ -2234,7 +2502,8 @@
           "value": 17010000,
           "shares": 500000,
           "putCall": "",
-          "titleOfClass": "NAMEN AKT A"
+          "titleOfClass": "NAMEN AKT A",
+          "ticker": ""
         },
         {
           "issuer": "VERALTO CORP",
@@ -2242,7 +2511,8 @@
           "value": 10993524,
           "shares": 124333,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "VLTO"
         }
       ]
     },
@@ -2262,7 +2532,8 @@
           "value": 2415946008,
           "shares": 59697208,
           "putCall": "",
-          "titleOfClass": "CL A LTD VT SH"
+          "titleOfClass": "CL A LTD VT SH",
+          "ticker": ""
         },
         {
           "issuer": "AMAZON COM INC",
@@ -2270,7 +2541,8 @@
           "value": 2385104083,
           "shares": 11451981,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "UBER TECHNOLOGIES INC",
@@ -2278,7 +2550,8 @@
           "value": 2154934398,
           "shares": 29958771,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UBER"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -2286,7 +2559,8 @@
           "value": 2092970053,
           "shares": 5654078,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "RESTAURANT BRANDS INTL INC",
@@ -2294,7 +2568,8 @@
           "value": 1673501194,
           "shares": 22645483,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -2302,7 +2577,8 @@
           "value": 1522358404,
           "shares": 2660861,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "HOWARD HUGHES HOLDINGS INC",
@@ -2310,7 +2586,8 @@
           "value": 1192581569,
           "shares": 18852064,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HHH"
         },
         {
           "issuer": "SEAPORT ENTMT GROUP INC",
@@ -2318,7 +2595,8 @@
           "value": 107910794,
           "shares": 5023780,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -2326,7 +2604,8 @@
           "value": 89421720,
           "shares": 311726,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "HERTZ GLOBAL HLDGS INC",
@@ -2334,7 +2613,8 @@
           "value": 70261595,
           "shares": 15241127,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "HTZ"
         },
         {
           "issuer": "ALPHABET INC",
@@ -2342,7 +2622,8 @@
           "value": 9310043,
           "shares": 32376,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         }
       ]
     },
@@ -2362,7 +2643,8 @@
           "value": 2838644353,
           "shares": 4364862,
           "putCall": "",
-          "titleOfClass": "TR UNIT"
+          "titleOfClass": "TR UNIT",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES TR",
@@ -2370,7 +2652,8 @@
           "value": 1750004460,
           "shares": 2679084,
           "putCall": "",
-          "titleOfClass": "CORE S&amp;P500 ETF"
+          "titleOfClass": "CORE S&amp;P500 ETF",
+          "ticker": ""
         },
         {
           "issuer": "AMAZON COM INC",
@@ -2378,7 +2661,8 @@
           "value": 914036840,
           "shares": 4388711,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -2386,7 +2670,8 @@
           "value": 818459723,
           "shares": 4693003,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "ALPHABET INC",
@@ -2394,7 +2679,8 @@
           "value": 574451135,
           "shares": 1997674,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "BROADCOM INC",
@@ -2402,7 +2688,8 @@
           "value": 568068464,
           "shares": 1835380,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "MICRON TECHNOLOGY INC",
@@ -2410,7 +2697,8 @@
           "value": 498551839,
           "shares": 1475704,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -2418,7 +2706,8 @@
           "value": 401626676,
           "shares": 1084979,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "GE VERNOVA INC",
@@ -2426,7 +2715,8 @@
           "value": 379621591,
           "shares": 434897,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GEV"
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -2434,7 +2724,8 @@
           "value": 363998848,
           "shares": 1077079,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "LAM RESEARCH CORP",
@@ -2442,7 +2733,8 @@
           "value": 335708788,
           "shares": 1571229,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "LRCX"
         },
         {
           "issuer": "ADVANCED MICRO DEVICES INC",
@@ -2450,7 +2742,8 @@
           "value": 262987591,
           "shares": 1292767,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMD"
         },
         {
           "issuer": "NEWMONT CORP",
@@ -2458,7 +2751,8 @@
           "value": 250776388,
           "shares": 2316641,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ORACLE CORP",
@@ -2466,7 +2760,8 @@
           "value": 234209271,
           "shares": 1592069,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ORCL"
         },
         {
           "issuer": "ISHARES INC",
@@ -2474,7 +2769,8 @@
           "value": 217268135,
           "shares": 1766264,
           "putCall": "",
-          "titleOfClass": "MSCI STH KOR ETF"
+          "titleOfClass": "MSCI STH KOR ETF",
+          "ticker": ""
         },
         {
           "issuer": "MARVELL TECHNOLOGY INC",
@@ -2482,7 +2778,8 @@
           "value": 193043200,
           "shares": 1948947,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MRVL"
         },
         {
           "issuer": "APPLIED MATLS INC",
@@ -2490,7 +2787,8 @@
           "value": 191374373,
           "shares": 559918,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "JOHNSON &amp; JOHNSON",
@@ -2498,7 +2796,8 @@
           "value": 170346325,
           "shares": 696884,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -2506,7 +2805,8 @@
           "value": 166870296,
           "shares": 291665,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "ARISTA NETWORKS INC",
@@ -2514,7 +2814,8 @@
           "value": 163308573,
           "shares": 1330091,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "ANET"
         },
         {
           "issuer": "KLA CORP",
@@ -2522,7 +2823,8 @@
           "value": 160012684,
           "shares": 108674,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "KLAC"
         },
         {
           "issuer": "CELESTICA INC",
@@ -2530,7 +2832,8 @@
           "value": 148056923,
           "shares": 525621,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CLS"
         },
         {
           "issuer": "VANGUARD INTL EQUITY INDEX F",
@@ -2538,7 +2841,8 @@
           "value": 147110047,
           "shares": 2721740,
           "putCall": "",
-          "titleOfClass": "FTSE EMR MKT ETF"
+          "titleOfClass": "FTSE EMR MKT ETF",
+          "ticker": ""
         },
         {
           "issuer": "APPLE INC",
@@ -2546,7 +2850,8 @@
           "value": 143008635,
           "shares": 563492,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "UNION PAC CORP",
@@ -2554,7 +2859,8 @@
           "value": 129280067,
           "shares": 532850,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES TR",
@@ -2562,7 +2868,8 @@
           "value": 129132000,
           "shares": 1360000,
           "putCall": "",
-          "titleOfClass": "MBS ETF"
+          "titleOfClass": "MBS ETF",
+          "ticker": ""
         },
         {
           "issuer": "SEAGATE TECHNOLOGY HLDNGS PL",
@@ -2570,7 +2877,8 @@
           "value": 128934876,
           "shares": 329117,
           "putCall": "",
-          "titleOfClass": "ORD SHS"
+          "titleOfClass": "ORD SHS",
+          "ticker": "STX"
         },
         {
           "issuer": "BARRICK MNG CORP",
@@ -2578,7 +2886,8 @@
           "value": 125599704,
           "shares": 3079243,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": ""
         },
         {
           "issuer": "ASML HLDG NV",
@@ -2586,7 +2895,8 @@
           "value": 121775243,
           "shares": 92196,
           "putCall": "",
-          "titleOfClass": "N Y REGISTRY SHS"
+          "titleOfClass": "N Y REGISTRY SHS",
+          "ticker": ""
         },
         {
           "issuer": "COMFORT SYS USA INC",
@@ -2594,7 +2904,8 @@
           "value": 119230233,
           "shares": 86462,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALTRIA GROUP INC",
@@ -2602,7 +2913,8 @@
           "value": 112546671,
           "shares": 1705511,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MO"
         },
         {
           "issuer": "ISHARES TR",
@@ -2610,7 +2922,8 @@
           "value": 111355083,
           "shares": 1021700,
           "putCall": "",
-          "titleOfClass": "IBOXX INV CP ETF"
+          "titleOfClass": "IBOXX INV CP ETF",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -2618,7 +2931,8 @@
           "value": 111015394,
           "shares": 387002,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "SEA LTD",
@@ -2626,7 +2940,8 @@
           "value": 110810380,
           "shares": 1338128,
           "putCall": "",
-          "titleOfClass": "SPONSORD ADS"
+          "titleOfClass": "SPONSORD ADS",
+          "ticker": "SE"
         },
         {
           "issuer": "AMPHENOL CORP",
@@ -2634,7 +2949,8 @@
           "value": 109046115,
           "shares": 863048,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "VERTIV HOLDINGS CO",
@@ -2642,7 +2958,8 @@
           "value": 107690764,
           "shares": 429766,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "VRT"
         },
         {
           "issuer": "NUCOR CORP",
@@ -2650,7 +2967,8 @@
           "value": 104593085,
           "shares": 618528,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NUE"
         },
         {
           "issuer": "TERADYNE INC",
@@ -2658,7 +2976,8 @@
           "value": 100483931,
           "shares": 338946,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TER"
         },
         {
           "issuer": "CSX CORP",
@@ -2666,7 +2985,8 @@
           "value": 97503109,
           "shares": 2375228,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CSX"
         },
         {
           "issuer": "CREDO TECHNOLOGY GROUP HOLDI",
@@ -2674,7 +2994,8 @@
           "value": 96517322,
           "shares": 1028202,
           "putCall": "",
-          "titleOfClass": "ORDINARY SHARES"
+          "titleOfClass": "ORDINARY SHARES",
+          "ticker": ""
         },
         {
           "issuer": "VANGUARD INDEX FDS",
@@ -2682,7 +3003,8 @@
           "value": 94788161,
           "shares": 158628,
           "putCall": "",
-          "titleOfClass": "S&amp;P 500 ETF SHS"
+          "titleOfClass": "S&amp;P 500 ETF SHS",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES INC",
@@ -2690,7 +3012,8 @@
           "value": 93670344,
           "shares": 1342944,
           "putCall": "",
-          "titleOfClass": "CORE MSCI EMKT"
+          "titleOfClass": "CORE MSCI EMKT",
+          "ticker": ""
         },
         {
           "issuer": "CITIGROUP INC",
@@ -2698,7 +3021,8 @@
           "value": 89981082,
           "shares": 793414,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "C"
         },
         {
           "issuer": "ARM HOLDINGS PLC",
@@ -2706,7 +3030,8 @@
           "value": 89763652,
           "shares": 593361,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "PACCAR INC",
@@ -2714,7 +3039,8 @@
           "value": 89751816,
           "shares": 777072,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PCAR"
         },
         {
           "issuer": "NRG ENERGY INC",
@@ -2722,7 +3048,8 @@
           "value": 86003682,
           "shares": 588502,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "NRG"
         },
         {
           "issuer": "TALEN ENERGY CORP",
@@ -2730,7 +3057,8 @@
           "value": 84946784,
           "shares": 266099,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TLN"
         },
         {
           "issuer": "BAKER HUGHES COMPANY",
@@ -2738,7 +3066,8 @@
           "value": 84349427,
           "shares": 1381645,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "BKR"
         },
         {
           "issuer": "ISHARES INC",
@@ -2746,7 +3075,8 @@
           "value": 84345545,
           "shares": 1072280,
           "putCall": "",
-          "titleOfClass": "MSCI EMRG CHN"
+          "titleOfClass": "MSCI EMRG CHN",
+          "ticker": ""
         },
         {
           "issuer": "SYNOPSYS INC",
@@ -2754,7 +3084,8 @@
           "value": 82607797,
           "shares": 208353,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SNPS"
         },
         {
           "issuer": "ASTERA LABS INC",
@@ -2762,7 +3093,8 @@
           "value": 82303024,
           "shares": 750940,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ALAB"
         },
         {
           "issuer": "HCA HEALTHCARE INC",
@@ -2770,7 +3102,8 @@
           "value": 82249585,
           "shares": 173801,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HCA"
         },
         {
           "issuer": "TOWER SEMICONDUCTOR LTD",
@@ -2778,7 +3111,8 @@
           "value": 81198983,
           "shares": 462725,
           "putCall": "",
-          "titleOfClass": "SHS NEW"
+          "titleOfClass": "SHS NEW",
+          "ticker": "TSEM"
         },
         {
           "issuer": "STEEL DYNAMICS INC",
@@ -2786,7 +3120,8 @@
           "value": 78854220,
           "shares": 438079,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "STLD"
         },
         {
           "issuer": "WELLS FARGO &amp; CO",
@@ -2794,7 +3129,8 @@
           "value": 75038794,
           "shares": 942580,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "MANULIFE FINL CORP",
@@ -2802,7 +3138,8 @@
           "value": 72577845,
           "shares": 2113648,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ONTO INNOVATION INC",
@@ -2810,7 +3147,8 @@
           "value": 71447413,
           "shares": 348405,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ONTO"
         },
         {
           "issuer": "AMKOR TECHNOLOGY INC",
@@ -2818,7 +3156,8 @@
           "value": 71189233,
           "shares": 1580929,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMKR"
         },
         {
           "issuer": "TE CONNECTIVITY PLC",
@@ -2826,7 +3165,8 @@
           "value": 70267089,
           "shares": 336174,
           "putCall": "",
-          "titleOfClass": "ORD SHS"
+          "titleOfClass": "ORD SHS",
+          "ticker": "TEL"
         },
         {
           "issuer": "WESTERN DIGITAL CORP",
@@ -2834,7 +3174,8 @@
           "value": 67362559,
           "shares": 249039,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WDC"
         },
         {
           "issuer": "UNITED THERAPEUTICS CORP DEL",
@@ -2842,7 +3183,8 @@
           "value": 65920994,
           "shares": 111169,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UTHR"
         },
         {
           "issuer": "ELI LILLY &amp; CO",
@@ -2850,7 +3192,8 @@
           "value": 65130753,
           "shares": 70812,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CISCO SYS INC",
@@ -2858,7 +3201,8 @@
           "value": 63848190,
           "shares": 822892,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "VALE S A",
@@ -2866,7 +3210,8 @@
           "value": 63420903,
           "shares": 3986229,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "THE CIGNA GROUP",
@@ -2874,7 +3219,8 @@
           "value": 60950508,
           "shares": 228493,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CI"
         },
         {
           "issuer": "CATERPILLAR INC",
@@ -2882,7 +3228,8 @@
           "value": 58449367,
           "shares": 82502,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CAT"
         },
         {
           "issuer": "MCKESSON CORP",
@@ -2890,7 +3237,8 @@
           "value": 58308822,
           "shares": 67381,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MCK"
         },
         {
           "issuer": "ANGLOGOLD ASHANTI PLC",
@@ -2898,7 +3246,8 @@
           "value": 58153517,
           "shares": 597304,
           "putCall": "",
-          "titleOfClass": "COM SHS"
+          "titleOfClass": "COM SHS",
+          "ticker": "AU"
         },
         {
           "issuer": "CONSTELLATION ENERGY CORP",
@@ -2906,7 +3255,8 @@
           "value": 57620166,
           "shares": 206339,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CEG"
         },
         {
           "issuer": "MONSTER BEVERAGE CORP NEW",
@@ -2914,7 +3264,8 @@
           "value": 55850284,
           "shares": 770774,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MNST"
         },
         {
           "issuer": "CIENA CORP",
@@ -2922,7 +3273,8 @@
           "value": 55845333,
           "shares": 143846,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "CIEN"
         },
         {
           "issuer": "SIBANYE STILLWATER LTD",
@@ -2930,7 +3282,8 @@
           "value": 54533876,
           "shares": 4426451,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADR"
+          "titleOfClass": "SPONSORED ADR",
+          "ticker": "SBSW"
         },
         {
           "issuer": "EMCOR GROUP INC",
@@ -2938,7 +3291,8 @@
           "value": 53754874,
           "shares": 72808,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "EME"
         },
         {
           "issuer": "CHENIERE ENERGY INC",
@@ -2946,7 +3300,8 @@
           "value": 52885202,
           "shares": 186373,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "LNG"
         },
         {
           "issuer": "VISTRA CORP",
@@ -2954,7 +3309,8 @@
           "value": 52392110,
           "shares": 348514,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VST"
         },
         {
           "issuer": "NXP SEMICONDUCTORS N V",
@@ -2962,7 +3318,8 @@
           "value": 51731265,
           "shares": 262782,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NXPI"
         },
         {
           "issuer": "BANK AMERICA CORP",
@@ -2970,7 +3327,8 @@
           "value": 50841229,
           "shares": 1042897,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "INSMED INC",
@@ -2978,7 +3336,8 @@
           "value": 48333078,
           "shares": 295579,
           "putCall": "",
-          "titleOfClass": "COM PAR $.01"
+          "titleOfClass": "COM PAR $.01",
+          "ticker": "INSM"
         },
         {
           "issuer": "TAPESTRY INC",
@@ -2986,7 +3345,8 @@
           "value": 45203883,
           "shares": 320345,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TPR"
         },
         {
           "issuer": "BRITISH AMERN TOB PLC",
@@ -2994,7 +3354,8 @@
           "value": 44779133,
           "shares": 765848,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADR"
+          "titleOfClass": "SPONSORED ADR",
+          "ticker": ""
         },
         {
           "issuer": "CVS HEALTH CORP",
@@ -3002,7 +3363,8 @@
           "value": 44415499,
           "shares": 618428,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CVS"
         },
         {
           "issuer": "METLIFE INC",
@@ -3010,7 +3372,8 @@
           "value": 44308202,
           "shares": 626530,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MET"
         },
         {
           "issuer": "CENTURY ALUM CO",
@@ -3018,7 +3381,8 @@
           "value": 42991423,
           "shares": 732517,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ALLSTATE CORP",
@@ -3026,7 +3390,8 @@
           "value": 42915233,
           "shares": 206980,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ALL"
         },
         {
           "issuer": "CITIZENS FINL GROUP INC",
@@ -3034,7 +3399,8 @@
           "value": 42796871,
           "shares": 713638,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "POPULAR INC",
@@ -3042,7 +3408,8 @@
           "value": 42560871,
           "shares": 317216,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "BPOP"
         },
         {
           "issuer": "ZIONS BANCORPORATION NATL AS",
@@ -3050,7 +3417,8 @@
           "value": 41764705,
           "shares": 724830,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "COHERENT CORP",
@@ -3058,7 +3426,8 @@
           "value": 38915891,
           "shares": 163368,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "COHR"
         },
         {
           "issuer": "GSK PLC",
@@ -3066,7 +3435,8 @@
           "value": 38559377,
           "shares": 698666,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADR"
+          "titleOfClass": "SPONSORED ADR",
+          "ticker": "GSK"
         },
         {
           "issuer": "SLB LIMITED",
@@ -3074,7 +3444,8 @@
           "value": 38273422,
           "shares": 744764,
           "putCall": "",
-          "titleOfClass": "COM STK"
+          "titleOfClass": "COM STK",
+          "ticker": ""
         },
         {
           "issuer": "FIRST HORIZON CORPORATION",
@@ -3082,7 +3453,8 @@
           "value": 37135444,
           "shares": 1631610,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "FHN"
         },
         {
           "issuer": "DECKERS OUTDOOR CORP",
@@ -3090,7 +3462,8 @@
           "value": 36817106,
           "shares": 367840,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "DECK"
         },
         {
           "issuer": "DELL TECHNOLOGIES INC",
@@ -3098,7 +3471,8 @@
           "value": 36665329,
           "shares": 223392,
           "putCall": "",
-          "titleOfClass": "CL C"
+          "titleOfClass": "CL C",
+          "ticker": "DELL"
         },
         {
           "issuer": "KINROSS GOLD CORP",
@@ -3106,7 +3480,8 @@
           "value": 35369993,
           "shares": 1159586,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KGC"
         },
         {
           "issuer": "ALNYLAM PHARMACEUTICALS INC",
@@ -3114,7 +3489,8 @@
           "value": 35268095,
           "shares": 106592,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ALNY"
         },
         {
           "issuer": "BORGWARNER INC",
@@ -3122,7 +3498,8 @@
           "value": 35256466,
           "shares": 649769,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BWA"
         },
         {
           "issuer": "HEWLETT PACKARD ENTERPRISE C",
@@ -3130,7 +3507,8 @@
           "value": 35163132,
           "shares": 1476822,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "COMCAST CORP NEW",
@@ -3138,7 +3516,8 @@
           "value": 34240120,
           "shares": 1192620,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "GE AEROSPACE",
@@ -3146,7 +3525,8 @@
           "value": 34224648,
           "shares": 120607,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "TEVA PHARMACEUTICAL INDS LTD",
@@ -3154,7 +3534,8 @@
           "value": 33987589,
           "shares": 1128406,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         }
       ]
     },
@@ -3174,7 +3555,8 @@
           "value": 24186274668,
           "shares": 37190200,
           "putCall": "PUT",
-          "titleOfClass": "TR UNIT"
+          "titleOfClass": "TR UNIT",
+          "ticker": ""
         },
         {
           "issuer": "INVESCO QQQ TR",
@@ -3182,7 +3564,8 @@
           "value": 20542586534,
           "shares": 35591300,
           "putCall": "PUT",
-          "titleOfClass": "UNIT SER 1"
+          "titleOfClass": "UNIT SER 1",
+          "ticker": ""
         },
         {
           "issuer": "STATE STR SPDR S&amp;P 500 ETF T",
@@ -3190,7 +3573,8 @@
           "value": 17577389520,
           "shares": 27028000,
           "putCall": "CALL",
-          "titleOfClass": "TR UNIT"
+          "titleOfClass": "TR UNIT",
+          "ticker": ""
         },
         {
           "issuer": "TESLA INC",
@@ -3198,7 +3582,8 @@
           "value": 13532815250,
           "shares": 36403000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TSLA"
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -3206,7 +3591,8 @@
           "value": 11665267200,
           "shares": 66888000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "INVESCO QQQ TR",
@@ -3214,7 +3600,8 @@
           "value": 11252874434,
           "shares": 19496300,
           "putCall": "CALL",
-          "titleOfClass": "UNIT SER 1"
+          "titleOfClass": "UNIT SER 1",
+          "ticker": ""
         },
         {
           "issuer": "TESLA INC",
@@ -3222,7 +3609,8 @@
           "value": 9452561600,
           "shares": 25427200,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TSLA"
         },
         {
           "issuer": "SPDR GOLD TR",
@@ -3230,7 +3618,8 @@
           "value": 9428557509,
           "shares": 21912100,
           "putCall": "CALL",
-          "titleOfClass": "GOLD SHS"
+          "titleOfClass": "GOLD SHS",
+          "ticker": ""
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -3238,7 +3627,8 @@
           "value": 9014788320,
           "shares": 51690300,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "APPLE INC",
@@ -3246,7 +3636,8 @@
           "value": 8075826211,
           "shares": 31820900,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -3254,7 +3645,8 @@
           "value": 7606010646,
           "shares": 13294200,
           "putCall": "CALL",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -3262,7 +3654,8 @@
           "value": 7023901716,
           "shares": 18974800,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "MICRON TECHNOLOGY INC",
@@ -3270,7 +3663,8 @@
           "value": 5647333440,
           "shares": 16716000,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "SPDR GOLD TR",
@@ -3278,7 +3672,8 @@
           "value": 5311284615,
           "shares": 12343500,
           "putCall": "PUT",
-          "titleOfClass": "GOLD SHS"
+          "titleOfClass": "GOLD SHS",
+          "ticker": ""
         },
         {
           "issuer": "AMAZON COM INC",
@@ -3286,7 +3681,8 @@
           "value": 5283914035,
           "shares": 25370500,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "ISHARES TR",
@@ -3294,7 +3690,8 @@
           "value": 5260352800,
           "shares": 21211100,
           "putCall": "PUT",
-          "titleOfClass": "RUSSELL 2000 ETF"
+          "titleOfClass": "RUSSELL 2000 ETF",
+          "ticker": ""
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -3302,7 +3699,8 @@
           "value": 5059402803,
           "shares": 8843100,
           "putCall": "PUT",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "ALPHABET INC",
@@ -3310,7 +3708,8 @@
           "value": 5017864488,
           "shares": 17449800,
           "putCall": "CALL",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "APPLE INC",
@@ -3318,7 +3717,8 @@
           "value": 4659152957,
           "shares": 18358300,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "ALPHABET INC",
@@ -3326,7 +3726,8 @@
           "value": 4337928868,
           "shares": 15085300,
           "putCall": "PUT",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "NETFLIX INC.",
@@ -3334,7 +3735,8 @@
           "value": 3961331925,
           "shares": 41199500,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NFLX"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -3342,7 +3744,8 @@
           "value": 3910290795,
           "shares": 10563500,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "AMAZON COM INC",
@@ -3350,7 +3753,8 @@
           "value": 3771644738,
           "shares": 18109400,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "ISHARES TR",
@@ -3358,7 +3762,8 @@
           "value": 3740088000,
           "shares": 15081000,
           "putCall": "CALL",
-          "titleOfClass": "RUSSELL 2000 ETF"
+          "titleOfClass": "RUSSELL 2000 ETF",
+          "ticker": ""
         },
         {
           "issuer": "MICRON TECHNOLOGY INC",
@@ -3366,7 +3771,8 @@
           "value": 3485630416,
           "shares": 10317400,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "ISHARES TR",
@@ -3374,7 +3780,8 @@
           "value": 3474894384,
           "shares": 43676400,
           "putCall": "PUT",
-          "titleOfClass": "IBOXX HI YD ETF"
+          "titleOfClass": "IBOXX HI YD ETF",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES SILVER TR",
@@ -3382,7 +3789,8 @@
           "value": 3168121602,
           "shares": 46494300,
           "putCall": "CALL",
-          "titleOfClass": "ISHARES"
+          "titleOfClass": "ISHARES",
+          "ticker": ""
         },
         {
           "issuer": "ALPHABET INC",
@@ -3390,7 +3798,8 @@
           "value": 2961542640,
           "shares": 10324000,
           "putCall": "CALL",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -3398,7 +3807,8 @@
           "value": 2945437020,
           "shares": 8715600,
           "putCall": "PUT",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "GOLDMAN SACHS GROUP INC",
@@ -3406,7 +3816,8 @@
           "value": 2893116602,
           "shares": 3419800,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GS"
         },
         {
           "issuer": "BROADCOM INC",
@@ -3414,7 +3825,8 @@
           "value": 2889244899,
           "shares": 9334900,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "ADVANCED MICRO DEVICES INC",
@@ -3422,7 +3834,8 @@
           "value": 2847775884,
           "shares": 13998800,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMD"
         },
         {
           "issuer": "PALANTIR TECHNOLOGIES INC",
@@ -3430,7 +3843,8 @@
           "value": 2842191144,
           "shares": 19429800,
           "putCall": "CALL",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "PLTR"
         },
         {
           "issuer": "ADVANCED MICRO DEVICES INC",
@@ -3438,7 +3852,8 @@
           "value": 2595705771,
           "shares": 12759700,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMD"
         },
         {
           "issuer": "BROADCOM INC",
@@ -3446,7 +3861,8 @@
           "value": 2576794554,
           "shares": 8325400,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "NETFLIX INC.",
@@ -3454,7 +3870,8 @@
           "value": 2549196105,
           "shares": 26512700,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NFLX"
         },
         {
           "issuer": "ISHARES TR",
@@ -3462,7 +3879,8 @@
           "value": 2545764547,
           "shares": 29366300,
           "putCall": "CALL",
-          "titleOfClass": "20 YR TR BD ETF"
+          "titleOfClass": "20 YR TR BD ETF",
+          "ticker": ""
         },
         {
           "issuer": "UNITEDHEALTH GROUP INC",
@@ -3470,7 +3888,8 @@
           "value": 2377214327,
           "shares": 8785300,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UNH"
         },
         {
           "issuer": "SANDISK CORP",
@@ -3478,7 +3897,8 @@
           "value": 2243702575,
           "shares": 3531499,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
         },
         {
           "issuer": "GOLDMAN SACHS GROUP INC",
@@ -3486,7 +3906,8 @@
           "value": 2069799134,
           "shares": 2446600,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GS"
         },
         {
           "issuer": "PALANTIR TECHNOLOGIES INC",
@@ -3494,7 +3915,8 @@
           "value": 2060660988,
           "shares": 14087100,
           "putCall": "PUT",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "PLTR"
         },
         {
           "issuer": "ISHARES SILVER TR",
@@ -3502,7 +3924,8 @@
           "value": 2019649158,
           "shares": 29639700,
           "putCall": "PUT",
-          "titleOfClass": "ISHARES"
+          "titleOfClass": "ISHARES",
+          "ticker": ""
         },
         {
           "issuer": "UNITEDHEALTH GROUP INC",
@@ -3510,7 +3933,8 @@
           "value": 2012296653,
           "shares": 7436700,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UNH"
         },
         {
           "issuer": "ALPHABET INC",
@@ -3518,7 +3942,8 @@
           "value": 2007761826,
           "shares": 6999100,
           "putCall": "PUT",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "VANECK ETF TRUST",
@@ -3526,7 +3951,8 @@
           "value": 1759345920,
           "shares": 4588800,
           "putCall": "PUT",
-          "titleOfClass": "SEMICONDUCTR ETF"
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES INC",
@@ -3534,7 +3960,8 @@
           "value": 1750584000,
           "shares": 45600000,
           "putCall": "CALL",
-          "titleOfClass": "MSCI BRAZIL ETF"
+          "titleOfClass": "MSCI BRAZIL ETF",
+          "ticker": ""
         },
         {
           "issuer": "BOOKING HOLDINGS INC",
@@ -3542,7 +3969,8 @@
           "value": 1682864904,
           "shares": 399700,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BKNG"
         },
         {
           "issuer": "JPMORGAN CHASE &amp; CO",
@@ -3550,7 +3978,8 @@
           "value": 1675447112,
           "shares": 5695700,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES TR",
@@ -3558,7 +3987,8 @@
           "value": 1624067798,
           "shares": 18734200,
           "putCall": "PUT",
-          "titleOfClass": "20 YR TR BD ETF"
+          "titleOfClass": "20 YR TR BD ETF",
+          "ticker": ""
         },
         {
           "issuer": "VANECK ETF TRUST",
@@ -3566,7 +3996,8 @@
           "value": 1614727440,
           "shares": 4211600,
           "putCall": "CALL",
-          "titleOfClass": "SEMICONDUCTR ETF"
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -3574,7 +4005,8 @@
           "value": 3255151758,
           "shares": 18664861,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "ISHARES TR",
@@ -3582,7 +4014,8 @@
           "value": 2652522508,
           "shares": 4060750,
           "putCall": "",
-          "titleOfClass": "CORE S&amp;P500 ETF"
+          "titleOfClass": "CORE S&amp;P500 ETF",
+          "ticker": ""
         },
         {
           "issuer": "AMAZON COM INC",
@@ -3590,7 +4023,8 @@
           "value": 1687515381,
           "shares": 8102537,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "MICRON TECHNOLOGY INC",
@@ -3598,7 +4032,8 @@
           "value": 1552838317,
           "shares": 4596372,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "STATE STR SPDR DOW JONES IND",
@@ -3606,7 +4041,8 @@
           "value": 1550013921,
           "shares": 3346389,
           "putCall": "",
-          "titleOfClass": "UT SER 1"
+          "titleOfClass": "UT SER 1",
+          "ticker": ""
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -3614,7 +4050,8 @@
           "value": 1363885768,
           "shares": 4035762,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "APPLE INC",
@@ -3622,7 +4059,8 @@
           "value": 1323228067,
           "shares": 5213870,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AAPL"
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -3630,7 +4068,8 @@
           "value": 1046847429,
           "shares": 1829737,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "BROADCOM INC",
@@ -3638,7 +4077,8 @@
           "value": 1008196017,
           "shares": 3257394,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -3646,7 +4086,8 @@
           "value": 976554361,
           "shares": 2638124,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "ALPHABET INC",
@@ -3654,7 +4095,8 @@
           "value": 816693980,
           "shares": 2840082,
           "putCall": "",
-          "titleOfClass": "CAP STK CL A"
+          "titleOfClass": "CAP STK CL A",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "WARNER BROS DISCOVERY INC",
@@ -3662,7 +4104,8 @@
           "value": 806794297,
           "shares": 29380710,
           "putCall": "",
-          "titleOfClass": "COM SER A"
+          "titleOfClass": "COM SER A",
+          "ticker": "WBD"
         },
         {
           "issuer": "TESLA INC",
@@ -3670,7 +4113,8 @@
           "value": 777815871,
           "shares": 2092309,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TSLA"
         },
         {
           "issuer": "NORFOLK SOUTHN CORP",
@@ -3678,7 +4122,8 @@
           "value": 752049634,
           "shares": 2620382,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "JPMORGAN CHASE &amp; CO",
@@ -3686,7 +4131,8 @@
           "value": 715448010,
           "shares": 2432173,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WESTERN DIGITAL CORP",
@@ -3694,7 +4140,8 @@
           "value": 696712587,
           "shares": 97265000,
           "putCall": "",
-          "titleOfClass": "NOTE 3.000%11/1"
+          "titleOfClass": "NOTE 3.000%11/1",
+          "ticker": "WDC"
         },
         {
           "issuer": "ALPHABET INC",
@@ -3702,7 +4149,8 @@
           "value": 689631520,
           "shares": 2404070,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "BLACKROCK INC",
@@ -3710,7 +4158,8 @@
           "value": 676185033,
           "shares": 703107,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BLK"
         },
         {
           "issuer": "INTUITIVE SURGICAL INC",
@@ -3718,7 +4167,8 @@
           "value": 625107511,
           "shares": 1356011,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "ISRG"
         },
         {
           "issuer": "ELECTRONIC ARTS INC",
@@ -3726,7 +4176,8 @@
           "value": 593323676,
           "shares": 2910304,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "EA"
         },
         {
           "issuer": "MARRIOTT INTL INC NEW",
@@ -3734,7 +4185,8 @@
           "value": 572751574,
           "shares": 1751159,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "BERKSHIRE HATHAWAY INC DEL",
@@ -3742,7 +4194,8 @@
           "value": 571925200,
           "shares": 1193500,
           "putCall": "",
-          "titleOfClass": "CL B NEW"
+          "titleOfClass": "CL B NEW",
+          "ticker": "BRK-B"
         },
         {
           "issuer": "MASTERCARD INCORPORATED",
@@ -3750,7 +4203,8 @@
           "value": 562452772,
           "shares": 1125671,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "CONSTELLATION BRANDS INC",
@@ -3758,7 +4212,8 @@
           "value": 556398450,
           "shares": 3709323,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "STZ"
         },
         {
           "issuer": "GILEAD SCIENCES INC",
@@ -3766,7 +4221,8 @@
           "value": 554997124,
           "shares": 3982185,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "GILD"
         },
         {
           "issuer": "GE AEROSPACE",
@@ -3774,7 +4230,8 @@
           "value": 554191459,
           "shares": 1952960,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "COSTCO WHOLESALE CORPORATION",
@@ -3782,7 +4239,8 @@
           "value": 542850082,
           "shares": 544795,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "T-MOBILE US INC",
@@ -3790,7 +4248,8 @@
           "value": 527615103,
           "shares": 2512094,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TMUS"
         },
         {
           "issuer": "CITIGROUP INC",
@@ -3798,7 +4257,8 @@
           "value": 515486329,
           "shares": 4545334,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "C"
         },
         {
           "issuer": "WASTE CONNECTIONS INC",
@@ -3806,7 +4266,8 @@
           "value": 505830038,
           "shares": 3113950,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WCN"
         },
         {
           "issuer": "CARDINAL HEALTH INC",
@@ -3814,7 +4275,8 @@
           "value": 492825212,
           "shares": 2332238,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CAH"
         },
         {
           "issuer": "COCA COLA CO",
@@ -3822,7 +4284,8 @@
           "value": 490409489,
           "shares": 6448514,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "KO"
         },
         {
           "issuer": "ROSS STORES INC",
@@ -3830,7 +4293,8 @@
           "value": 481873722,
           "shares": 2224409,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ROST"
         },
         {
           "issuer": "HOME DEPOT INC",
@@ -3838,7 +4302,8 @@
           "value": 481694268,
           "shares": 1464606,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HD"
         },
         {
           "issuer": "JOHNSON &amp; JOHNSON",
@@ -3846,7 +4311,8 @@
           "value": 472007773,
           "shares": 1930976,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "MORGAN STANLEY",
@@ -3854,7 +4320,8 @@
           "value": 471496342,
           "shares": 2865020,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "MS"
         },
         {
           "issuer": "MERCK &amp; CO INC",
@@ -3862,7 +4329,8 @@
           "value": 459655396,
           "shares": 3821227,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ELEVANCE HEALTH INC FORMERLY",
@@ -3870,7 +4338,8 @@
           "value": 457339612,
           "shares": 1562219,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ELV"
         },
         {
           "issuer": "LOCKHEED MARTIN CORP",
@@ -3878,7 +4347,8 @@
           "value": 452833768,
           "shares": 749241,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "LMT"
         },
         {
           "issuer": "PARKER-HANNIFIN CORP",
@@ -3886,7 +4356,8 @@
           "value": 450765873,
           "shares": 503514,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PH"
         },
         {
           "issuer": "OREILLY AUTOMOTIVE INC",
@@ -3894,7 +4365,8 @@
           "value": 447824611,
           "shares": 4851312,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "YUM BRANDS INC",
@@ -3902,7 +4374,8 @@
           "value": 443894157,
           "shares": 2854992,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "YUM"
         },
         {
           "issuer": "APPLIED MATLS INC",
@@ -3910,7 +4383,8 @@
           "value": 441097769,
           "shares": 1290552,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "THERMO FISHER SCIENTIFIC INC",
@@ -3918,7 +4392,8 @@
           "value": 424922278,
           "shares": 864489,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TMO"
         },
         {
           "issuer": "UNITEDHEALTH GROUP INC",
@@ -3926,7 +4401,8 @@
           "value": 417339075,
           "shares": 1542330,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UNH"
         },
         {
           "issuer": "MSCI INC",
@@ -3934,7 +4410,8 @@
           "value": 406953628,
           "shares": 755002,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSCI"
         },
         {
           "issuer": "FEDEX CORP",
@@ -3942,7 +4419,8 @@
           "value": 406223646,
           "shares": 1140501,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "FDX"
         },
         {
           "issuer": "CLOUDFLARE INC",
@@ -3950,7 +4428,8 @@
           "value": 400535240,
           "shares": 1941142,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "NET"
         },
         {
           "issuer": "SPOTIFY TECHNOLOGY S A",
@@ -3958,7 +4437,8 @@
           "value": 392296069,
           "shares": 809008,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "SPOT"
         },
         {
           "issuer": "CVS HEALTH CORP",
@@ -3966,7 +4446,8 @@
           "value": 389842048,
           "shares": 5428043,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CVS"
         },
         {
           "issuer": "SANDISK CORP",
@@ -3974,7 +4455,8 @@
           "value": 386157746,
           "shares": 607797,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
         },
         {
           "issuer": "LOEWS CORP",
@@ -3982,7 +4464,8 @@
           "value": 381888715,
           "shares": 3577747,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "L"
         },
         {
           "issuer": "AIRBNB INC",
@@ -3990,7 +4473,8 @@
           "value": 381336809,
           "shares": 3019772,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "ABNB"
         },
         {
           "issuer": "BOOKING HOLDINGS INC",
@@ -3998,7 +4482,8 @@
           "value": 379497193,
           "shares": 90135,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BKNG"
         },
         {
           "issuer": "VERISK ANALYTICS INC",
@@ -4006,7 +4491,8 @@
           "value": 378967562,
           "shares": 1997194,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VRSK"
         },
         {
           "issuer": "BLOCK INC",
@@ -4014,7 +4500,8 @@
           "value": 378365020,
           "shares": 6287222,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "XYZ"
         },
         {
           "issuer": "UNITED AIRLS HLDGS INC",
@@ -4022,7 +4509,8 @@
           "value": 377007407,
           "shares": 4094791,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "SS&amp;C TECH HLDGS",
@@ -4030,7 +4518,8 @@
           "value": 376722346,
           "shares": 5575290,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ASTRAZENECA PLC",
@@ -4038,7 +4527,8 @@
           "value": 368760575,
           "shares": 1869793,
           "putCall": "",
-          "titleOfClass": "ORD"
+          "titleOfClass": "ORD",
+          "ticker": "AZN"
         },
         {
           "issuer": "SALESFORCE INC",
@@ -4046,7 +4536,8 @@
           "value": 364255518,
           "shares": 1951334,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CRM"
         },
         {
           "issuer": "EQUINIX INC",
@@ -4054,7 +4545,8 @@
           "value": 357103392,
           "shares": 364302,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "EQIX"
         },
         {
           "issuer": "INSMED INC",
@@ -4062,7 +4554,8 @@
           "value": 356894010,
           "shares": 2182571,
           "putCall": "",
-          "titleOfClass": "COM PAR $.01"
+          "titleOfClass": "COM PAR $.01",
+          "ticker": "INSM"
         },
         {
           "issuer": "OVINTIV INC",
@@ -4070,7 +4563,8 @@
           "value": 351567257,
           "shares": 5922629,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "OVV"
         },
         {
           "issuer": "PERMIAN RESOURCES CORP",
@@ -4078,7 +4572,8 @@
           "value": 346578027,
           "shares": 16256005,
           "putCall": "",
-          "titleOfClass": "CLASS A COM"
+          "titleOfClass": "CLASS A COM",
+          "ticker": "PR"
         },
         {
           "issuer": "GLOBAL PMTS INC",
@@ -4086,7 +4581,8 @@
           "value": 344361582,
           "shares": 5116814,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "US BANCORP",
@@ -4094,7 +4590,8 @@
           "value": 341131302,
           "shares": 6558956,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         },
         {
           "issuer": "ZOOM COMMUNICATIONS INC",
@@ -4102,7 +4599,8 @@
           "value": 340110314,
           "shares": 4230754,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "ZM"
         },
         {
           "issuer": "TARGET CORP",
@@ -4110,7 +4608,8 @@
           "value": 339445325,
           "shares": 2800704,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TGT"
         },
         {
           "issuer": "ORACLE CORP",
@@ -4118,7 +4617,8 @@
           "value": 338770498,
           "shares": 2302838,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ORCL"
         },
         {
           "issuer": "PAYPAL HLDGS INC",
@@ -4126,7 +4626,8 @@
           "value": 338192580,
           "shares": 7477174,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "ISHARES TR",
@@ -4134,7 +4635,8 @@
           "value": 327476114,
           "shares": 3431225,
           "putCall": "",
-          "titleOfClass": "7-10 YR TRSY BD"
+          "titleOfClass": "7-10 YR TRSY BD",
+          "ticker": ""
         },
         {
           "issuer": "DUKE ENERGY CORP NEW",
@@ -4142,7 +4644,8 @@
           "value": 327216048,
           "shares": 2498977,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "DUK"
         },
         {
           "issuer": "WELLTOWER INC",
@@ -4150,7 +4653,8 @@
           "value": 325750357,
           "shares": 1647617,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WELL"
         },
         {
           "issuer": "DEERE &amp; CO",
@@ -4158,7 +4662,8 @@
           "value": 319987071,
           "shares": 568058,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "DATADOG INC",
@@ -4166,7 +4671,8 @@
           "value": 319442710,
           "shares": 2705995,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "DDOG"
         },
         {
           "issuer": "NIKE INC",
@@ -4174,7 +4680,8 @@
           "value": 318073061,
           "shares": 6021830,
           "putCall": "",
-          "titleOfClass": "CL B"
+          "titleOfClass": "CL B",
+          "ticker": "NKE"
         },
         {
           "issuer": "PPL CORP",
@@ -4182,7 +4689,8 @@
           "value": 318039257,
           "shares": 8325635,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PPL"
         },
         {
           "issuer": "AMETEK INC",
@@ -4190,7 +4698,8 @@
           "value": 309760704,
           "shares": 1445049,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BEONE MEDICINES LTD",
@@ -4198,7 +4707,8 @@
           "value": 306561537,
           "shares": 1032298,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": "ONC"
         },
         {
           "issuer": "LENNOX INTL INC",
@@ -4206,7 +4716,8 @@
           "value": 299193978,
           "shares": 644634,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "AIR PRODUCTS AND CHEMICALS I",
@@ -4214,7 +4725,8 @@
           "value": 295205524,
           "shares": 1016233,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CHEVRON CORPORATION",
@@ -4222,7 +4734,8 @@
           "value": 295118643,
           "shares": 1426383,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CVX"
         },
         {
           "issuer": "PALANTIR TECHNOLOGIES INC",
@@ -4230,7 +4743,8 @@
           "value": 294841968,
           "shares": 2015600,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "PLTR"
         },
         {
           "issuer": "ASML HLDG NV",
@@ -4238,7 +4752,8 @@
           "value": 293911091,
           "shares": 222520,
           "putCall": "",
-          "titleOfClass": "N Y REGISTRY SHS"
+          "titleOfClass": "N Y REGISTRY SHS",
+          "ticker": ""
         },
         {
           "issuer": "PALO ALTO NETWORKS INC",
@@ -4246,7 +4761,8 @@
           "value": 292372859,
           "shares": 1823683,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PANW"
         },
         {
           "issuer": "CENTERPOINT ENERGY INC",
@@ -4254,7 +4770,8 @@
           "value": 283456062,
           "shares": 6567564,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CNP"
         },
         {
           "issuer": "PINNACLE FINL PARTNERS INC",
@@ -4262,7 +4779,8 @@
           "value": 281090756,
           "shares": 3263185,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "INTEL CORP",
@@ -4270,7 +4788,8 @@
           "value": 279066911,
           "shares": 6323746,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "INTC"
         },
         {
           "issuer": "LPL FINL HLDGS INC",
@@ -4278,7 +4797,8 @@
           "value": 277807781,
           "shares": 923471,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "SERVICENOW INC",
@@ -4286,7 +4806,8 @@
           "value": 275662489,
           "shares": 2636657,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NOW"
         },
         {
           "issuer": "COLGATE PALMOLIVE CO",
@@ -4294,7 +4815,8 @@
           "value": 271371894,
           "shares": 3183995,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CL"
         },
         {
           "issuer": "INTERCONTINENTAL EXCHANGE IN",
@@ -4302,7 +4824,8 @@
           "value": 269310859,
           "shares": 1712302,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ICE"
         },
         {
           "issuer": "OKTA INC",
@@ -4310,7 +4833,8 @@
           "value": 267748515,
           "shares": 3401709,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "OKTA"
         },
         {
           "issuer": "FRANKLIN RESOURCES INC",
@@ -4318,7 +4842,8 @@
           "value": 267423963,
           "shares": 11321929,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BEN"
         },
         {
           "issuer": "BOSTON SCIENTIFIC CORP",
@@ -4326,7 +4851,8 @@
           "value": 264636454,
           "shares": 4217314,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BSX"
         },
         {
           "issuer": "COHERENT CORP",
@@ -4334,7 +4860,8 @@
           "value": 257050981,
           "shares": 1079094,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "COHR"
         },
         {
           "issuer": "BIOMARIN PHARMACEUTICAL INC",
@@ -4342,7 +4869,8 @@
           "value": 254918695,
           "shares": 4512634,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BMRN"
         },
         {
           "issuer": "CAPITAL ONE FINL CORP",
@@ -4350,7 +4878,8 @@
           "value": 254716975,
           "shares": 1396245,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "CENCORA INC",
@@ -4358,7 +4887,8 @@
           "value": 250629373,
           "shares": 797827,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "COR"
         },
         {
           "issuer": "ENTERGY CORP NEW",
@@ -4366,7 +4896,8 @@
           "value": 250627856,
           "shares": 2230579,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         }
       ]
     },
@@ -4386,7 +4917,8 @@
           "value": 162313,
           "shares": 4228000,
           "putCall": "CALL",
-          "titleOfClass": "MSCI BRAZIL ETF"
+          "titleOfClass": "MSCI BRAZIL ETF",
+          "ticker": ""
         },
         {
           "issuer": "Invesco Exchange Traded Fd T",
@@ -4394,7 +4926,8 @@
           "value": 157566,
           "shares": 821000,
           "putCall": "CALL",
-          "titleOfClass": "S&amp;P500 EQL WGT"
+          "titleOfClass": "S&amp;P500 EQL WGT",
+          "ticker": ""
         },
         {
           "issuer": "State Str Spdr S&amp;P 500 Etf T",
@@ -4402,7 +4935,8 @@
           "value": 58531,
           "shares": 90000,
           "putCall": "CALL",
-          "titleOfClass": "TR UNIT"
+          "titleOfClass": "TR UNIT",
+          "ticker": ""
         },
         {
           "issuer": "Amazon Com Inc",
@@ -4410,7 +4944,8 @@
           "value": 41654,
           "shares": 200000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "Ishares Tr",
@@ -4418,7 +4953,8 @@
           "value": 19592,
           "shares": 79000,
           "putCall": "CALL",
-          "titleOfClass": "RUSSELL 2000 ETF"
+          "titleOfClass": "RUSSELL 2000 ETF",
+          "ticker": ""
         },
         {
           "issuer": "Natera Inc",
@@ -4426,7 +4962,8 @@
           "value": 612691,
           "shares": 3063606,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NTRA"
         },
         {
           "issuer": "Insmed Inc",
@@ -4434,7 +4971,8 @@
           "value": 188717,
           "shares": 1154090,
           "putCall": "",
-          "titleOfClass": "COM PAR $.01"
+          "titleOfClass": "COM PAR $.01",
+          "ticker": "INSM"
         },
         {
           "issuer": "Taiwan Semiconductor Manufac",
@@ -4442,7 +4980,8 @@
           "value": 167380,
           "shares": 495280,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "Ypf Sociedad Anonima",
@@ -4450,7 +4989,8 @@
           "value": 149566,
           "shares": 3235962,
           "putCall": "",
-          "titleOfClass": "SPON ADR CL D"
+          "titleOfClass": "SPON ADR CL D",
+          "ticker": "YPF"
         },
         {
           "issuer": "Ishares Inc",
@@ -4458,7 +4998,8 @@
           "value": 131915,
           "shares": 3436170,
           "putCall": "",
-          "titleOfClass": "MSCI BRAZIL ETF"
+          "titleOfClass": "MSCI BRAZIL ETF",
+          "ticker": ""
         },
         {
           "issuer": "Bbb Foods Inc",
@@ -4466,7 +5007,8 @@
           "value": 109972,
           "shares": 3109202,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "TBBB"
         },
         {
           "issuer": "Alcoa Corp",
@@ -4474,7 +5016,8 @@
           "value": 99057,
           "shares": 1493390,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AA"
         },
         {
           "issuer": "Newamsterdam Pharma Company",
@@ -4482,7 +5025,8 @@
           "value": 98275,
           "shares": 3070146,
           "putCall": "",
-          "titleOfClass": "ORDINARY SHARES"
+          "titleOfClass": "ORDINARY SHARES",
+          "ticker": "NAMS"
         },
         {
           "issuer": "Sea Ltd",
@@ -4490,7 +5034,8 @@
           "value": 91083,
           "shares": 1099905,
           "putCall": "",
-          "titleOfClass": "SPONSORD ADS"
+          "titleOfClass": "SPONSORD ADS",
+          "ticker": "SE"
         },
         {
           "issuer": "Stmicroelectronics N V",
@@ -4498,7 +5043,8 @@
           "value": 90275,
           "shares": 2612880,
           "putCall": "",
-          "titleOfClass": "NY REGISTRY"
+          "titleOfClass": "NY REGISTRY",
+          "ticker": ""
         },
         {
           "issuer": "Woodward Inc",
@@ -4506,7 +5052,8 @@
           "value": 75648,
           "shares": 211355,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "WWD"
         },
         {
           "issuer": "Teva Pharmaceutical Inds Ltd",
@@ -4514,7 +5061,8 @@
           "value": 71604,
           "shares": 2377285,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "Roku Inc",
@@ -4522,7 +5070,8 @@
           "value": 70983,
           "shares": 750190,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "ROKU"
         },
         {
           "issuer": "Broadcom Inc",
@@ -4530,7 +5079,8 @@
           "value": 60650,
           "shares": 195955,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
         },
         {
           "issuer": "Coupang Inc",
@@ -4538,7 +5088,8 @@
           "value": 50362,
           "shares": 2667485,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "CPNG"
         },
         {
           "issuer": "Option Care Health Inc",
@@ -4546,7 +5097,8 @@
           "value": 50301,
           "shares": 1868550,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "OPCH"
         },
         {
           "issuer": "Crh Plc",
@@ -4554,7 +5106,8 @@
           "value": 39689,
           "shares": 377555,
           "putCall": "",
-          "titleOfClass": "ORD"
+          "titleOfClass": "ORD",
+          "ticker": ""
         },
         {
           "issuer": "Figure Technology Solutio",
@@ -4562,7 +5115,8 @@
           "value": 39057,
           "shares": 1150415,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": ""
         },
         {
           "issuer": "Global X Fds",
@@ -4570,7 +5124,8 @@
           "value": 36152,
           "shares": 387400,
           "putCall": "",
-          "titleOfClass": "GB MSCI AR ETF"
+          "titleOfClass": "GB MSCI AR ETF",
+          "ticker": ""
         },
         {
           "issuer": "Caris Life Sciences Inc",
@@ -4578,7 +5133,8 @@
           "value": 33873,
           "shares": 1894450,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CAI"
         },
         {
           "issuer": "Restaurant Brands Intl Inc",
@@ -4586,7 +5142,8 @@
           "value": 33583,
           "shares": 454435,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Revolution Medicines Inc",
@@ -4594,7 +5151,8 @@
           "value": 30717,
           "shares": 315860,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "RVMD"
         },
         {
           "issuer": "Lattice Semiconductor Corp",
@@ -4602,7 +5160,8 @@
           "value": 29974,
           "shares": 323135,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "LSCC"
         },
         {
           "issuer": "Sandisk Corp",
@@ -4610,7 +5169,8 @@
           "value": 24241,
           "shares": 38155,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
         },
         {
           "issuer": "United Airls Hldgs Inc",
@@ -4618,7 +5178,8 @@
           "value": 24168,
           "shares": 262495,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Humana Inc",
@@ -4626,7 +5187,8 @@
           "value": 23842,
           "shares": 137505,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HUM"
         },
         {
           "issuer": "Wabtec",
@@ -4634,7 +5196,8 @@
           "value": 23715,
           "shares": 94895,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Twilio Inc",
@@ -4642,7 +5205,8 @@
           "value": 22869,
           "shares": 181760,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "TWLO"
         },
         {
           "issuer": "Jabil Inc",
@@ -4650,7 +5214,8 @@
           "value": 21835,
           "shares": 82200,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "JBL"
         },
         {
           "issuer": "Southern Copper Corp",
@@ -4658,7 +5223,8 @@
           "value": 20964,
           "shares": 121843,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Ishares S&amp;P Gsci Commodity-",
@@ -4666,7 +5232,8 @@
           "value": 20737,
           "shares": 643000,
           "putCall": "",
-          "titleOfClass": "UNIT BEN INT"
+          "titleOfClass": "UNIT BEN INT",
+          "ticker": ""
         },
         {
           "issuer": "Linde Plc",
@@ -4674,7 +5241,8 @@
           "value": 20425,
           "shares": 41200,
           "putCall": "",
-          "titleOfClass": "SHS"
+          "titleOfClass": "SHS",
+          "ticker": "LIN"
         },
         {
           "issuer": "Seagate Technology Hldngs Pl",
@@ -4682,7 +5250,8 @@
           "value": 19862,
           "shares": 50700,
           "putCall": "",
-          "titleOfClass": "ORD SHS"
+          "titleOfClass": "ORD SHS",
+          "ticker": "STX"
         },
         {
           "issuer": "Cleveland-Cliffs Inc New",
@@ -4690,7 +5259,8 @@
           "value": 19549,
           "shares": 2313455,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Nuvation Bio Inc",
@@ -4698,7 +5268,8 @@
           "value": 19476,
           "shares": 4539800,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "NUVB"
         },
         {
           "issuer": "Bloom Energy Corp",
@@ -4706,7 +5277,8 @@
           "value": 18470,
           "shares": 136320,
           "putCall": "",
-          "titleOfClass": "COM CL A"
+          "titleOfClass": "COM CL A",
+          "ticker": "BE"
         },
         {
           "issuer": "Intel Corp",
@@ -4714,7 +5286,8 @@
           "value": 18155,
           "shares": 411400,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "INTC"
         },
         {
           "issuer": "Belite Bio Inc Sponsored",
@@ -4722,7 +5295,8 @@
           "value": 16917,
           "shares": 106100,
           "putCall": "",
-          "titleOfClass": "ADS"
+          "titleOfClass": "ADS",
+          "ticker": "BLTE"
         },
         {
           "issuer": "Protagonist Therapeutics Inc",
@@ -4730,7 +5304,8 @@
           "value": 16832,
           "shares": 159700,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PTGX"
         },
         {
           "issuer": "Unity Software Inc",
@@ -4738,7 +5313,8 @@
           "value": 16209,
           "shares": 738785,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "U"
         },
         {
           "issuer": "Arm Holdings Plc",
@@ -4746,7 +5322,8 @@
           "value": 16142,
           "shares": 106700,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "Olema Pharmaceuticals Inc",
@@ -4754,7 +5331,8 @@
           "value": 14714,
           "shares": 986827,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "OLMA"
         },
         {
           "issuer": "Qnity Electronics Inc",
@@ -4762,7 +5340,8 @@
           "value": 14498,
           "shares": 125655,
           "putCall": "",
-          "titleOfClass": "COMMON STOCK"
+          "titleOfClass": "COMMON STOCK",
+          "ticker": "Q"
         },
         {
           "issuer": "Adma Biologics Inc",
@@ -4770,7 +5349,8 @@
           "value": 13926,
           "shares": 1545610,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "ADMA"
         },
         {
           "issuer": "Xenon Pharmaceuticals Inc",
@@ -4778,7 +5358,8 @@
           "value": 13875,
           "shares": 238600,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "XENE"
         },
         {
           "issuer": "Jbs N.V.",
@@ -4786,7 +5367,8 @@
           "value": 11780,
           "shares": 655900,
           "putCall": "",
-          "titleOfClass": "CL A SHS"
+          "titleOfClass": "CL A SHS",
+          "ticker": "JBS"
         },
         {
           "issuer": "Daktronics Inc",
@@ -4794,7 +5376,8 @@
           "value": 11000,
           "shares": 562637,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "Cloudflare Inc",
@@ -4802,7 +5385,8 @@
           "value": 10840,
           "shares": 52535,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "NET"
         },
         {
           "issuer": "Lyondellbasell Industries Nv",
@@ -4810,7 +5394,8 @@
           "value": 10588,
           "shares": 131435,
           "putCall": "",
-          "titleOfClass": "SHS - A -"
+          "titleOfClass": "SHS - A -",
+          "ticker": "LYB"
         },
         {
           "issuer": "Vista Energy S.A.B. De C.V.",
@@ -4818,7 +5403,8 @@
           "value": 10166,
           "shares": 134700,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": "VIST"
         },
         {
           "issuer": "Twist Bioscience Corp",
@@ -4826,7 +5412,8 @@
           "value": 9789,
           "shares": 206000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "TWST"
         },
         {
           "issuer": "Coherent Corp",
@@ -4834,7 +5421,8 @@
           "value": 9624,
           "shares": 40400,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "COHR"
         },
         {
           "issuer": "Amazon Com Inc",
@@ -4842,7 +5430,8 @@
           "value": 9539,
           "shares": 45800,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "Celestica Inc",
@@ -4850,7 +5439,8 @@
           "value": 9373,
           "shares": 33275,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "CLS"
         },
         {
           "issuer": "Stubhub Hldgs Inc",
@@ -4858,7 +5448,8 @@
           "value": 8531,
           "shares": 1367177,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": ""
         },
         {
           "issuer": "Dbv Technologies S A Sponsored",
@@ -4866,7 +5457,8 @@
           "value": 8008,
           "shares": 383363,
           "putCall": "",
-          "titleOfClass": "ADS"
+          "titleOfClass": "ADS",
+          "ticker": "DBVT"
         },
         {
           "issuer": "Micron Technology Inc",
@@ -4874,7 +5466,8 @@
           "value": 7905,
           "shares": 23400,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "Echostar Corp",
@@ -4882,7 +5475,8 @@
           "value": 7114,
           "shares": 60765,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "ECHO"
         },
         {
           "issuer": "Almonty Inds Inc",
@@ -4890,7 +5484,8 @@
           "value": 6804,
           "shares": 469880,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": ""
         }
       ]
     },
@@ -4910,7 +5505,8 @@
           "value": 912100000,
           "shares": 5000000,
           "putCall": "PUT",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "PLTR"
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -4918,7 +5514,8 @@
           "value": 186580000,
           "shares": 1000000,
           "putCall": "PUT",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "PFIZER INC",
@@ -4926,7 +5523,8 @@
           "value": 152880000,
           "shares": 6000000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "PFE"
         },
         {
           "issuer": "HALLIBURTON CO",
@@ -4934,7 +5532,8 @@
           "value": 61500000,
           "shares": 2500000,
           "putCall": "CALL",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "HAL"
         },
         {
           "issuer": "MOLINA HEALTHCARE INC",
@@ -4942,7 +5541,8 @@
           "value": 23920000,
           "shares": 125000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MOH"
         },
         {
           "issuer": "LULULEMON ATHLETICA INC",
@@ -4950,7 +5550,8 @@
           "value": 17793000,
           "shares": 100000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "LULU"
         },
         {
           "issuer": "SLM CORP",
@@ -4958,7 +5559,8 @@
           "value": 13287895,
           "shares": 480054,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SLM"
         },
         {
           "issuer": "BRUKER CORP",
@@ -4966,7 +5568,8 @@
           "value": 13137181,
           "shares": 48334,
           "putCall": "",
-          "titleOfClass": "6.375 PREF SER A"
+          "titleOfClass": "6.375 PREF SER A",
+          "ticker": "BRKR"
         }
       ]
     },
@@ -4986,7 +5589,8 @@
           "value": 899726400,
           "shares": 4320000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMZN"
         },
         {
           "issuer": "MICRON TECHNOLOGY INC",
@@ -4994,7 +5598,8 @@
           "value": 562503600,
           "shares": 1665000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MU"
         },
         {
           "issuer": "ALPHABET INC",
@@ -5002,7 +5607,8 @@
           "value": 497042322,
           "shares": 1732700,
           "putCall": "",
-          "titleOfClass": "CAP STK CL C"
+          "titleOfClass": "CAP STK CL C",
+          "ticker": "GOOGL"
         },
         {
           "issuer": "UBER TECHNOLOGIES INC",
@@ -5010,7 +5616,8 @@
           "value": 455512550,
           "shares": 6332720,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UBER"
         },
         {
           "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
@@ -5018,7 +5625,8 @@
           "value": 448628625,
           "shares": 1327500,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "ALIBABA GROUP HLDG LTD",
@@ -5026,7 +5634,8 @@
           "value": 434718900,
           "shares": 3465000,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
         },
         {
           "issuer": "VISTRA CORP",
@@ -5034,7 +5643,8 @@
           "value": 304017170,
           "shares": 2022332,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "VST"
         },
         {
           "issuer": "ISHARES INC",
@@ -5042,7 +5652,8 @@
           "value": 295224000,
           "shares": 2400000,
           "putCall": "",
-          "titleOfClass": "MSCI STH KOR ETF"
+          "titleOfClass": "MSCI STH KOR ETF",
+          "ticker": ""
         },
         {
           "issuer": "NVIDIA CORPORATION",
@@ -5050,7 +5661,8 @@
           "value": 256629600,
           "shares": 1471500,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         },
         {
           "issuer": "NRG ENERGY INC",
@@ -5058,7 +5670,8 @@
           "value": 253471354,
           "shares": 1734442,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "NRG"
         },
         {
           "issuer": "META PLATFORMS INC",
@@ -5066,7 +5679,8 @@
           "value": 249734745,
           "shares": 436500,
           "putCall": "",
-          "titleOfClass": "CL A"
+          "titleOfClass": "CL A",
+          "ticker": "META"
         },
         {
           "issuer": "SANDISK CORP",
@@ -5074,7 +5688,8 @@
           "value": 178689375,
           "shares": 281250,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
         },
         {
           "issuer": "CORNING INC",
@@ -5082,7 +5697,8 @@
           "value": 153578115,
           "shares": 1129500,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "WHIRLPOOL CORP",
@@ -5090,7 +5706,8 @@
           "value": 105144000,
           "shares": 1950000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "PDD HOLDINGS INC",
@@ -5098,7 +5715,8 @@
           "value": 91962000,
           "shares": 900000,
           "putCall": "",
-          "titleOfClass": "SPONSORED ADS"
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": "PDD"
         },
         {
           "issuer": "LAM RESEARCH CORP",
@@ -5106,7 +5724,8 @@
           "value": 81724950,
           "shares": 382500,
           "putCall": "",
-          "titleOfClass": "COM NEW"
+          "titleOfClass": "COM NEW",
+          "ticker": "LRCX"
         },
         {
           "issuer": "BAIDU INC",
@@ -5114,7 +5733,8 @@
           "value": 77113782,
           "shares": 692100,
           "putCall": "",
-          "titleOfClass": "SPON ADR REP A"
+          "titleOfClass": "SPON ADR REP A",
+          "ticker": "BIDU"
         },
         {
           "issuer": "L3HARRIS TECHNOLOGIES INC",
@@ -5122,7 +5742,8 @@
           "value": 68339700,
           "shares": 198000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "RTX CORPORATION",
@@ -5130,7 +5751,8 @@
           "value": 65971800,
           "shares": 342000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "RTX"
         },
         {
           "issuer": "ASML HLDG NV",
@@ -5138,7 +5760,8 @@
           "value": 65381085,
           "shares": 49500,
           "putCall": "",
-          "titleOfClass": "N Y REGISTRY SHS"
+          "titleOfClass": "N Y REGISTRY SHS",
+          "ticker": ""
         },
         {
           "issuer": "QUALCOMM INC",
@@ -5146,7 +5769,8 @@
           "value": 64211382,
           "shares": 498613,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": ""
         },
         {
           "issuer": "BALL CORP",
@@ -5154,7 +5778,8 @@
           "value": 49475070,
           "shares": 837000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "BALL"
         },
         {
           "issuer": "ADVANCED MICRO DEVICES INC",
@@ -5162,7 +5787,8 @@
           "value": 45039402,
           "shares": 221400,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "AMD"
         },
         {
           "issuer": "JD.COM INC",
@@ -5170,7 +5796,8 @@
           "value": 38588850,
           "shares": 1305000,
           "putCall": "",
-          "titleOfClass": "SPON ADS CL A"
+          "titleOfClass": "SPON ADS CL A",
+          "ticker": "JD"
         },
         {
           "issuer": "LYFT INC",
@@ -5178,7 +5805,8 @@
           "value": 35910000,
           "shares": 2700000,
           "putCall": "",
-          "titleOfClass": "CL A COM"
+          "titleOfClass": "CL A COM",
+          "ticker": "LYFT"
         },
         {
           "issuer": "MICROSOFT CORP",
@@ -5186,7 +5814,8 @@
           "value": 33315300,
           "shares": 90000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "MSFT"
         },
         {
           "issuer": "KRANESHARES TRUST",
@@ -5194,7 +5823,8 @@
           "value": 30704400,
           "shares": 1080000,
           "putCall": "",
-          "titleOfClass": "CSI CHI INTERNET"
+          "titleOfClass": "CSI CHI INTERNET",
+          "ticker": ""
         },
         {
           "issuer": "ENERGY TRANSFER L P",
@@ -5202,7 +5832,8 @@
           "value": 30419213,
           "shares": 1576125,
           "putCall": "",
-          "titleOfClass": "COM UT LTD PTN"
+          "titleOfClass": "COM UT LTD PTN",
+          "ticker": "ET"
         },
         {
           "issuer": "MPLX LP",
@@ -5210,7 +5841,8 @@
           "value": 28675392,
           "shares": 502460,
           "putCall": "",
-          "titleOfClass": "COM UNIT REP LTD"
+          "titleOfClass": "COM UNIT REP LTD",
+          "ticker": "MPLX"
         },
         {
           "issuer": "UNITEDHEALTH GROUP INC",
@@ -5218,7 +5850,8 @@
           "value": 24353100,
           "shares": 90000,
           "putCall": "",
-          "titleOfClass": "COM"
+          "titleOfClass": "COM",
+          "ticker": "UNH"
         },
         {
           "issuer": "DEUTSCHE BK AG",
@@ -5226,12 +5859,403 @@
           "value": 7671804,
           "shares": 257616,
           "putCall": "",
-          "titleOfClass": "NAMEN AKT"
+          "titleOfClass": "NAMEN AKT",
+          "ticker": ""
+        }
+      ]
+    },
+    "2045724": {
+      "label": "Leopold Aschenbrenner / Situational Awareness LP",
+      "cik": "2045724",
+      "entityName": "Situational Awareness LP",
+      "filingDate": "2026-05-18",
+      "reportDate": "2026-03-31",
+      "form": "13F-HR",
+      "rawPositionCount": 42,
+      "positionCount": 42,
+      "positions": [
+        {
+          "issuer": "VANECK ETF TRUST",
+          "cusip": "92189F676",
+          "value": 2042716860,
+          "shares": 5327900,
+          "putCall": "PUT",
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
+        },
+        {
+          "issuer": "NVIDIA CORPORATION",
+          "cusip": "67066G104",
+          "value": 1568257120,
+          "shares": 8992300,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
+        },
+        {
+          "issuer": "ORACLE CORP",
+          "cusip": "68389X105",
+          "value": 1072873230,
+          "shares": 7293000,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "ORCL"
+        },
+        {
+          "issuer": "BROADCOM INC",
+          "cusip": "11135F101",
+          "value": 1006247961,
+          "shares": 3251100,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "AVGO"
+        },
+        {
+          "issuer": "ADVANCED MICRO DEVICES INC",
+          "cusip": "007903107",
+          "value": 969160863,
+          "shares": 4764100,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "AMD"
+        },
+        {
+          "issuer": "MICRON TECHNOLOGY INC",
+          "cusip": "595112103",
+          "value": 583686168,
+          "shares": 1727700,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "MU"
+        },
+        {
+          "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+          "cusip": "874039100",
+          "value": 535110030,
+          "shares": 1583400,
+          "putCall": "PUT",
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
+        },
+        {
+          "issuer": "ASML HLDG NV N Y REGISTRY",
+          "cusip": "N07059210",
+          "value": 494122503,
+          "shares": 374100,
+          "putCall": "PUT",
+          "titleOfClass": "SHS",
+          "ticker": ""
+        },
+        {
+          "issuer": "MICRON TECHNOLOGY INC",
+          "cusip": "595112103",
+          "value": 422300000,
+          "shares": 1250000,
+          "putCall": "CALL",
+          "titleOfClass": "COM",
+          "ticker": "MU"
+        },
+        {
+          "issuer": "SANDISK CORP",
+          "cusip": "80004C200",
+          "value": 388764546,
+          "shares": 611900,
+          "putCall": "CALL",
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
+        },
+        {
+          "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+          "cusip": "874039100",
+          "value": 354847500,
+          "shares": 1050000,
+          "putCall": "CALL",
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
+        },
+        {
+          "issuer": "INTEL CORP",
+          "cusip": "458140100",
+          "value": 159106302,
+          "shares": 3605400,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": "INTC"
+        },
+        {
+          "issuer": "COREWEAVE INC",
+          "cusip": "21873S108",
+          "value": 140569315,
+          "shares": 1814500,
+          "putCall": "CALL",
+          "titleOfClass": "COM CL A",
+          "ticker": "CRWV"
+        },
+        {
+          "issuer": "BLOOM ENERGY CORP",
+          "cusip": "093712107",
+          "value": 55347665,
+          "shares": 408500,
+          "putCall": "CALL",
+          "titleOfClass": "COM CL A",
+          "ticker": "BE"
+        },
+        {
+          "issuer": "CORNING INC",
+          "cusip": "219350105",
+          "value": 21020962,
+          "shares": 154600,
+          "putCall": "PUT",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "INFOSYS LTD",
+          "cusip": "456788108",
+          "value": 6755000,
+          "shares": 500000,
+          "putCall": "PUT",
+          "titleOfClass": "SPONSORED ADR",
+          "ticker": "INFY"
+        },
+        {
+          "issuer": "BLOOM ENERGY CORP",
+          "cusip": "093712107",
+          "value": 878707930,
+          "shares": 6485408,
+          "putCall": "",
+          "titleOfClass": "COM CL A",
+          "ticker": "BE"
+        },
+        {
+          "issuer": "SANDISK CORP",
+          "cusip": "80004C200",
+          "value": 724363205,
+          "shares": 1140119,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "SNDK"
+        },
+        {
+          "issuer": "COREWEAVE INC",
+          "cusip": "21873S108",
+          "value": 556073385,
+          "shares": 7177919,
+          "putCall": "",
+          "titleOfClass": "COM CL A",
+          "ticker": "CRWV"
+        },
+        {
+          "issuer": "IREN LIMITED",
+          "cusip": "Q4982L109",
+          "value": 401036064,
+          "shares": 11698835,
+          "putCall": "",
+          "titleOfClass": "ORDINARY SHARES",
+          "ticker": ""
+        },
+        {
+          "issuer": "CORE SCIENTIFIC INC NEW",
+          "cusip": "21874A106",
+          "value": 389086756,
+          "shares": 26008473,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "APPLIED DIGITAL CORP",
+          "cusip": "038169207",
+          "value": 319978118,
+          "shares": 13478438,
+          "putCall": "",
+          "titleOfClass": "COM NEW",
+          "ticker": "APLD"
+        },
+        {
+          "issuer": "RIOT PLATFORMS INC",
+          "cusip": "767292105",
+          "value": 142166413,
+          "shares": 11502137,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "RIOT"
+        },
+        {
+          "issuer": "CLEANSPARK INC",
+          "cusip": "18452B209",
+          "value": 104469943,
+          "shares": 12276139,
+          "putCall": "",
+          "titleOfClass": "COM NEW",
+          "ticker": "CLSK"
+        },
+        {
+          "issuer": "SOLARIS ENERGY INFRAS INC",
+          "cusip": "83418M103",
+          "value": 62474687,
+          "shares": 1105551,
+          "putCall": "",
+          "titleOfClass": "COM CL A",
+          "ticker": ""
+        },
+        {
+          "issuer": "T1 ENERGY INC",
+          "cusip": "35834F104",
+          "value": 43900000,
+          "shares": 10000000,
+          "putCall": "",
+          "titleOfClass": "COM NEW",
+          "ticker": "TE"
+        },
+        {
+          "issuer": "BITFARMS LTD",
+          "cusip": "09173B107",
+          "value": 38757888,
+          "shares": 19875840,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "BITDEER TECHNOLOGIES GROUP",
+          "cusip": "G11448100",
+          "value": 29751243,
+          "shares": 3439450,
+          "putCall": "",
+          "titleOfClass": "CL A ORD SHS",
+          "ticker": "BTDR"
+        },
+        {
+          "issuer": "POWER SOLUTIONS INTL INC",
+          "cusip": "73933G202",
+          "value": 26318424,
+          "shares": 432300,
+          "putCall": "",
+          "titleOfClass": "COM NEW",
+          "ticker": ""
+        },
+        {
+          "issuer": "WHITEFIBER INC",
+          "cusip": "G96115103",
+          "value": 20933016,
+          "shares": 1757600,
+          "putCall": "",
+          "titleOfClass": "SHS",
+          "ticker": "WYFI"
+        },
+        {
+          "issuer": "ADVANCED MICRO DEVICES INC",
+          "cusip": "007903107",
+          "value": 20167643,
+          "shares": 99138,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "AMD"
+        },
+        {
+          "issuer": "BABCOCK &amp; WILCOX ENTERPRISES",
+          "cusip": "05614L209",
+          "value": 19888791,
+          "shares": 1353900,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "SHARONAI HOLDINGS INC",
+          "cusip": "778920306",
+          "value": 18095535,
+          "shares": 796108,
+          "putCall": "",
+          "titleOfClass": "COM CL A  ADDED",
+          "ticker": "SHAZ"
+        },
+        {
+          "issuer": "PROPETRO HLDG CORP",
+          "cusip": "74347M108",
+          "value": 13117423,
+          "shares": 910300,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "VANECK ETF TRUST",
+          "cusip": "92189F676",
+          "value": 10332630,
+          "shares": 26950,
+          "putCall": "",
+          "titleOfClass": "SEMICONDUCTR ETF",
+          "ticker": ""
+        },
+        {
+          "issuer": "INTEL CORP",
+          "cusip": "458140100",
+          "value": 8929441,
+          "shares": 202344,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "INTC"
+        },
+        {
+          "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+          "cusip": "874039100",
+          "value": 7577853,
+          "shares": 22423,
+          "putCall": "",
+          "titleOfClass": "SPONSORED ADS",
+          "ticker": ""
+        },
+        {
+          "issuer": "HIVE DIGITAL TECHNOLOGIES LT",
+          "cusip": "433921103",
+          "value": 6443939,
+          "shares": 3391547,
+          "putCall": "",
+          "titleOfClass": "COM NEW",
+          "ticker": ""
+        },
+        {
+          "issuer": "ASML HLDG NV N Y REGISTRY",
+          "cusip": "N07059210",
+          "value": 6119405,
+          "shares": 4633,
+          "putCall": "",
+          "titleOfClass": "SHS",
+          "ticker": ""
+        },
+        {
+          "issuer": "MICRON TECHNOLOGY INC",
+          "cusip": "595112103",
+          "value": 5865578,
+          "shares": 17362,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "MU"
+        },
+        {
+          "issuer": "CORNING INC",
+          "cusip": "219350105",
+          "value": 718330,
+          "shares": 5283,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": ""
+        },
+        {
+          "issuer": "NVIDIA CORPORATION",
+          "cusip": "67066G104",
+          "value": 497912,
+          "shares": 2855,
+          "putCall": "",
+          "titleOfClass": "COM",
+          "ticker": "NVDA"
         }
       ]
     }
   },
   "problems": [],
-  "fundCount": 13,
-  "totalPositions": 634
+  "fundCount": 14,
+  "totalPositions": 676
 }
