@@ -2426,7 +2426,8 @@ input[type="range"]::-webkit-slider-thumb {
           <th style="cursor:pointer;" onclick="sortUniverse('momentum')" title="Momentum dimension">Mom</th>
           <th style="cursor:pointer;" onclick="sortUniverse('conviction')" title="Conviction dimension">Conv</th>
           <th style="cursor:pointer;" onclick="sortUniverse('risk')" title="Risk dimension (100=safe)">Risk</th>
-          <th style="cursor:pointer;" onclick="sortUniverse('researchRisk')" title="Research Risk Score (independent, 100=high risk)">RR</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('researchRisk')" title="Net Signal: signed. Negative=risk, positive=conviction. No floor.">Signal</th>
+          <th style="cursor:pointer;" onclick="sortUniverse('researchVolume')" title="Interest: how many signals fire, direction-blind. Read WITH Signal.">Int</th>
           <th>Band</th>
           <th style="cursor:pointer;" onclick="sortUniverse('signals')">Sig#</th>
           <th>BX</th>
@@ -2690,7 +2691,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.7.1';
+const APEX_VERSION = '5.8.0';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -8996,7 +8997,8 @@ function renderUniverseTable() {
       case 'momentum': return dir * ((a.dimensions?.momentum||0) - (b.dimensions?.momentum||0));
       case 'conviction': return dir * ((a.dimensions?.conviction||0) - (b.dimensions?.conviction||0));
       case 'risk': return dir * ((a.dimensions?.risk||0) - (b.dimensions?.risk||0));
-      case 'researchRisk': return dir * ((a.researchRisk?.score||0) - (b.researchRisk?.score||0));
+      case 'researchRisk': return dir * ((a.researchRisk?.net||0) - (b.researchRisk?.net||0));
+      case 'researchVolume': return dir * ((a.researchRisk?.volume||0) - (b.researchRisk?.volume||0));
       case 'signals': return dir * (a.signalCount - b.signalCount);
       case 'weight': return dir * (a.weight - b.weight);
       default: return dir * ((a.composite||0) - (b.composite||0));
@@ -9080,7 +9082,8 @@ function renderUniverseTable() {
       <td style="font-size:9px;font-weight:600;color:${u.shortScore?.net >= 35 ? 'var(--red)' : u.shortScore?.net > 0 ? 'var(--amber)' : 'var(--green)'};">${u.shortScore?.conviction || '—'}</td>
       <td class="num" style="font-size:10px;color:var(--red);">${u.shortScore?.bearTotal || 0}</td>
       <td class="num" style="font-size:10px;color:var(--green);">${u.shortScore?.antiTotal || 0}</td>
-      <td class="num" style="font-size:10px;font-weight:${u.researchRisk?.score >= 25 ? '700' : '400'};color:${u.researchRisk?.score >= 50 ? 'var(--red)' : u.researchRisk?.score >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.researchRisk?.score || 0}</td>
+      <td class="num" style="font-size:11px;font-weight:700;color:${(u.researchRisk?.net||0) >= 20 ? 'var(--green)' : (u.researchRisk?.net||0) <= -20 ? 'var(--red)' : 'var(--amber)'};">${(u.researchRisk?.net||0) > 0 ? '+' : ''}${u.researchRisk?.net || 0}</td>
+      <td class="num" style="font-size:10px;color:var(--text-tertiary);">${u.researchRisk?.volume || 0}</td>
       ` : `
       <td class="num" style="font-weight:800;font-size:14px;color:${u.composite >= 70 ? 'var(--green)' : u.composite >= 40 ? 'var(--amber)' : u.composite > 0 ? 'var(--red)' : 'var(--text-tertiary)'};">${u.composite || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.value >= 50 ? 'var(--green)' : u.dimensions?.value >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.value || 0}</td>
@@ -9089,7 +9092,8 @@ function renderUniverseTable() {
       <td class="num" style="font-size:10px;color:${u.dimensions?.conviction >= 50 ? 'var(--green)' : u.dimensions?.conviction >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.conviction || 0}</td>
       <td class="num" style="font-size:10px;color:${u.dimensions?.risk >= 50 ? 'var(--green)' : u.dimensions?.risk >= 25 ? 'var(--amber)' : 'var(--text-tertiary)'};">${u.dimensions?.risk || 50}</td>
       `}
-      <td class="num" style="font-size:10px;font-weight:${u.researchRisk?.score >= 25 ? '700' : '400'};color:${u.researchRisk?.score >= 50 ? 'var(--red)' : u.researchRisk?.score >= 25 ? 'var(--amber)' : u.researchRisk?.score > 0 ? 'var(--text-tertiary)' : 'var(--green)'};" title="${u.researchRisk?.level || 'NONE'}: ${u.researchRisk?.signals?.map(s=>s.text).join(', ') || 'no signals'}">${u.researchRisk?.score || 0}</td>
+      <td class="num" style="font-size:11px;font-weight:700;color:${(u.researchRisk?.net||0) >= 20 ? 'var(--green)' : (u.researchRisk?.net||0) <= -20 ? 'var(--red)' : (u.researchRisk?.net||0) !== 0 ? 'var(--amber)' : 'var(--text-tertiary)'};" title="${u.researchRisk?.state || 'THIN'}: ${u.researchRisk?.signals?.map(s=>s.text).join(', ') || 'no signals'}">${(u.researchRisk?.net||0) > 0 ? '+' : ''}${u.researchRisk?.net || 0}</td>
+      <td class="num" style="font-size:10px;color:${(u.researchRisk?.volume||0) >= 3 ? 'var(--text-primary)' : 'var(--text-tertiary)'};" title="${u.researchRisk?.state || 'THIN'} — ${u.researchRisk?.volume || 0} signals">${u.researchRisk?.volume || 0}${u.researchRisk?.state === 'CONTESTED' ? ' ⚔' : ''}</td>
       <td style="font-size:9px;color:${u.sizingBand?.color || 'var(--text-tertiary)'};font-weight:600;">${u.sizingBand?.band || '—'}</td>
       <td style="text-align:center;">
         <span style="font-weight:700;color:${sigColor};">${u.signalCount}</span>
@@ -9190,7 +9194,8 @@ function toggleUniverseDetail(row, ticker) {
       </div>
     </div>` : ''}
     ${u.researchRisk?.signals?.length > 0 ? `<div style="margin-top:8px;padding:8px;background:var(--bg-secondary);border-radius:var(--radius-sm);">
-      <div style="font-weight:700;margin-bottom:4px;">📡 Research Risk: <span style="color:${u.researchRisk.score >= 50 ? 'var(--red)' : u.researchRisk.score >= 25 ? 'var(--amber)' : 'var(--green)'};">${u.researchRisk.score} (${u.researchRisk.level})</span> <span style="font-size:9px;color:var(--text-tertiary);font-weight:400;">— independent from composite</span></div>
+      <div style="font-weight:700;margin-bottom:4px;">📡 Net Signal: <span style="color:${u.researchRisk.net >= 20 ? 'var(--green)' : u.researchRisk.net <= -20 ? 'var(--red)' : 'var(--amber)'};">${u.researchRisk.net > 0 ? '+' : ''}${u.researchRisk.net} · ${u.researchRisk.state}</span> <span style="font-size:9px;color:var(--text-tertiary);font-weight:400;">— ${u.researchRisk.volume} signals · ${u.researchRisk.fundLongs||0} fund longs / ${u.researchRisk.fundShorts||0} fund shorts · independent from composite</span></div>
+      ${u.researchRisk.state === 'CONTESTED' ? '<div style="font-size:9px;color:var(--amber);margin-bottom:4px;">⚔ Smart money disagrees — strong signals both directions. Highest uncertainty.</div>' : ''}
       ${u.researchRisk.signals.map(s => `<div style="font-size:10px;padding:1px 0;">
         <span style="color:${s.type === 'bearish' ? 'var(--red)' : 'var(--green)'};">${s.pts > 0 ? '+' : ''}${s.pts}</span> ${s.text} <span style="color:var(--text-tertiary);font-size:9px;">(${s.source})</span>
       </div>`).join('')}
@@ -11638,80 +11643,81 @@ function renderUnifiedMarketData(aiAssess, aiFresh, factors) {
 // NOT factored into composite — displayed separately for experience tracking
 function computeResearchRisk(ticker, u) {
   const t = ticker.toUpperCase();
-  let riskPts = 0;
+  let net = 0;          // signed: negative = risk, positive = conviction (NO floor)
+  let volume = 0;       // count of signals firing, direction-blind
   const signals = [];
-  
-  // Check all research feeds for risk signals
+  const add = (pts, text, type, source) => {
+    net += pts; volume += 1;
+    signals.push({ pts, text, type, source });
+  };
+
+  // Research feed signals
   ['political','institutional','insider','earnings','rotation','trump'].forEach(feed => {
     const data = state.research?.[feed];
     if (!data) return;
-    
-    // topShorts targeting this ticker
     (data.topShorts || []).forEach(s => {
-      if (s.ticker?.toUpperCase() === t) {
-        riskPts += 20;
-        signals.push({ text: `${s.trader}: ${s.position || 'SHORT'}`, pts: 20, type: 'bearish', source: feed });
-      }
+      if (s.ticker?.toUpperCase() === t) add(-20, `${s.trader}: ${s.position || 'SHORT'}`, 'bearish', feed);
     });
-    
-    // riskFlags targeting this ticker
     (data.riskFlags || []).forEach(r => {
-      if (r.ticker?.toUpperCase() === t) {
-        riskPts += 25;
-        signals.push({ text: `Risk flag: ${r.trader} ${r.position}`, pts: 25, type: 'bearish', source: feed });
-      }
+      if (r.ticker?.toUpperCase() === t) add(-25, `Risk flag: ${r.trader} ${r.position}`, 'bearish', feed);
     });
-    
-    // Negative confluence
     (data.feedSpecific?.negativeConfluence || []).forEach(n => {
-      if (n.ticker?.toUpperCase() === t) {
-        riskPts += 30;
-        signals.push({ text: `Neg confluence: ${n.insiderSignal}`, pts: 30, type: 'bearish', source: 'insider' });
-      }
+      if (n.ticker?.toUpperCase() === t) add(-30, `Neg confluence: ${n.insiderSignal}`, 'bearish', 'insider');
     });
-    
-    // topPicks / bullishConviction = risk REDUCTION (positive signal)
     (data.topPicks || []).forEach(p => {
-      if (p.ticker?.toUpperCase() === t) {
-        riskPts -= 10;
-        signals.push({ text: `${p.trader || feed}: ${p.signal || 'BUY'}`, pts: -10, type: 'bullish', source: feed });
-      }
+      if (p.ticker?.toUpperCase() === t) add(+10, `${p.trader || feed}: ${p.signal || 'BUY'}`, 'bullish', feed);
     });
     (data.bullishConviction || []).forEach(b => {
-      if (b.ticker?.toUpperCase() === t) {
-        riskPts -= 8;
-        signals.push({ text: `Bullish: ${b.trader} ${b.position}`, pts: -8, type: 'bullish', source: feed });
-      }
+      if (b.ticker?.toUpperCase() === t) add(+8, `Bullish: ${b.trader} ${b.position}`, 'bullish', feed);
     });
   });
-  
-  // BX state risk
-  if (u.bxState === 'BEAR' || u.bxState === 'SELL') {
-    riskPts += 10;
-    signals.push({ text: `BX ${u.bxState}`, pts: 10, type: 'bearish', source: 'bx' });
-  } else if (u.bxState === 'BULL' || u.bxState === 'BUY') {
-    riskPts -= 5;
-    signals.push({ text: `BX ${u.bxState}`, pts: -5, type: 'bullish', source: 'bx' });
+
+  // Fund 13F cross-reference (now that tickers resolve) — the conviction/consensus signal
+  let fundLongs = 0, fundShorts = 0;
+  if (state.notableTracker?.portfolios) {
+    Object.values(state.notableTracker.portfolios).forEach(fund => {
+      if (fund.stale) return; // frozen funds don't feed live signal
+      (fund.positions || []).forEach(pos => {
+        if (pos.ticker?.toUpperCase() !== t) return;
+        if (pos.putCall === 'PUT') { fundShorts++; add(-15, `${fund.person}: PUT`, 'bearish', 'fund13f'); }
+        else if (pos.putCall === 'CALL') { fundLongs++; add(+8, `${fund.person}: CALL`, 'bullish', 'fund13f'); }
+        else { fundLongs++; add(+6, `${fund.person}: LONG`, 'bullish', 'fund13f'); }
+      });
+    });
   }
-  
-  // Cyclical peak risk
+
+  // BX state
+  if (u.bxState === 'BEAR' || u.bxState === 'SELL') add(-10, `BX ${u.bxState}`, 'bearish', 'bx');
+  else if (u.bxState === 'BULL' || u.bxState === 'BUY') add(+8, `BX ${u.bxState}`, 'bullish', 'bx');
+
+  // Cyclical peak risk (bearish, no bullish counterpart)
   const sectorStr = (u.sector || '').toLowerCase();
   const isCyclical = sectorStr.includes('memory') || sectorStr.includes('semiconductor') ||
     ['Energy', 'Materials'].includes(u.sector) || ['MU', 'WDC', 'STX'].includes(t);
-  if (isCyclical && u.fwdPE && u.fwdPE < 15) {
-    riskPts += 15;
-    signals.push({ text: 'Cyclical: low P/E may = peak cycle', pts: 15, type: 'bearish', source: 'scoring' });
-  }
-  
+  if (isCyclical && u.fwdPE && u.fwdPE < 15) add(-15, 'Cyclical: low P/E may = peak cycle', 'bearish', 'scoring');
+
   // Extreme drawdown
-  if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 25) {
-    riskPts += 10;
-    signals.push({ text: `${Math.abs(u.pctFromHigh).toFixed(0)}% from high`, pts: 10, type: 'bearish', source: 'price' });
+  if (u.pctFromHigh && Math.abs(u.pctFromHigh) > 25) add(-10, `${Math.abs(u.pctFromHigh).toFixed(0)}% from high`, 'bearish', 'price');
+
+  // Clamp signed net to display range, but NO floor at 0 — negatives are real
+  const netScore = Math.max(-100, Math.min(100, net));
+
+  // Derived state from net + volume (contested vs thin disambiguation)
+  const bearishCount = signals.filter(s => s.type === 'bearish').length;
+  const bullishCount = signals.filter(s => s.type === 'bullish').length;
+  let state_ = 'THIN';
+  if (volume >= 3) {
+    if (bearishCount > 0 && bullishCount > 0 && Math.abs(netScore) < 20) state_ = 'CONTESTED';
+    else if (netScore >= 20) state_ = 'CONVICTION';
+    else if (netScore <= -20) state_ = 'RISK';
+    else state_ = 'MIXED';
+  } else if (volume > 0) {
+    state_ = netScore >= 15 ? 'LEAN LONG' : netScore <= -15 ? 'LEAN RISK' : 'THIN';
   }
-  
-  const score = Math.max(0, Math.min(100, riskPts));
-  const level = score >= 50 ? 'HIGH' : score >= 25 ? 'MEDIUM' : score > 0 ? 'LOW' : 'NONE';
-  return { score, level, signals };
+
+  return { net: netScore, volume, state: state_, signals, fundLongs, fundShorts,
+           // legacy field kept so any old references don't crash
+           score: netScore, level: state_ };
 }
 
 function computeShortScore(ticker, u) {
