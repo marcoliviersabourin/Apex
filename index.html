@@ -2690,7 +2690,7 @@ input[type="range"]::-webkit-slider-thumb {
    ═══════════════════════════════════════════════════════════ */
 
 // ═══ CONSTANTS ═══
-const APEX_VERSION = '5.7.0';
+const APEX_VERSION = '5.7.1';
 const APEX_BUILD = '2026-04-23-005';
 
 const SECTORS = [
@@ -2745,8 +2745,18 @@ function init() {
   
   loadState();
   migratePoliticianDataV1();
-  loadStatic13F().then(() => { if (document.getElementById('notablePortfolioViewer')) renderNotablePortfolioViewer(); });
+  loadStatic13F().then(() => { window._lastStatic13FLoad = Date.now(); if (document.getElementById('notablePortfolioViewer')) renderNotablePortfolioViewer(); });
   if (document.getElementById('poltrack-checkboxes')) renderTrackableList('poltrack');
+  // Re-fetch SEC data when returning to a long-open PWA session (>6h since last load)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const last = state.notableTracker?.staticDataGenerated ? new Date(state.notableTracker.staticDataGenerated).getTime() : 0;
+    const lastLoad = window._lastStatic13FLoad || 0;
+    if (Date.now() - lastLoad > 6 * 3600 * 1000) {
+      window._lastStatic13FLoad = Date.now();
+      loadStatic13F().then(() => { if (document.getElementById('notablePortfolioViewer')) renderNotablePortfolioViewer(); });
+    }
+  });
   renderSectorPills();
   renderSectorMaxSliders();
   applyProfile();
