@@ -1,7 +1,7 @@
 APEX 13F FETCH SUMMARY
-Generated: 2026-07-07T13:04:07.848Z
+Generated: 2026-07-12T08:20:07.515Z
 Funds: 14 | Total kept positions: 676
-Tickers resolved: 428/676 (63%)
+Tickers resolved: 427/676 (63%)
 File size: 94 KB
 ==================================================
 
