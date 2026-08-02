@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-26T08:27:47.423Z",
+  "generated": "2026-08-02T08:25:28.161Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -4609,7 +4609,7 @@
           "shares": 2800704,
           "putCall": "",
           "titleOfClass": "COM",
-          "ticker": "TGT"
+          "ticker": "CBDY"
         },
         {
           "issuer": "ORACLE CORP",
