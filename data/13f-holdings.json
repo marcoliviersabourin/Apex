@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T06:40:31.844Z",
+  "generated": "2026-08-23T06:41:15.479Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -292,7 +292,7 @@
           "shares": 970990,
           "putCall": "",
           "titleOfClass": "COM",
-          "ticker": "EA"
+          "ticker": ""
         },
         {
           "issuer": "BILL HOLDINGS INC",
@@ -4159,7 +4159,7 @@
           "shares": 5906884,
           "putCall": "",
           "titleOfClass": "COM",
-          "ticker": "EA"
+          "ticker": ""
         },
         {
           "issuer": "WARNER BROS DISCOVERY INC",
