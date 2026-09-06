@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-30T11:26:00.727Z",
+  "generated": "2026-09-06T10:26:22.036Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -3004,7 +3004,7 @@
           "shares": 1204563,
           "putCall": "",
           "titleOfClass": "SPONSORD ADS",
-          "ticker": "SE"
+          "ticker": ""
         },
         {
           "issuer": "ISHARES TR",
@@ -3651,10 +3651,10 @@
       "label": "Ken Griffin / Citadel Advisors",
       "cik": "1423053",
       "entityName": "CITADEL ADVISORS LLC",
-      "filingDate": "2026-08-14",
+      "filingDate": "2026-09-02",
       "reportDate": "2026-06-30",
-      "form": "13F-HR",
-      "rawPositionCount": 16127,
+      "form": "13F-HR/A",
+      "rawPositionCount": 16122,
       "positionCount": 150,
       "positions": [
         {
@@ -5215,7 +5215,7 @@
           "shares": 1099905,
           "putCall": "",
           "titleOfClass": "SPONSORD ADS",
-          "ticker": "SE"
+          "ticker": ""
         },
         {
           "issuer": "Cdw Corp",

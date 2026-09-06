@@ -1,7 +1,7 @@
 APEX 13F FETCH SUMMARY
-Generated: 2026-08-30T11:26:00.727Z
+Generated: 2026-09-06T10:26:22.036Z
 Funds: 14 | Total kept positions: 695
-Tickers resolved: 463/695 (67%)
+Tickers resolved: 461/695 (66%)
 File size: 96 KB
 ==================================================
 
@@ -43,7 +43,7 @@ Ray Dalio / Bridgewater Associates
 
 Ken Griffin / Citadel Advisors
   CIK 1423053 | CITADEL ADVISORS LLC
-  Report: 2026-06-30 | raw 16127 → kept 150 (28 puts, 22 calls)
+  Report: 2026-06-30 | raw 16122 → kept 150 (28 puts, 22 calls)
 
 Stanley Druckenmiller / Duquesne Family Office
   CIK 1536411 | Duquesne Family Office LLC
