@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-13T11:14:32.569Z",
+  "generated": "2026-09-20T10:48:32.489Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -499,7 +499,7 @@
           "shares": 564500,
           "putCall": "",
           "titleOfClass": "COM",
-          "ticker": "APGE"
+          "ticker": ""
         },
         {
           "issuer": "CMS ENERGY CORP",
