@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-11T12:15:31.628Z",
+  "generated": "2026-10-18T10:31:53.604Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -571,7 +571,7 @@
           "shares": 4118793,
           "putCall": "",
           "titleOfClass": "CL A NEW",
-          "ticker": "DBRG"
+          "ticker": "DBRHP"
         },
         {
           "issuer": "MEDLINE INC",
@@ -931,7 +931,7 @@
           "shares": 3346860,
           "putCall": "",
           "titleOfClass": "COM CL A",
-          "ticker": "GBTG"
+          "ticker": ""
         },
         {
           "issuer": "COREWEAVE INC",
