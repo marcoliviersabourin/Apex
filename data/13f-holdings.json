@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-18T10:31:53.604Z",
+  "generated": "2026-10-25T10:53:49.495Z",
   "source": "SEC EDGAR",
   "funds": {
     "921669": {
@@ -751,7 +751,7 @@
           "shares": 1488690,
           "putCall": "",
           "titleOfClass": "COM SER A",
-          "ticker": "WBD"
+          "ticker": ""
         },
         {
           "issuer": "HONEYWELL INTL INC",
@@ -1168,7 +1168,7 @@
           "shares": 20000000,
           "putCall": "",
           "titleOfClass": "COM SER A",
-          "ticker": "WBD"
+          "ticker": ""
         },
         {
           "issuer": "AMAZON COM INC",
@@ -4168,7 +4168,7 @@
           "shares": 44587810,
           "putCall": "",
           "titleOfClass": "COM SER A",
-          "ticker": "WBD"
+          "ticker": ""
         },
         {
           "issuer": "ELI LILLY &amp; CO",
