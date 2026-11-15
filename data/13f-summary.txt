@@ -1,17 +1,17 @@
 APEX 13F FETCH SUMMARY
-Generated: 2026-11-08T12:53:11.056Z
+Generated: 2026-11-15T13:35:05.140Z
 Funds: 14 | Total kept positions: 695
-Tickers resolved: 458/695 (66%)
+Tickers resolved: 455/695 (65%)
 File size: 96 KB
 ==================================================
 
 Carl Icahn / Icahn Capital
   CIK 921669 | ICAHN CARL C
-  Report: 2026-06-30 | raw 18 → kept 12 (0 puts, 0 calls)
+  Report: 2026-09-30 | raw 16 → kept 10 (0 puts, 0 calls)
 
 George Soros / Soros Fund Management
   CIK 1029160 | SOROS FUND MANAGEMENT LLC
-  Report: 2026-06-30 | raw 266 → kept 112 (6 puts, 6 calls)
+  Report: 2026-09-30 | raw 263 → kept 116 (6 puts, 10 calls)
 
 Daniel Loeb / Third Point
   CIK 1040273 | Third Point LLC
@@ -19,7 +19,7 @@ Daniel Loeb / Third Point
 
 Seth Klarman / Baupost Group
   CIK 1061768 | BAUPOST GROUP LLC/MA
-  Report: 2026-06-30 | raw 23 → kept 23 (0 puts, 0 calls)
+  Report: 2026-09-30 | raw 21 → kept 21 (0 puts, 0 calls)
 
 Warren Buffett / Berkshire Hathaway
   CIK 1067983 | BERKSHIRE HATHAWAY INC
