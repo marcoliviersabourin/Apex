@@ -1,8 +1,8 @@
 APEX 13F FETCH SUMMARY
-Generated: 2026-11-15T13:35:05.140Z
-Funds: 14 | Total kept positions: 695
-Tickers resolved: 455/695 (65%)
-File size: 96 KB
+Generated: 2026-11-22T14:12:31.353Z
+Funds: 14 | Total kept positions: 643
+Tickers resolved: 409/643 (64%)
+File size: 89 KB
 ==================================================
 
 Carl Icahn / Icahn Capital
@@ -15,7 +15,7 @@ George Soros / Soros Fund Management
 
 Daniel Loeb / Third Point
   CIK 1040273 | Third Point LLC
-  Report: 2026-06-30 | raw 43 → kept 43 (1 puts, 0 calls)
+  Report: 2026-09-30 | raw 39 → kept 39 (1 puts, 0 calls)
 
 Seth Klarman / Baupost Group
   CIK 1061768 | BAUPOST GROUP LLC/MA
@@ -23,7 +23,7 @@ Seth Klarman / Baupost Group
 
 Warren Buffett / Berkshire Hathaway
   CIK 1067983 | BERKSHIRE HATHAWAY INC
-  Report: 2026-06-30 | raw 89 → kept 29 (0 puts, 0 calls)
+  Report: 2026-09-30 | raw 89 → kept 30 (0 puts, 0 calls)
 
 David Einhorn / Greenlight Capital
   CIK 1079114 | GREENLIGHT CAPITAL INC
@@ -31,7 +31,7 @@ David Einhorn / Greenlight Capital
 
 Bill Gates / Gates Foundation Trust
   CIK 1166559 | GATES FOUNDATION TRUST
-  Report: 2026-06-30 | raw 24 → kept 24 (0 puts, 0 calls)
+  Report: 2026-09-30 | raw 25 → kept 25 (0 puts, 0 calls)
 
 Bill Ackman / Pershing Square Capital
   CIK 1336528 | Pershing Square Capital Management, L.P.
@@ -39,15 +39,15 @@ Bill Ackman / Pershing Square Capital
 
 Ray Dalio / Bridgewater Associates
   CIK 1350694 | Bridgewater Associates, LP
-  Report: 2026-06-30 | raw 997 → kept 100 (0 puts, 0 calls)
+  Report: 2026-09-30 | raw 974 → kept 100 (0 puts, 0 calls)
 
 Ken Griffin / Citadel Advisors
   CIK 1423053 | CITADEL ADVISORS LLC
-  Report: 2026-06-30 | raw 16122 → kept 150 (28 puts, 22 calls)
+  Report: 2026-09-30 | raw 16527 → kept 150 (25 puts, 25 calls)
 
 Stanley Druckenmiller / Duquesne Family Office
   CIK 1536411 | Duquesne Family Office LLC
-  Report: 2026-06-30 | raw 95 → kept 91 (0 puts, 9 calls)
+  Report: 2026-09-30 | raw 65 → kept 61 (0 puts, 5 calls)
 
 Michael Burry / Scion Asset Management
   CIK 1649339 | Scion Asset Management, LLC
@@ -55,9 +55,9 @@ Michael Burry / Scion Asset Management
 
 David Tepper / Appaloosa Management
   CIK 1656456 | Appaloosa LP
-  Report: 2026-06-30 | raw 27 → kept 27 (2 puts, 0 calls)
+  Report: 2026-09-30 | raw 24 → kept 24 (0 puts, 0 calls)
 
 Leopold Aschenbrenner / Situational Awareness LP
   CIK 2045724 | Situational Awareness LP
-  Report: 2026-06-30 | raw 26 → kept 26 (1 puts, 2 calls)
+  Report: 2026-09-30 | raw 23 → kept 9 (0 puts, 4 calls)
 
